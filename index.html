@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-width=1.0">
@@ -7,15 +8,31 @@
     <link rel="stylesheet" href="/src/styles.css">
     <meta name="theme-color" content="#ffffff">
 </head>
+
 <body>
-    <div id="app">
-        <h1>Customer Dashboard</h1>
-        <p>Welcome to the customer portal.</p>
-        <div id="auth-section">
-            <button id="login-btn">Login</button>
+    <div id="app" class="login-active">
+        <div class="login-container">
+            <div class="login-image-side"></div>
+            <div class="login-form-side">
+                <div class="login-box">
+                    <div class="login-header">
+                        <h1>Welcome back</h1>
+                        <p>Join the customer portal.</p>
+                    </div>
+                    <div id="auth-section">
+                        <input type="email" id="email" placeholder="Email address" required>
+                        <input type="password" id="password" placeholder="Password" required>
+                        <button id="login-btn">Sign in</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div id="map-container" style="height: 300px; width: 100%; margin-top: 20px;"></div>
+        <div id="dashboard-content" style="display: none; padding: 40px;">
+            <h1>Customer Dashboard</h1>
+            <div id="map-container" style="height: 400px; width: 100%;"></div>
+        </div>
     </div>
     <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>
