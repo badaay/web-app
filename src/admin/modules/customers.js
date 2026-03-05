@@ -7,16 +7,16 @@ export async function initCustomers() {
     addBtn.onclick = () => showCustomerModal();
 
     async function loadCustomers() {
-        listContainer.innerHTML = 'Loading customers...';
+        listContainer.innerHTML = 'Memuat pelanggan...';
         const { data, error } = await supabase.from('customers').select('*').order('name');
 
         if (error) {
-            listContainer.innerHTML = `<div class="text-danger">Error: ${error.message}</div>`;
+            listContainer.innerHTML = `<div class="text-danger">Kesalahan: ${error.message}</div>`;
             return;
         }
 
         if (data.length === 0) {
-            listContainer.innerHTML = '<div class="text-muted">No customers found.</div>';
+            listContainer.innerHTML = '<div class="text-muted">Tidak ada pelanggan ditemukan.</div>';
             return;
         }
 
@@ -24,10 +24,10 @@ export async function initCustomers() {
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Name</th>
-                        <th>Address</th>
-                        <th>Location</th>
-                        <th>Actions</th>
+                        <th>Nama</th>
+                        <th>Alamat</th>
+                        <th>Lokasi</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -37,7 +37,7 @@ export async function initCustomers() {
                             <td>${cust.address}</td>
                             <td><small>${cust.lat?.toFixed(4)}, ${cust.lng?.toFixed(4)}</small></td>
                             <td>
-                                <button class="btn btn-sm btn-outline-info view-map" data-lat="${cust.lat}" data-lng="${cust.lng}" data-name="${cust.name}">Map</button>
+                                <button class="btn btn-sm btn-outline-info view-map" data-lat="${cust.lat}" data-lng="${cust.lng}" data-name="${cust.name}">Peta</button>
                                 <button class="btn btn-sm btn-outline-primary edit-cust" data-id="${cust.id}">Edit</button>
                             </td>
                         </tr>
@@ -57,7 +57,7 @@ export async function initCustomers() {
 
     let map;
     function showMap(lat, lng, name) {
-        if (!lat || !lng) return alert('Coordinates not set for this customer.');
+        if (!lat || !lng) return alert('Koordinat tidak disetel untuk pelanggan ini.');
 
         const modal = new bootstrap.Modal(document.getElementById('mapModal'));
         modal.show();
@@ -77,24 +77,24 @@ export async function initCustomers() {
         const modalBody = document.getElementById('crudModalBody');
         const saveBtn = document.getElementById('save-crud-btn');
 
-        modalTitle.innerText = cust ? 'Edit Customer' : 'Add Customer';
+        modalTitle.innerText = cust ? 'Edit Pelanggan' : 'Tambah Pelanggan';
         modalBody.innerHTML = `
             <form id="customer-form">
                 <div class="mb-3">
-                    <label class="form-label">Customer Name</label>
+                    <label class="form-label">Nama Pelanggan</label>
                     <input type="text" class="form-control" id="cust-name" value="${cust?.name || ''}" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Address</label>
+                    <label class="form-label">Alamat</label>
                     <textarea class="form-control" id="cust-address" rows="2" required>${cust?.address || ''}</textarea>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Latitude</label>
+                        <label class="form-label">Lintang (Latitude)</label>
                         <input type="number" step="any" class="form-control" id="cust-lat" value="${cust?.lat || ''}">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Longitude</label>
+                        <label class="form-label">Bujur (Longitude)</label>
                         <input type="number" step="any" class="form-control" id="cust-lng" value="${cust?.lng || ''}">
                     </div>
                 </div>
@@ -107,7 +107,7 @@ export async function initCustomers() {
             const lat = parseFloat(document.getElementById('cust-lat').value);
             const lng = parseFloat(document.getElementById('cust-lng').value);
 
-            if (!name || !address) return alert('Name and Address are required.');
+            if (!name || !address) return alert('Nama dan Alamat wajib diisi.');
 
             let result;
             if (cust) {
@@ -117,7 +117,7 @@ export async function initCustomers() {
             }
 
             if (result.error) {
-                alert('Error saving: ' + result.error.message);
+                alert('Gagal menyimpan: ' + result.error.message);
             } else {
                 modal.hide();
                 loadCustomers();

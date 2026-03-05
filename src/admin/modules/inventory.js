@@ -7,16 +7,16 @@ export async function initInventory() {
     addBtn.onclick = () => showInventoryModal();
 
     async function loadInventory() {
-        listContainer.innerHTML = 'Loading inventory...';
+        listContainer.innerHTML = 'Memuat inventaris...';
         const { data, error } = await supabase.from('inventory_items').select('*').order('name');
 
         if (error) {
-            listContainer.innerHTML = `<div class="text-danger">Error: ${error.message}</div>`;
+            listContainer.innerHTML = `<div class="text-danger">Kesalahan: ${error.message}</div>`;
             return;
         }
 
         if (data.length === 0) {
-            listContainer.innerHTML = '<div class="text-muted">No inventory items found.</div>';
+            listContainer.innerHTML = '<div class="text-muted">Tidak ada barang inventaris ditemukan.</div>';
             return;
         }
 
@@ -24,11 +24,11 @@ export async function initInventory() {
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Item Name</th>
-                        <th>Stock</th>
-                        <th>Unit</th>
-                        <th>Category</th>
-                        <th>Actions</th>
+                        <th>Nama Barang</th>
+                        <th>Stok</th>
+                        <th>Satuan</th>
+                        <th>Kategori</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -58,25 +58,25 @@ export async function initInventory() {
         const modalBody = document.getElementById('crudModalBody');
         const saveBtn = document.getElementById('save-crud-btn');
 
-        modalTitle.innerText = item ? 'Edit Item' : 'Add Item';
+        modalTitle.innerText = item ? 'Edit Barang' : 'Tambah Barang';
         modalBody.innerHTML = `
             <form id="inventory-form">
                 <div class="mb-3">
-                    <label class="form-label">Item Name</label>
+                    <label class="form-label">Nama Barang</label>
                     <input type="text" class="form-control" id="item-name" value="${item?.name || ''}" required>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Stock</label>
+                        <label class="form-label">Stok</label>
                         <input type="number" class="form-control" id="item-stock" value="${item?.stock || 0}" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Unit</label>
-                        <input type="text" class="form-control" id="item-unit" placeholder="pcs, kg, etc." value="${item?.unit || ''}" required>
+                        <label class="form-label">Satuan</label>
+                        <input type="text" class="form-control" id="item-unit" placeholder="pcs, kg, dll." value="${item?.unit || ''}" required>
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Category</label>
+                    <label class="form-label">Kategori</label>
                     <input type="text" class="form-control" id="item-category" value="${item?.category || ''}">
                 </div>
             </form>
@@ -88,7 +88,7 @@ export async function initInventory() {
             const unit = document.getElementById('item-unit').value;
             const category = document.getElementById('item-category').value;
 
-            if (!name || isNaN(stock) || !unit) return alert('Name, Stock, and Unit are required.');
+            if (!name || isNaN(stock) || !unit) return alert('Nama, Stok, dan Satuan wajib diisi.');
 
             let result;
             if (item) {
@@ -98,7 +98,7 @@ export async function initInventory() {
             }
 
             if (result.error) {
-                alert('Error saving: ' + result.error.message);
+                alert('Gagal menyimpan: ' + result.error.message);
             } else {
                 modal.hide();
                 loadInventory();

@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             password,
         });
         if (error) {
-            alert('Admin login failed: ' + error.message);
+            alert('Login admin gagal: ' + error.message);
             console.error('Error logging in:', error.message);
         } else {
             console.log('Admin login successful:', data);
@@ -65,16 +65,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const role = user.app_metadata.role || 'customer';
         authSection.classList.add('d-none');
         dashboardSection.style.display = 'block';
-        userInfo.innerHTML = `Connected as <strong>${user.email}</strong> <span class="badge bg-primary ms-2">${role.toUpperCase()}</span>`;
+        userInfo.innerHTML = `Terhubung sebagai <strong>${user.email}</strong> <span class="badge bg-primary ms-2">${role.toUpperCase()}</span>`;
 
         // Role-based dummy features using Bootstrap Cards
         if (role === 'admin') {
             roleFeature.innerHTML = `
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="card-title">User Management</h5>
-                        <p class="card-text text-muted">You have full access to manage platform users and permissions.</p>
-                        <button class="btn btn-primary" onclick="alert('Managing Users...')">Manage Users</button>
+                        <h5 class="card-title">Manajemen Pengguna</h5>
+                        <p class="card-text text-muted">Anda memiliki akses penuh untuk mengelola pengguna dan izin platform.</p>
+                        <button class="btn btn-primary" onclick="alert('Mengelola Pengguna...')">Kelola Pengguna</button>
                     </div>
                 </div>
             `;
@@ -82,9 +82,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             roleFeature.innerHTML = `
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="card-title">Financial Performance</h5>
-                        <p class="card-text text-muted">Viewing enterprise-level financial summaries and projections.</p>
-                        <button class="btn btn-success" onclick="alert('Viewing Reports...')">View Revenue Reports</button>
+                        <h5 class="card-title">Kinerja Keuangan</h5>
+                        <p class="card-text text-muted">Melihat ringkasan dan proyeksi keuangan tingkat perusahaan.</p>
+                        <button class="btn btn-success" onclick="alert('Melihat Laporan...')">Lihat Laporan Pendapatan</button>
                     </div>
                 </div>
             `;
@@ -92,9 +92,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             roleFeature.innerHTML = `
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="card-title">Personal Profile</h5>
-                        <p class="card-text text-muted">Manage your personal settings and support tickets.</p>
-                        <button class="btn btn-info text-white" onclick="alert('Viewing Profile...')">Edit Profile</button>
+                        <h5 class="card-title">Profil Pribadi</h5>
+                        <p class="card-text text-muted">Kelola pengaturan pribadi dan tiket dukungan Anda.</p>
+                        <button class="btn btn-info text-white" onclick="alert('Melihat Profil...')">Edit Profil</button>
                     </div>
                 </div>
             `;

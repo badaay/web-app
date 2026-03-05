@@ -7,16 +7,16 @@ export async function initTechnicians() {
     addBtn.onclick = () => showTechModal();
 
     async function loadTechnicians() {
-        listContainer.innerHTML = 'Loading technicians...';
+        listContainer.innerHTML = 'Memuat teknisi...';
         const { data, error } = await supabase.from('technicians').select('*').order('name');
 
         if (error) {
-            listContainer.innerHTML = `<div class="text-danger">Error: ${error.message}</div>`;
+            listContainer.innerHTML = `<div class="text-danger">Kesalahan: ${error.message}</div>`;
             return;
         }
 
         if (data.length === 0) {
-            listContainer.innerHTML = '<div class="text-muted">No technicians found.</div>';
+            listContainer.innerHTML = '<div class="text-muted">Tidak ada teknisi ditemukan.</div>';
             return;
         }
 
@@ -24,10 +24,10 @@ export async function initTechnicians() {
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Name</th>
+                        <th>Nama</th>
                         <th>Email</th>
-                        <th>Phone</th>
-                        <th>Actions</th>
+                        <th>Telepon</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,11 +56,11 @@ export async function initTechnicians() {
         const modalBody = document.getElementById('crudModalBody');
         const saveBtn = document.getElementById('save-crud-btn');
 
-        modalTitle.innerText = tech ? 'Edit Technician' : 'Add Technician';
+        modalTitle.innerText = tech ? 'Edit Teknisi' : 'Tambah Teknisi';
         modalBody.innerHTML = `
             <form id="tech-form">
                 <div class="mb-3">
-                    <label class="form-label">Full Name</label>
+                    <label class="form-label">Nama Lengkap</label>
                     <input type="text" class="form-control" id="tech-name" value="${tech?.name || ''}" required>
                 </div>
                 <div class="mb-3">
@@ -68,7 +68,7 @@ export async function initTechnicians() {
                     <input type="email" class="form-control" id="tech-email" value="${tech?.email || ''}" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Phone</label>
+                    <label class="form-label">Telepon</label>
                     <input type="text" class="form-control" id="tech-phone" value="${tech?.phone || ''}">
                 </div>
             </form>
@@ -79,7 +79,7 @@ export async function initTechnicians() {
             const email = document.getElementById('tech-email').value;
             const phone = document.getElementById('tech-phone').value;
 
-            if (!name || !email) return alert('Name and Email are required.');
+            if (!name || !email) return alert('Nama dan Email wajib diisi.');
 
             let result;
             if (tech) {
@@ -89,7 +89,7 @@ export async function initTechnicians() {
             }
 
             if (result.error) {
-                alert('Error saving: ' + result.error.message);
+                alert('Gagal menyimpan: ' + result.error.message);
             } else {
                 modal.hide();
                 loadTechnicians();
