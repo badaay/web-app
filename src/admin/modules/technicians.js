@@ -1,0 +1,103 @@
+import { supabase } from '../../api/supabase.js';
+
+export async function initTechnicians() {
+    const listContainer = document.getElementById('technicians-list');
+    const addBtn = document.getElementById('add-tech-btn');
+
+    addBtn.onclick = () => showTechModal();
+
+    async function loadTechnicians() {
+        listContainer.innerHTML = 'Loading technicians...';
+        const { data, error } = await supabase.from('technicians').select('*').order('name');
+
+        if (error) {
+            listContainer.innerHTML = `<div class="text-danger">Error: ${error.message}</div>`;
+            return;
+        }
+
+        if (data.length === 0) {
+            listContainer.innerHTML = '<div class="text-muted">No technicians found.</div>';
+            return;
+        }
+
+        listContainer.innerHTML = `
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(tech => `
+                        <tr>
+                            <td>${tech.name}</td>
+                            <td>${tech.email}</td>
+                            <td>${tech.phone || '-'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary edit-tech" data-id="${tech.id}">Edit</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        document.querySelectorAll('.edit-tech').forEach(btn => {
+            btn.onclick = () => showTechModal(data.find(t => t.id === btn.dataset.id));
+        });
+    }
+
+    function showTechModal(tech = null) {
+        const modal = new bootstrap.Modal(document.getElementById('crudModal'));
+        const modalTitle = document.getElementById('crudModalTitle');
+        const modalBody = document.getElementById('crudModalBody');
+        const saveBtn = document.getElementById('save-crud-btn');
+
+        modalTitle.innerText = tech ? 'Edit Technician' : 'Add Technician';
+        modalBody.innerHTML = `
+            <form id="tech-form">
+                <div class="mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="tech-name" value="${tech?.name || ''}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" id="tech-email" value="${tech?.email || ''}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="text" class="form-control" id="tech-phone" value="${tech?.phone || ''}">
+                </div>
+            </form>
+        `;
+
+        saveBtn.onclick = async () => {
+            const name = document.getElementById('tech-name').value;
+            const email = document.getElementById('tech-email').value;
+            const phone = document.getElementById('tech-phone').value;
+
+            if (!name || !email) return alert('Name and Email are required.');
+
+            let result;
+            if (tech) {
+                result = await supabase.from('technicians').update({ name, email, phone }).eq('id', tech.id);
+            } else {
+                result = await supabase.from('technicians').insert([{ name, email, phone }]);
+            }
+
+            if (result.error) {
+                alert('Error saving: ' + result.error.message);
+            } else {
+                modal.hide();
+                loadTechnicians();
+            }
+        };
+
+        modal.show();
+    }
+
+    loadTechnicians();
+}

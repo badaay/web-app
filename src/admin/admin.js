@@ -15,6 +15,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         showDashboard(session.user);
     }
 
+    // Tab switching logic for Master Data
+    const tabEl = document.getElementById('masterDataTabs');
+    if (tabEl) {
+        tabEl.addEventListener('shown.bs.tab', event => {
+            const targetId = event.target.getAttribute('data-bs-target').replace('#', '');
+            initModule(targetId);
+        });
+    }
+
+    async function initModule(targetId) {
+        if (targetId === 'technicians-content') {
+            const { initTechnicians } = await import('./modules/technicians.js');
+            initTechnicians();
+        } else if (targetId === 'customers-content') {
+            const { initCustomers } = await import('./modules/customers.js');
+            initCustomers();
+        } else if (targetId === 'inventory-content') {
+            const { initInventory } = await import('./modules/inventory.js');
+            initInventory();
+        }
+    }
+
+    // Initial load
+    initModule('technicians-content');
+
     document.getElementById('admin-login-btn').addEventListener('click', async () => {
         const email = document.getElementById('admin-email').value;
         const password = document.getElementById('admin-password').value;
