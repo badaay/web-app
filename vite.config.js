@@ -3,6 +3,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
 
 export default defineConfig({
+    base: '/web-app/',
     build: {
         rollupOptions: {
             input: {
@@ -10,6 +11,9 @@ export default defineConfig({
                 admin: resolve(__dirname, 'admin.html'),
             },
         },
+        build: {
+            outDir: 'dist',
+        }
     },
     plugins: [
         VitePWA({

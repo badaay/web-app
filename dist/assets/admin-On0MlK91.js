@@ -1,1 +1,0 @@
-import{s as n}from"./supabase-D7PXw3fd.js";console.log("Admin App Initialized");document.addEventListener("DOMContentLoaded",()=>{document.getElementById("admin-login-btn").addEventListener("click",async()=>{const{data:t,error:e}=await n.auth.signInWithOAuth({provider:"github"});e&&console.error("Error logging in:",e.message)})});
