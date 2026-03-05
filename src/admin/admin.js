@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
         showDashboard(session.user);
+    } else {
+        // Show login if no session
+        authSection.classList.remove('d-none');
     }
 
     // Tab switching logic for Master Data
@@ -21,8 +24,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         tabEl.addEventListener('shown.bs.tab', event => {
             const targetId = event.target.getAttribute('data-bs-target').replace('#', '');
             initModule(targetId);
+
+            // Update navbar active state
+            document.querySelectorAll('.nav-module-link').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('data-module') === event.target.id);
+            });
         });
     }
+
+    // Navbar dropdown link logic
+    document.querySelectorAll('.nav-module-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const tabId = e.target.getAttribute('data-module');
+            const tab = document.getElementById(tabId);
+            if (tab) {
+                const bsTab = new bootstrap.Tab(tab);
+                bsTab.show();
+            }
+        });
+    });
 
     async function initModule(targetId) {
         if (targetId === 'technicians-content') {
@@ -56,16 +76,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    logoutBtn.addEventListener('click', async () => {
+    const logoutHandler = async () => {
         await supabase.auth.signOut();
         window.location.reload();
-    });
+    };
+
+    logoutBtn.addEventListener('click', logoutHandler);
+    document.getElementById('nav-logout-btn').addEventListener('click', logoutHandler);
 
     function showDashboard(user) {
         const role = user.app_metadata.role || 'customer';
         authSection.classList.add('d-none');
         dashboardSection.style.display = 'block';
-        userInfo.innerHTML = `Terhubung sebagai <strong>${user.email}</strong> <span class="badge bg-primary ms-2">${role.toUpperCase()}</span>`;
+
+        // Update both old and new UI elements
+        if (userInfo) userInfo.innerHTML = `Terhubung sebagai <strong>${user.email}</strong> <span class="badge bg-primary ms-2">${role.toUpperCase()}</span>`;
+
+        const displayEmail = document.getElementById('user-display-email');
+        if (displayEmail) displayEmail.innerText = user.email;
+
+        const roleHeader = document.getElementById('user-role-header');
+        if (roleHeader) roleHeader.innerText = `Role: ${role.toUpperCase()}`;
 
         // Role-based dummy features using Bootstrap Cards
         if (role === 'admin') {
