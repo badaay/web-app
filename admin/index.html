@@ -27,33 +27,33 @@
             <div class="sidebar-nav">
                 <div class="px-3 py-2 small text-uppercase text-white-50"
                     style="font-size: 0.7rem; letter-spacing: 1px;">Menu Utama</div>
-                <button class="nav-item-custom active" data-module="dashboard">
+                <button class="nav-item-custom" data-module="dashboard">
                     <i class="bi bi-speedometer2"></i> Dashboard
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="work-orders-content">
+                    <i class="bi bi-file-earmark-text"></i> Surat Perintah (WO)
                 </button>
 
                 <div class="px-3 py-2 mt-3 small text-uppercase text-white-50"
                     style="font-size: 0.7rem; letter-spacing: 1px;">Master Data</div>
-                <button class="nav-item-custom nav-module-link" data-module="technicians-tab">
-                    <i class="bi bi-person-badge"></i> Teknisi
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="employees-tab">
+                <button class="nav-item-custom nav-module-link" data-module="employees-content">
                     <i class="bi bi-person-vcard"></i> Karyawan
                 </button>
-                <button class="nav-item-custom nav-module-link" data-module="customers-tab">
+                <button class="nav-item-custom nav-module-link" data-module="customers-content">
                     <i class="bi bi-people"></i> Pelanggan
                 </button>
-                <button class="nav-item-custom nav-module-link" data-module="inventory-tab">
+                <button class="nav-item-custom nav-module-link" data-module="inventory-content">
                     <i class="bi bi-box-seam"></i> Inventaris
                 </button>
-                <button class="nav-item-custom nav-module-link" data-module="packages-tab">
+                <button class="nav-item-custom nav-module-link" data-module="packages-content">
                     <i class="bi bi-tags"></i> Paket Layanan
                 </button>
 
                 <div class="px-3 py-2 mt-3 small text-uppercase text-white-50"
                     style="font-size: 0.7rem; letter-spacing: 1px;">Sistem</div>
-                <!-- <button class="nav-item-custom nav-module-link" data-module="settings-module" id="nav-settings-btn">
-                    <i class="bi bi-gear"></i> Settings
-                </button> -->
+                <button class="nav-item-custom" data-module="settings-module">
+                    <i class="bi bi-gear"></i> Settings / Roles
+                </button>
                 <button class="nav-item-custom" id="nav-logout-btn-sidebar">
                     <i class="bi bi-box-arrow-right text-danger"></i> Keluar
                 </button>
@@ -115,56 +115,27 @@
 
                 <div id="settings-container" class="d-none">
                     <h4 class="mb-4 text-white">Konfigurasi Sistem</h4>
-                    <div id="settings-content" class="card p-4">
+                    <div id="settings-content" class="card p-4 bg-vscode mb-5">
                         <div class="card-body text-center py-5">Memuat pengaturan...</div>
+                    </div>
+
+                    <div id="roles-module-section" class="mt-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="mb-0 text-white">Master Data Role / Jabatan</h4>
+                            <button class="btn btn-primary btn-sm" id="add-role-btn">
+                                <i class="bi bi-plus-lg me-1"></i> Tambah Role
+                            </button>
+                        </div>
+                        <div id="roles-content" class="card bg-vscode">
+                            <div id="roles-list" class="card-body text-center py-5">Memuat data role...</div>
+                        </div>
                     </div>
                 </div>
 
                 <div id="master-data-container" class="d-none">
-                    <ul class="nav nav-tabs mb-4" id="masterDataTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="technicians-tab" data-bs-toggle="tab"
-                                data-bs-target="#technicians-content" type="button" role="tab">Teknisi</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="employees-tab" data-bs-toggle="tab"
-                                data-bs-target="#employees-content" type="button" role="tab">Karyawan</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="customers-tab" data-bs-toggle="tab"
-                                data-bs-target="#customers-content" type="button" role="tab">Pelanggan</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab"
-                                data-bs-target="#inventory-content" type="button" role="tab">Inventaris</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="packages-tab" data-bs-toggle="tab"
-                                data-bs-target="#packages-content" type="button" role="tab">Paket</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles-content"
-                                type="button" role="tab">Role / Jabatan</button>
-                        </li>
-                        <li class="nav-item d-none" role="presentation">
-                            <button class="nav-link" id="add-customer-view-tab" data-bs-toggle="tab"
-                                data-bs-target="#add-customer-view-content" type="button" role="tab">Tambah
-                                Pelanggan</button>
-                        </li>
-                    </ul>
                     <div class="tab-content" id="masterDataTabsContent">
-                        <div class="tab-pane fade show active" id="technicians-content" role="tabpanel">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="mb-0 text-white">Kelola Teknisi</h4>
-                                <button class="btn btn-primary btn-sm" id="add-tech-btn">
-                                    <i class="bi bi-plus-lg me-1"></i> Tambah Teknisi
-                                </button>
-                            </div>
-                            <div id="technicians-list" class="card">
-                                <div class="card-body text-center py-5">Memuat data teknisi...</div>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="employees-content" role="tabpanel">
+                        <!-- Navigation tabs removed, controlled via sidebar -->
+                        <div class="tab-pane fade show active" id="employees-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <h4 class="mb-0 text-white">Master Data Karyawan</h4>
                                 <button class="btn btn-primary btn-sm" id="add-employee-btn">
@@ -224,15 +195,30 @@
                                 <div class="card-body text-center py-5">Memuat data paket...</div>
                             </div>
                         </div>
-                        <div class="tab-pane fade" id="roles-content" role="tabpanel">
+                        <!-- Roles content moved to settings -->
+                        <div class="tab-pane fade" id="work-orders-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="mb-0 text-white">Master Data Role</h4>
-                                <button class="btn btn-primary btn-sm" id="add-role-btn">
-                                    <i class="bi bi-plus-lg me-1"></i> Tambah Role
-                                </button>
+                                <div>
+                                    <h4 class="mb-0 text-white">Manajemen Antrian PSB</h4>
+                                    <div id="wo-status-summary" class="mt-2 d-flex flex-wrap">
+                                        <!-- Status badges will be injected here -->
+                                    </div>
+                                </div>
+                                <div class="text-nowrap ms-3">
+                                    <a href="/web-app/admin/add-psb" target="_blank"
+                                        class="btn btn-outline-warning btn-sm me-2">
+                                        <i class="bi bi-lightning-charge me-1"></i> Registrasi Cepat
+                                    </a>
+                                    <button class="btn btn-outline-info btn-sm me-2" onclick="window.showAllPSBMap()">
+                                        <i class="bi bi-map me-1"></i> Semua di Peta
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" id="add-work-order-btn">
+                                        <i class="bi bi-plus-lg me-1"></i> Tambah Antrian
+                                    </button>
+                                </div>
                             </div>
-                            <div id="roles-list" class="card">
-                                <div class="card-body text-center py-5">Memuat data role...</div>
+                            <div id="work-orders-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data Antrian...</div>
                             </div>
                         </div>
                     </div>

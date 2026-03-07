@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Initialize modules and navigation
         initNavigation(roleFeature, masterDataContainer, settingsContainer);
-        initModule('technicians-content');
+        initModule('employees-content');
 
         // Logout buttons
         const logoutHandler = async () => {
@@ -96,50 +96,74 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function initNavigation(roleFeature, masterDataContainer, settingsContainer) {
-        document.querySelectorAll('.nav-item-custom').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const moduleTarget = button.getAttribute('data-module');
-                if (!moduleTarget) return;
+        const navButtons = document.querySelectorAll('.nav-item-custom');
+        const masterPanes = document.querySelectorAll('#masterDataTabsContent .tab-pane');
 
-                document.querySelectorAll('.nav-item-custom').forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
+        // Expose global navigation helper
+        window.switchAdminModule = (target) => {
+            if (!target) return;
 
-                if (moduleTarget === 'dashboard') {
-                    roleFeature.classList.remove('d-none');
-                    masterDataContainer.classList.add('d-none');
-                    settingsContainer.classList.add('d-none');
-                    updateBreadcrumb('Dashboard');
-                } else if (moduleTarget === 'settings-module') {
-                    roleFeature.classList.add('d-none');
-                    masterDataContainer.classList.add('d-none');
-                    settingsContainer.classList.remove('d-none');
-                    initModule('settings-content');
-                    updateBreadcrumb('Sistem / Settings');
+            // 1. Sidebar focus highlight (only if it matches a sidebar button)
+            navButtons.forEach(btn => {
+                if (btn.getAttribute('data-module') === target) {
+                    btn.classList.add('active');
                 } else {
-                    roleFeature.classList.add('d-none');
-                    settingsContainer.classList.add('d-none');
-                    masterDataContainer.classList.remove('d-none');
-                    const tab = document.getElementById(moduleTarget);
-                    if (tab) {
-                        const bsTab = new bootstrap.Tab(tab);
-                        bsTab.show();
-                        updateBreadcrumb(`Master Data / ${tab.innerText}`);
+                    btn.classList.remove('active');
+                }
+            });
+
+            // 2. Hide all primary section containers
+            [roleFeature, masterDataContainer, settingsContainer].forEach(el => {
+                if (el) el.classList.add('d-none');
+            });
+
+            // 3. Show target section and pane
+            if (target === 'dashboard') {
+                roleFeature.classList.remove('d-none');
+                updateBreadcrumb('Dashboard');
+            } else if (target === 'settings-module') {
+                settingsContainer.classList.remove('d-none');
+                initModule('settings-content');
+                initModule('roles-content');
+                updateBreadcrumb('Sistem / Settings & Roles');
+            } else {
+                // Check if it's a master data pane
+                masterDataContainer.classList.remove('d-none');
+                let foundMatch = false;
+
+                masterPanes.forEach(pane => {
+                    if (pane.id === target) {
+                        pane.classList.add('show', 'active');
+                        initModule(target);
+                        const title = pane.querySelector('h4')?.innerText || 'Module';
+                        updateBreadcrumb(`Master Data / ${title}`);
+                        foundMatch = true;
+                    } else {
+                        pane.classList.remove('show', 'active');
+                    }
+                });
+
+                // Special case for sub-views that don't have their own sidebar button
+                if (!foundMatch && target === 'add-customer-view-content') {
+                    // This is still within masterDataContainer
+                    const pane = document.getElementById('add-customer-view-content');
+                    if (pane) {
+                        pane.classList.add('show', 'active');
+                        initModule(target);
+                        updateBreadcrumb('Master Data / Tambah Pelanggan');
                     }
                 }
+            }
+        };
+
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                window.switchAdminModule(button.getAttribute('data-module'));
             });
         });
 
-        const tabEl = document.getElementById('masterDataTabs');
-        if (tabEl) {
-            tabEl.addEventListener('shown.bs.tab', event => {
-                const targetId = event.target.getAttribute('data-bs-target').replace('#', '');
-                initModule(targetId);
-                updateBreadcrumb(`Master Data / ${event.target.innerText}`);
-                document.querySelectorAll('.nav-module-link').forEach(btn => {
-                    btn.classList.toggle('active', btn.getAttribute('data-module') === event.target.id);
-                });
-            });
-        }
+        // Set Dashboard as active by default on load
+        document.querySelector('.nav-item-custom[data-module="dashboard"]')?.classList.add('active');
     }
 
     function updateBreadcrumb(text) {
@@ -148,10 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function initModule(targetId) {
-        if (targetId === 'technicians-content') {
-            const { initTechnicians } = await import('./modules/technicians.js');
-            initTechnicians();
-        } else if (targetId === 'employees-content') {
+        if (targetId === 'employees-content') {
             const { initEmployees } = await import('./modules/employees.js');
             initEmployees();
         } else if (targetId === 'customers-content') {
@@ -172,6 +193,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (targetId === 'inventory-content') {
             const { initInventory } = await import('./modules/inventory.js');
             initInventory();
+        } else if (targetId === 'work-orders-content') {
+            const { initWorkOrders } = await import('./modules/work-orders.js');
+            initWorkOrders();
         }
     }
 });

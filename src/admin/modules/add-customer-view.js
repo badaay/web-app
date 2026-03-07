@@ -5,8 +5,9 @@ export async function initAddCustomerView() {
     const backBtn = document.getElementById('back-to-customers-btn');
 
     backBtn.onclick = () => {
-        const bsTab = new bootstrap.Tab(document.getElementById('customers-tab'));
-        bsTab.show();
+        if (window.switchAdminModule) {
+            window.switchAdminModule('customers-content');
+        }
     };
 
     container.innerHTML = `
@@ -129,7 +130,9 @@ export async function initAddCustomerView() {
         } else {
             alert('Pelanggan berhasil ditambahkan!');
             // Back to list
-            document.getElementById('customers-tab').click();
+            if (window.switchAdminModule) {
+                window.switchAdminModule('customers-content');
+            }
         }
     };
 }

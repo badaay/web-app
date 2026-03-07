@@ -9,10 +9,8 @@ export async function initCustomers() {
 
     if (addBtn) {
         addBtn.onclick = () => {
-            const tabEl = document.getElementById('add-customer-view-tab');
-            if (tabEl) {
-                const bsTab = new bootstrap.Tab(tabEl);
-                bsTab.show();
+            if (window.switchAdminModule) {
+                window.switchAdminModule('add-customer-view-content');
             }
         };
     }
