@@ -1,5 +1,5 @@
-import{s}from"./supabase-C347XlkA.js";async function g(){const n=document.getElementById("inventory-list"),y=document.getElementById("add-inventory-btn");y.onclick=()=>m();async function c(){n.innerHTML="Memuat inventaris...";const{data:t,error:a}=await s.from("inventory_items").select("*").order("name");if(a){n.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(t.length===0){n.innerHTML='<div class="text-muted">Tidak ada barang inventaris ditemukan.</div>';return}n.innerHTML=`
-            <table class="table table-hover align-middle">
+import{s}from"./supabase-DlQAt1xf.js";async function g(){const n=document.getElementById("inventory-list"),c=document.getElementById("add-inventory-btn");c&&(c.onclick=()=>u());async function m(){n.innerHTML="Memuat inventaris...";const{data:t,error:a}=await s.from("inventory_items").select("*").order("name");if(a){n.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(t.length===0){n.innerHTML='<div class="text-muted">Tidak ada barang inventaris ditemukan.</div>';return}n.innerHTML=`
+            <table class="table table-dark table-hover align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>Nama Barang</th>
@@ -23,7 +23,7 @@ import{s}from"./supabase-C347XlkA.js";async function g(){const n=document.getEle
                     `).join("")}
                 </tbody>
             </table>
-        `,document.querySelectorAll(".edit-item").forEach(e=>{e.onclick=()=>m(t.find(o=>o.id===e.dataset.id))})}function m(t=null){const a=new bootstrap.Modal(document.getElementById("crudModal")),e=document.getElementById("crudModalTitle"),o=document.getElementById("crudModalBody"),v=document.getElementById("save-crud-btn");e.innerText=t?"Edit Barang":"Tambah Barang",o.innerHTML=`
+        `,document.querySelectorAll(".edit-item").forEach(e=>{e.onclick=()=>u(t.find(o=>o.id===e.dataset.id))})}function u(t=null){const a=new bootstrap.Modal(document.getElementById("crudModal")),e=document.getElementById("crudModalTitle"),o=document.getElementById("crudModalBody"),b=document.getElementById("save-crud-btn");e.innerText=t?"Edit Barang":"Tambah Barang",o.innerHTML=`
             <form id="inventory-form">
                 <div class="mb-3">
                     <label class="form-label">Nama Barang</label>
@@ -44,4 +44,4 @@ import{s}from"./supabase-C347XlkA.js";async function g(){const n=document.getEle
                     <input type="text" class="form-control" id="item-category" value="${t?.category||""}">
                 </div>
             </form>
-        `,v.onclick=async()=>{const d=document.getElementById("item-name").value,i=parseInt(document.getElementById("item-stock").value),r=document.getElementById("item-unit").value,u=document.getElementById("item-category").value;if(!d||isNaN(i)||!r)return alert("Nama, Stok, dan Satuan wajib diisi.");let l;t?l=await s.from("inventory_items").update({name:d,stock:i,unit:r,category:u}).eq("id",t.id):l=await s.from("inventory_items").insert([{name:d,stock:i,unit:r,category:u}]),l.error?alert("Gagal menyimpan: "+l.error.message):(a.hide(),c())},a.show()}c()}export{g as initInventory};
+        `,b.onclick=async()=>{const d=document.getElementById("item-name").value,i=parseInt(document.getElementById("item-stock").value),r=document.getElementById("item-unit").value,y=document.getElementById("item-category").value;if(!d||isNaN(i)||!r)return alert("Nama, Stok, dan Satuan wajib diisi.");let l;t?l=await s.from("inventory_items").update({name:d,stock:i,unit:r,category:y}).eq("id",t.id):l=await s.from("inventory_items").insert([{name:d,stock:i,unit:r,category:y}]),l.error?alert("Gagal menyimpan: "+l.error.message):(a.hide(),m())},a.show()}m()}export{g as initInventory};

@@ -6,28 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-width=1.0">
     <title>Portal Pelanggan</title>
     <meta name="theme-color" content="#ffffff">
-  <script type="module" crossorigin src="/web-app/assets/main-CMPCSoVx.js"></script>
-  <link rel="modulepreload" crossorigin href="/web-app/assets/supabase-C347XlkA.js">
-  <link rel="stylesheet" crossorigin href="/web-app/assets/supabase-BUag_OBA.css">
-  <link rel="stylesheet" crossorigin href="/web-app/assets/main-CIGW-MKW.css">
+  <script type="module" crossorigin src="/web-app/assets/main-jqcohwPg.js"></script>
+  <link rel="modulepreload" crossorigin href="/web-app/assets/supabase-DlQAt1xf.js">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/supabase-Ck-cEz_8.css">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/main-jcxjkXAq.css">
 <link rel="manifest" href="/web-app/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/web-app/registerSW.js"></script></head>
 
-<body>
+<body class="auth-page">
     <div id="app" class="login-active">
-        <div class="login-container">
-            <div class="login-image-side"></div>
-            <div class="login-form-side">
-                <div class="login-box">
-                    <div class="login-header">
-                        <h1>Selamat datang kembali</h1>
-                        <p>Gabung ke portal pelanggan.</p>
-                    </div>
-                    <div id="auth-section">
-                        <input type="email" id="email" placeholder="Alamat Email" required>
-                        <input type="password" id="password" placeholder="Kata Sandi" required>
-                        <button id="login-btn">Masuk</button>
-                    </div>
-                </div>
+        <div class="customer-login-card">
+            <div class="login-header">
+                <h1>Selamat Datang</h1>
+                <p>Silakan masuk ke akun pelanggan Anda</p>
+            </div>
+            <div id="auth-section">
+                <input type="email" id="email" class="auth-input" placeholder="Alamat Email" required>
+                <input type="password" id="password" class="auth-input" placeholder="Kata Sandi" required>
+                <button id="login-btn" class="auth-btn">Masuk</button>
             </div>
         </div>
         <div id="dashboard-content" style="display: none; padding: 40px;">

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Portal</title>
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <meta name="theme-color" content="#ffffff">
+    <!-- Leaflet JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script type="module" crossorigin src="/web-app/assets/supabase-DlQAt1xf.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/admin-dnhb_UYU.js"></script>
+  <link rel="stylesheet" crossorigin href="/web-app/assets/supabase-Ck-cEz_8.css">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/admin-uD1hFd_Y.css">
+<link rel="manifest" href="/web-app/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/web-app/registerSW.js"></script></head>
+
+<body>
+    <div id="dashboard-section" class="dashboard-wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="bi bi-shield-lock-fill text-accent me-2"></i>
+                <span>Portal Admin</span>
+            </div>
+            <div class="sidebar-nav">
+                <div class="px-3 py-2 small text-uppercase text-white-50"
+                    style="font-size: 0.7rem; letter-spacing: 1px;">Menu Utama</div>
+                <button class="nav-item-custom active" data-module="dashboard">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </button>
+
+                <div class="px-3 py-2 mt-3 small text-uppercase text-white-50"
+                    style="font-size: 0.7rem; letter-spacing: 1px;">Master Data</div>
+                <button class="nav-item-custom nav-module-link" data-module="technicians-tab">
+                    <i class="bi bi-person-badge"></i> Teknisi
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="employees-tab">
+                    <i class="bi bi-person-vcard"></i> Karyawan
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="customers-tab">
+                    <i class="bi bi-people"></i> Pelanggan
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="inventory-tab">
+                    <i class="bi bi-box-seam"></i> Inventaris
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="packages-tab">
+                    <i class="bi bi-tags"></i> Paket Layanan
+                </button>
+
+                <div class="px-3 py-2 mt-3 small text-uppercase text-white-50"
+                    style="font-size: 0.7rem; letter-spacing: 1px;">Sistem</div>
+                <!-- <button class="nav-item-custom nav-module-link" data-module="settings-module" id="nav-settings-btn">
+                    <i class="bi bi-gear"></i> Settings
+                </button> -->
+                <button class="nav-item-custom" id="nav-logout-btn-sidebar">
+                    <i class="bi bi-box-arrow-right text-danger"></i> Keluar
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <header class="top-header">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-link text-white-50 d-md-none me-2 p-0">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                    <nav aria-label="breadcrumb" class="d-none d-md-block">
+                        <ol class="breadcrumb mb-0 small">
+                            <li class="breadcrumb-item"><a href="#" class="text-white-50 text-decoration-none">Admin</a>
+                            </li>
+                            <li class="breadcrumb-item active text-white" aria-current="page" id="breadcrumb-current">
+                                Dashboard</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-link text-white-50 me-3 position-relative p-0" title="Notifikasi">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"
+                            style="display: none;" id="notif-dot"></span>
+                    </button>
+
+                    <div class="dropdown">
+                        <button
+                            class="btn btn-link text-white-50 dropdown-toggle d-flex align-items-center p-0 text-decoration-none"
+                            type="button" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="user-display-email" class="small me-2 d-none d-md-inline">user@example.com</span>
+                            <i class="bi bi-person-circle fs-5"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2"
+                            aria-labelledby="userProfileDropdown">
+                            <li>
+                                <div class="dropdown-header" id="user-role-header">Role: ADMIN</div>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><button class="dropdown-item text-danger" id="nav-logout-btn"><i
+                                        class="bi bi-box-arrow-right me-2"></i>Keluar</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <main class="scroll-area">
+                <div id="user-info" class="alert alert-info d-none"></div>
+                <div id="role-feature">
+                    <!-- Role-specific content will go here -->
+                </div>
+
+                <div id="settings-container" class="d-none">
+                    <h4 class="mb-4 text-white">Konfigurasi Sistem</h4>
+                    <div id="settings-content" class="card p-4">
+                        <div class="card-body text-center py-5">Memuat pengaturan...</div>
+                    </div>
+                </div>
+
+                <div id="master-data-container" class="d-none">
+                    <ul class="nav nav-tabs mb-4" id="masterDataTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="technicians-tab" data-bs-toggle="tab"
+                                data-bs-target="#technicians-content" type="button" role="tab">Teknisi</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="employees-tab" data-bs-toggle="tab"
+                                data-bs-target="#employees-content" type="button" role="tab">Karyawan</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="customers-tab" data-bs-toggle="tab"
+                                data-bs-target="#customers-content" type="button" role="tab">Pelanggan</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab"
+                                data-bs-target="#inventory-content" type="button" role="tab">Inventaris</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="packages-tab" data-bs-toggle="tab"
+                                data-bs-target="#packages-content" type="button" role="tab">Paket</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles-content"
+                                type="button" role="tab">Role / Jabatan</button>
+                        </li>
+                        <li class="nav-item d-none" role="presentation">
+                            <button class="nav-link" id="add-customer-view-tab" data-bs-toggle="tab"
+                                data-bs-target="#add-customer-view-content" type="button" role="tab">Tambah
+                                Pelanggan</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="masterDataTabsContent">
+                        <div class="tab-pane fade show active" id="technicians-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Kelola Teknisi</h4>
+                                <button class="btn btn-primary btn-sm" id="add-tech-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Teknisi
+                                </button>
+                            </div>
+                            <div id="technicians-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data teknisi...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="employees-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Master Data Karyawan</h4>
+                                <button class="btn btn-primary btn-sm" id="add-employee-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Karyawan
+                                </button>
+                            </div>
+                            <div id="employees-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data karyawan...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="customers-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Daftar Pelanggan</h4>
+                                <div>
+                                    <button class="btn btn-outline-info btn-sm me-2" id="view-all-customers-map-btn">
+                                        <i class="bi bi-map me-1"></i> Lihat Peta
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" id="add-customer-view-btn">
+                                        <i class="bi bi-plus-lg me-1"></i> Pelanggan Baru
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="customers-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data pelanggan...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="add-customer-view-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Tambah Pelanggan Baru</h4>
+                                <button class="btn btn-outline-light btn-sm" id="back-to-customers-btn">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
+                                </button>
+                            </div>
+                            <div id="add-customer-view-container" class="card bg-vscode p-4">
+                                <!-- Detailed Add Customer Form with Map -->
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="inventory-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Manajemen Inventaris</h4>
+                                <button class="btn btn-primary btn-sm" id="add-inventory-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Barang
+                                </button>
+                            </div>
+                            <div id="inventory-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data inventaris...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="packages-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Paket Layanan Internet</h4>
+                                <button class="btn btn-primary btn-sm" id="add-package-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Paket
+                                </button>
+                            </div>
+                            <div id="packages-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data paket...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="roles-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Master Data Role</h4>
+                                <button class="btn btn-primary btn-sm" id="add-role-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Role
+                                </button>
+                            </div>
+                            <div id="roles-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data role...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Shared Modals -->
+    <div class="modal fade" id="crudModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg">
+                <div class="modal-header border-0 bg-vscode-header">
+                    <h5 class="modal-title" id="crudModalTitle">Edit Informasi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="crudModalBody">
+                    <!-- Dynamic content -->
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-link text-white-50 text-decoration-none"
+                        data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary px-4" id="save-crud-btn">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content overflow-hidden">
+                <div class="modal-header border-bottom border-dark bg-vscode-header">
+                    <h5 class="modal-title">Peta Lokasi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="admin-map" style="height: 500px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet & JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Memastikan label "Leaflet" dimi peta selalu tersembunyi
+        document.addEventListener('DOMContentLoaded', () => {
+            const attributionStyle = document.createElement('style');
+            attributionStyle.innerHTML = '.leaflet-control-attribution { display: none !important; }';
+            document.head.appendChild(attributionStyle);
+        });
+    </script>
+</body>
+
+</html>

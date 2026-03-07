@@ -1,5 +1,5 @@
-import{s}from"./supabase-C347XlkA.js";async function f(){const n=document.getElementById("technicians-list"),u=document.getElementById("add-tech-btn");u.onclick=()=>m();async function c(){n.innerHTML="Memuat teknisi...";const{data:e,error:a}=await s.from("technicians").select("*").order("name");if(a){n.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(e.length===0){n.innerHTML='<div class="text-muted">Tidak ada teknisi ditemukan.</div>';return}n.innerHTML=`
-            <table class="table table-hover align-middle">
+import{s as d}from"./supabase-DlQAt1xf.js";async function b(){const i=document.getElementById("technicians-list"),s=document.getElementById("add-tech-btn");s&&(s.onclick=()=>c());async function m(){i.innerHTML="Memuat teknisi...";const{data:e,error:a}=await d.from("technicians").select("*").order("name");if(a){i.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(e.length===0){i.innerHTML='<div class="text-muted">Tidak ada teknisi ditemukan.</div>';return}i.innerHTML=`
+            <table class="table table-dark table-hover align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>Nama</th>
@@ -21,7 +21,7 @@ import{s}from"./supabase-C347XlkA.js";async function f(){const n=document.getEle
                     `).join("")}
                 </tbody>
             </table>
-        `,document.querySelectorAll(".edit-tech").forEach(t=>{t.onclick=()=>m(e.find(l=>l.id===t.dataset.id))})}function m(e=null){const a=new bootstrap.Modal(document.getElementById("crudModal")),t=document.getElementById("crudModalTitle"),l=document.getElementById("crudModalBody"),h=document.getElementById("save-crud-btn");t.innerText=e?"Edit Teknisi":"Tambah Teknisi",l.innerHTML=`
+        `,document.querySelectorAll(".edit-tech").forEach(t=>{t.onclick=()=>c(e.find(o=>o.id===t.dataset.id))})}async function c(e=null){const a=new bootstrap.Modal(document.getElementById("crudModal")),t=document.getElementById("crudModalTitle"),o=document.getElementById("crudModalBody"),u=document.getElementById("save-crud-btn");t.innerText=e?"Edit Teknisi":"Tambah Teknisi",o.innerHTML=`
             <form id="tech-form">
                 <div class="mb-3">
                     <label class="form-label">Nama Lengkap</label>
@@ -36,4 +36,4 @@ import{s}from"./supabase-C347XlkA.js";async function f(){const n=document.getEle
                     <input type="text" class="form-control" id="tech-phone" value="${e?.phone||""}">
                 </div>
             </form>
-        `,h.onclick=async()=>{const d=document.getElementById("tech-name").value,o=document.getElementById("tech-email").value,r=document.getElementById("tech-phone").value;if(!d||!o)return alert("Nama dan Email wajib diisi.");let i;e?i=await s.from("technicians").update({name:d,email:o,phone:r}).eq("id",e.id):i=await s.from("technicians").insert([{name:d,email:o,phone:r}]),i.error?alert("Gagal menyimpan: "+i.error.message):(a.hide(),c())},a.show()}c()}export{f as initTechnicians};
+        `,u.onclick=async()=>{const n={name:document.getElementById("tech-name").value,email:document.getElementById("tech-email").value,phone:document.getElementById("tech-phone").value};if(!n.name||!n.email)return alert("Nama dan Email wajib diisi.");let l;if(e)l=await d.from("technicians").update(n).eq("id",e.id);else{const{data:r}=await d.from("roles").select("id").eq("name","Teknisi").single();r&&(n.role_id=r.id),l=await d.from("technicians").insert([n])}l.error?alert("Gagal menyimpan: "+l.error.message):(a.hide(),m())},a.show()}m()}export{b as initTechnicians};
