@@ -21,7 +21,7 @@ export async function initInventory() {
         }
 
         listContainer.innerHTML = `
-            <table class="table table-hover align-middle">
+            <table class="table table-dark table-hover align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>Nama Barang</th>

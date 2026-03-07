@@ -36,12 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // UI Transition
             document.getElementById('app').classList.remove('login-active');
-            document.querySelector('.login-container').style.display = 'none';
+            // document.querySelector('.login-container').style.display = 'none'; // Removed as layout changed
             document.getElementById('dashboard-content').style.display = 'block';
+            document.body.classList.remove('auth-page');
 
             const role = data.user.app_metadata.role || 'customer';
             // if (role === 'admin' || role === 'owner') {
-            window.location.href = '/admin.html';
+            window.location.href = '/web-app/admin/';
             // } else {
             //     alert('Welcome, Customer!');
             // }

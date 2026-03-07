@@ -3,8 +3,12 @@ import { supabase } from '../../api/supabase.js';
 export async function initCustomers() {
     const listContainer = document.getElementById('customers-list');
     const addBtn = document.getElementById('add-customer-btn');
+    const viewAllBtn = document.getElementById('view-all-customers-btn');
+
+    let customersData = [];
 
     addBtn.onclick = () => showCustomerModal();
+    viewAllBtn.onclick = () => showAllCustomersMap();
 
     async function loadCustomers() {
         listContainer.innerHTML = 'Memuat pelanggan...';
@@ -15,13 +19,15 @@ export async function initCustomers() {
             return;
         }
 
+        customersData = data;
+
         if (data.length === 0) {
             listContainer.innerHTML = '<div class="text-muted">Tidak ada pelanggan ditemukan.</div>';
             return;
         }
 
         listContainer.innerHTML = `
-            <table class="table table-hover align-middle">
+            <table class="table table-dark table-hover align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>Nama</th>
@@ -68,6 +74,38 @@ export async function initCustomers() {
             map = L.map('admin-map').setView([lat, lng], 15);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             L.marker([lat, lng]).addTo(map).bindPopup(name).openPopup();
+        }, 300);
+    }
+
+    function showAllCustomersMap() {
+        if (customersData.length === 0) return alert('Tidak ada data pelanggan untuk ditampilkan.');
+
+        const modal = new bootstrap.Modal(document.getElementById('mapModal'));
+        modal.show();
+
+        setTimeout(() => {
+            if (map) map.remove();
+
+            // Filter customers with coordinates
+            const validCustomers = customersData.filter(c => c.lat && c.lng);
+            if (validCustomers.length === 0) return alert('Tidak ada pelanggan dengan koordinat yang valid.');
+
+            // Center map on the first valid customer or use a default
+            const first = validCustomers[0];
+            map = L.map('admin-map').setView([first.lat, first.lng], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+            const markers = [];
+            validCustomers.forEach(cust => {
+                const marker = L.marker([cust.lat, cust.lng]).addTo(map).bindPopup(`<b>${cust.name}</b><br>${cust.address}`);
+                markers.push(marker);
+            });
+
+            // Adjust view to fit all markers if there are multiple
+            if (validCustomers.length > 1) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
         }, 300);
     }
 

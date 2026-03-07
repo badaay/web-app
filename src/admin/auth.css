@@ -1,0 +1,96 @@
+/* Auth CSS with Premium Gradient Background */
+:root {
+    --auth-bg-gradient: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    --auth-card-bg: rgba(30, 30, 30, 0.85);
+    --auth-text: #e1e1e1;
+    --auth-accent: #007acc;
+    --auth-border: rgba(255, 255, 255, 0.1);
+}
+
+body.auth-page {
+    background: var(--auth-bg-gradient) !important;
+    background-attachment: fixed !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    overflow: auto !important;
+}
+
+.admin-login-card {
+    background-color: var(--auth-card-bg) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--auth-border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    max-width: 420px;
+    width: 100%;
+    animation: fadeInScale 0.6s ease-out;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.admin-login-card .card-body {
+    padding: 3rem !important;
+}
+
+.admin-login-card .card-title {
+    color: var(--auth-accent) !important;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.auth-form-label {
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
+.auth-input {
+    background-color: rgba(60, 60, 60, 0.5) !important;
+    border: 1px solid var(--auth-border) !important;
+    color: white !important;
+    padding: 0.8rem 1rem !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease;
+}
+
+.auth-input:focus {
+    background-color: rgba(60, 60, 60, 0.8) !important;
+    border-color: var(--auth-accent) !important;
+    box-shadow: 0 0 0 4px rgba(0, 122, 204, 0.2) !important;
+    outline: none;
+}
+
+.auth-btn {
+    background-color: var(--auth-accent) !important;
+    border: none !important;
+    padding: 0.8rem !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.auth-btn:hover {
+    background-color: #118ad2 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -10px rgba(0, 122, 204, 0.5);
+}
+
+.auth-btn:active {
+    transform: translateY(0);
+}
