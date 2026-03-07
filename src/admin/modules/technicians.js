@@ -4,11 +4,14 @@ export async function initTechnicians() {
     const listContainer = document.getElementById('technicians-list');
     const addBtn = document.getElementById('add-tech-btn');
 
-    addBtn.onclick = () => showTechModal();
+    if (addBtn) addBtn.onclick = () => showTechModal();
 
     async function loadTechnicians() {
         listContainer.innerHTML = 'Memuat teknisi...';
-        const { data, error } = await supabase.from('technicians').select('*').order('name');
+        const { data, error } = await supabase
+            .from('technicians')
+            .select('*')
+            .order('name');
 
         if (error) {
             listContainer.innerHTML = `<div class="text-danger">Kesalahan: ${error.message}</div>`;
@@ -50,7 +53,7 @@ export async function initTechnicians() {
         });
     }
 
-    function showTechModal(tech = null) {
+    async function showTechModal(tech = null) {
         const modal = new bootstrap.Modal(document.getElementById('crudModal'));
         const modalTitle = document.getElementById('crudModalTitle');
         const modalBody = document.getElementById('crudModalBody');
@@ -75,17 +78,23 @@ export async function initTechnicians() {
         `;
 
         saveBtn.onclick = async () => {
-            const name = document.getElementById('tech-name').value;
-            const email = document.getElementById('tech-email').value;
-            const phone = document.getElementById('tech-phone').value;
+            const formData = {
+                name: document.getElementById('tech-name').value,
+                email: document.getElementById('tech-email').value,
+                phone: document.getElementById('tech-phone').value
+            };
 
-            if (!name || !email) return alert('Nama dan Email wajib diisi.');
+            if (!formData.name || !formData.email) return alert('Nama dan Email wajib diisi.');
 
             let result;
             if (tech) {
-                result = await supabase.from('technicians').update({ name, email, phone }).eq('id', tech.id);
+                result = await supabase.from('technicians').update(formData).eq('id', tech.id);
             } else {
-                result = await supabase.from('technicians').insert([{ name, email, phone }]);
+                // Set default role to 'Teknisi'
+                const { data: roleData } = await supabase.from('roles').select('id').eq('name', 'Teknisi').single();
+                if (roleData) formData.role_id = roleData.id;
+
+                result = await supabase.from('technicians').insert([formData]);
             }
 
             if (result.error) {

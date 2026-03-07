@@ -187,3 +187,8 @@
 .bg-vscode-header {
     background-color: var(--vscode-header-bg) !important;
 }
+
+/* Hide Leaflet Attribution */
+.leaflet-control-attribution {
+    display: none !important;
+}

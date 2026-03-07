@@ -36,15 +36,24 @@
                 <button class="nav-item-custom nav-module-link" data-module="technicians-tab">
                     <i class="bi bi-person-badge"></i> Teknisi
                 </button>
+                <button class="nav-item-custom nav-module-link" data-module="employees-tab">
+                    <i class="bi bi-person-vcard"></i> Karyawan
+                </button>
                 <button class="nav-item-custom nav-module-link" data-module="customers-tab">
                     <i class="bi bi-people"></i> Pelanggan
                 </button>
                 <button class="nav-item-custom nav-module-link" data-module="inventory-tab">
                     <i class="bi bi-box-seam"></i> Inventaris
                 </button>
+                <button class="nav-item-custom nav-module-link" data-module="packages-tab">
+                    <i class="bi bi-tags"></i> Paket Layanan
+                </button>
 
                 <div class="px-3 py-2 mt-3 small text-uppercase text-white-50"
                     style="font-size: 0.7rem; letter-spacing: 1px;">Sistem</div>
+                <!-- <button class="nav-item-custom nav-module-link" data-module="settings-module" id="nav-settings-btn">
+                    <i class="bi bi-gear"></i> Settings
+                </button> -->
                 <button class="nav-item-custom" id="nav-logout-btn-sidebar">
                     <i class="bi bi-box-arrow-right text-danger"></i> Keluar
                 </button>
@@ -104,11 +113,22 @@
                     <!-- Role-specific content will go here -->
                 </div>
 
+                <div id="settings-container" class="d-none">
+                    <h4 class="mb-4 text-white">Konfigurasi Sistem</h4>
+                    <div id="settings-content" class="card p-4">
+                        <div class="card-body text-center py-5">Memuat pengaturan...</div>
+                    </div>
+                </div>
+
                 <div id="master-data-container" class="d-none">
                     <ul class="nav nav-tabs mb-4" id="masterDataTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="technicians-tab" data-bs-toggle="tab"
                                 data-bs-target="#technicians-content" type="button" role="tab">Teknisi</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="employees-tab" data-bs-toggle="tab"
+                                data-bs-target="#employees-content" type="button" role="tab">Karyawan</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="customers-tab" data-bs-toggle="tab"
@@ -117,6 +137,19 @@
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="inventory-tab" data-bs-toggle="tab"
                                 data-bs-target="#inventory-content" type="button" role="tab">Inventaris</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="packages-tab" data-bs-toggle="tab"
+                                data-bs-target="#packages-content" type="button" role="tab">Paket</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles-content"
+                                type="button" role="tab">Role / Jabatan</button>
+                        </li>
+                        <li class="nav-item d-none" role="presentation">
+                            <button class="nav-link" id="add-customer-view-tab" data-bs-toggle="tab"
+                                data-bs-target="#add-customer-view-content" type="button" role="tab">Tambah
+                                Pelanggan</button>
                         </li>
                     </ul>
                     <div class="tab-content" id="masterDataTabsContent">
@@ -131,20 +164,42 @@
                                 <div class="card-body text-center py-5">Memuat data teknisi...</div>
                             </div>
                         </div>
+                        <div class="tab-pane fade" id="employees-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Master Data Karyawan</h4>
+                                <button class="btn btn-primary btn-sm" id="add-employee-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Karyawan
+                                </button>
+                            </div>
+                            <div id="employees-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data karyawan...</div>
+                            </div>
+                        </div>
                         <div class="tab-pane fade" id="customers-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <h4 class="mb-0 text-white">Daftar Pelanggan</h4>
                                 <div>
-                                    <button class="btn btn-outline-info btn-sm me-2" id="view-all-customers-btn">
+                                    <button class="btn btn-outline-info btn-sm me-2" id="view-all-customers-map-btn">
                                         <i class="bi bi-map me-1"></i> Lihat Peta
                                     </button>
-                                    <button class="btn btn-primary btn-sm" id="add-customer-btn">
+                                    <button class="btn btn-primary btn-sm" id="add-customer-view-btn">
                                         <i class="bi bi-plus-lg me-1"></i> Pelanggan Baru
                                     </button>
                                 </div>
                             </div>
                             <div id="customers-list" class="card">
                                 <div class="card-body text-center py-5">Memuat data pelanggan...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="add-customer-view-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Tambah Pelanggan Baru</h4>
+                                <button class="btn btn-outline-light btn-sm" id="back-to-customers-btn">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
+                                </button>
+                            </div>
+                            <div id="add-customer-view-container" class="card bg-vscode p-4">
+                                <!-- Detailed Add Customer Form with Map -->
                             </div>
                         </div>
                         <div class="tab-pane fade" id="inventory-content" role="tabpanel">
@@ -156,6 +211,28 @@
                             </div>
                             <div id="inventory-list" class="card">
                                 <div class="card-body text-center py-5">Memuat data inventaris...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="packages-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Paket Layanan Internet</h4>
+                                <button class="btn btn-primary btn-sm" id="add-package-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Paket
+                                </button>
+                            </div>
+                            <div id="packages-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data paket...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="roles-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white">Master Data Role</h4>
+                                <button class="btn btn-primary btn-sm" id="add-role-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Role
+                                </button>
+                            </div>
+                            <div id="roles-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data role...</div>
                             </div>
                         </div>
                     </div>
@@ -203,10 +280,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/src/admin/admin.js"></script>
     <script>
-        $(document).ready(function () {
-            $('.leaflet-control-attribution').hide();
-        })
-        // document.getElementsByClassName('leaflet-control-attribution')[0].style.display = 'none';
+        // Memastikan label "Leaflet" dimi peta selalu tersembunyi
+        document.addEventListener('DOMContentLoaded', () => {
+            const attributionStyle = document.createElement('style');
+            attributionStyle.innerHTML = '.leaflet-control-attribution { display: none !important; }';
+            document.head.appendChild(attributionStyle);
+        });
     </script>
 </body>
 

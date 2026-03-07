@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const dashboardSection = document.getElementById('dashboard-section');
         const roleFeature = document.getElementById('role-feature');
         const masterDataContainer = document.getElementById('master-data-container');
+        const settingsContainer = document.getElementById('settings-container');
 
         if (dashboardSection) dashboardSection.style.display = 'flex';
 
@@ -58,7 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (roleHeader) roleHeader.innerText = `Role: ${role.toUpperCase()}`;
 
         // Initialize modules and navigation
-        initNavigation(roleFeature, masterDataContainer);
+        initNavigation(roleFeature, masterDataContainer, settingsContainer);
         initModule('technicians-content');
 
         // Logout buttons
@@ -94,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function initNavigation(roleFeature, masterDataContainer) {
+    function initNavigation(roleFeature, masterDataContainer, settingsContainer) {
         document.querySelectorAll('.nav-item-custom').forEach(button => {
             button.addEventListener('click', (e) => {
                 const moduleTarget = button.getAttribute('data-module');
@@ -106,9 +107,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (moduleTarget === 'dashboard') {
                     roleFeature.classList.remove('d-none');
                     masterDataContainer.classList.add('d-none');
+                    settingsContainer.classList.add('d-none');
                     updateBreadcrumb('Dashboard');
+                } else if (moduleTarget === 'settings-module') {
+                    roleFeature.classList.add('d-none');
+                    masterDataContainer.classList.add('d-none');
+                    settingsContainer.classList.remove('d-none');
+                    initModule('settings-content');
+                    updateBreadcrumb('Sistem / Settings');
                 } else {
                     roleFeature.classList.add('d-none');
+                    settingsContainer.classList.add('d-none');
                     masterDataContainer.classList.remove('d-none');
                     const tab = document.getElementById(moduleTarget);
                     if (tab) {
@@ -142,9 +151,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (targetId === 'technicians-content') {
             const { initTechnicians } = await import('./modules/technicians.js');
             initTechnicians();
+        } else if (targetId === 'employees-content') {
+            const { initEmployees } = await import('./modules/employees.js');
+            initEmployees();
         } else if (targetId === 'customers-content') {
             const { initCustomers } = await import('./modules/customers.js');
             initCustomers();
+        } else if (targetId === 'add-customer-view-content') {
+            const { initAddCustomerView } = await import('./modules/add-customer-view.js');
+            initAddCustomerView();
+        } else if (targetId === 'roles-content') {
+            const { initRoles } = await import('./modules/roles.js');
+            initRoles();
+        } else if (targetId === 'settings-content') {
+            const { initSettings } = await import('./modules/settings.js');
+            initSettings();
+        } else if (targetId === 'packages-content') {
+            const { initPackages } = await import('./modules/packages.js');
+            initPackages();
         } else if (targetId === 'inventory-content') {
             const { initInventory } = await import('./modules/inventory.js');
             initInventory();

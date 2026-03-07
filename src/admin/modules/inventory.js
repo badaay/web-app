@@ -4,7 +4,7 @@ export async function initInventory() {
     const listContainer = document.getElementById('inventory-list');
     const addBtn = document.getElementById('add-inventory-btn');
 
-    addBtn.onclick = () => showInventoryModal();
+    if (addBtn) addBtn.onclick = () => showInventoryModal();
 
     async function loadInventory() {
         listContainer.innerHTML = 'Memuat inventaris...';
