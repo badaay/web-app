@@ -18,7 +18,8 @@ export async function initCustomers() {
     if (viewAllMapBtn) viewAllMapBtn.onclick = () => showAllCustomersMap();
 
     async function loadCustomers() {
-        listContainer.innerHTML = 'Memuat pelanggan...';
+        listContainer.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-white-50">Memuat pelanggan...</div></div>';
+
         const { data, error } = await supabase
             .from('customers')
             .select('*, roles(name)')
@@ -58,14 +59,16 @@ export async function initCustomers() {
                                 <td>${cust.packet || '-'}</td>
                                 <td>
                                     <div class="small">${cust.address}</div>
-                                    ${cust.lat ? `<button class="btn btn-link p-0 small text-accent view-map" data-lat="${cust.lat}" data-lng="${cust.lng}" data-name="${cust.name}"><i class="bi bi-geo-alt"></i> Lihat Peta</button>` : ''}
                                 </td>
                                 <td>
                                     <div class="small">${cust.mac_address || '-'}</div>
                                     <div class="small ${cust.damping < -28 ? 'text-danger' : 'text-success'}">${cust.damping || '-'} dBm</div>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-cust" data-id="${cust.id}">Edit</button>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary edit-cust" data-id="${cust.id}" title="Edit"><i class="bi bi-pencil"></i></button>
+                                        ${cust.lat ? `<button class="btn btn-outline-info view-map" data-id="${cust.id}" data-lat="${cust.lat}" data-lng="${cust.lng}" title="Lihat Peta"><i class="bi bi-geo-alt"></i></button>` : ''}
+                                    </div>
                                 </td>
                             </tr>
                         `).join('')}
@@ -76,28 +79,91 @@ export async function initCustomers() {
 
         document.querySelectorAll('.view-map').forEach(btn => {
             btn.onclick = (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                showMap(parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lng), btn.dataset.name);
+                const cust = customersData.find(c => String(c.id) === btn.dataset.id);
+                showMap(parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lng), cust);
             };
         });
 
         document.querySelectorAll('.edit-cust').forEach(btn => {
-            btn.onclick = () => showCustomerModal(data.find(c => c.id === btn.dataset.id));
+            btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showCustomerModal(customersData.find(c => String(c.id) === btn.dataset.id));
+            };
         });
     }
 
-    let map;
-    function showMap(lat, lng, name) {
+    // --------- MAP helpers ---------
+
+    function buildCustomerPopup(cust) {
+        const mapsUrl = cust.lat ? `https://www.google.com/maps?q=${cust.lat},${cust.lng}` : null;
+        const dampColor = cust.damping && cust.damping < -28 ? '#ef4444' : '#22c55e';
+        const installDate = cust.install_date ? new Date(cust.install_date).toLocaleDateString('id-ID') : '-';
+
+        return `
+            <div style="min-width:220px;font-family:sans-serif;">
+                <div style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;padding:8px 12px;margin:-7px -7px 10px;border-radius:4px 4px 0 0;">
+                    <div style="font-weight:700;font-size:13px;">${cust.name}</div>
+                    <div style="font-size:11px;opacity:0.85;">${cust.customer_code || 'Kode belum diatur'}</div>
+                </div>
+                <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                    <tr><td style="color:#666;padding:2px 4px;white-space:nowrap;">📦 Paket</td><td style="font-weight:600;">${cust.packet || '-'}</td></tr>
+                    <tr><td style="color:#666;padding:2px 4px;">📱 No HP</td><td>${cust.phone || '-'}</td></tr>
+                    <tr><td style="color:#666;padding:2px 4px;">🏠 Alamat</td><td>${cust.address || '-'}</td></tr>
+                    <tr><td style="color:#666;padding:2px 4px;">📅 Pasang</td><td>${installDate}</td></tr>
+                    <tr><td style="color:#666;padding:2px 4px;">💻 Username</td><td>${cust.username || '-'}</td></tr>
+                    <tr><td style="color:#666;padding:2px 4px;">📡 MAC</td><td style="font-family:monospace;font-size:11px;">${cust.mac_address || '-'}</td></tr>
+                    <tr><td style="color:#666;padding:2px 4px;">📶 Redaman</td><td style="color:${dampColor};font-weight:600;">${cust.damping ? cust.damping + ' dBm' : '-'}</td></tr>
+                    <tr><td style="color:#666;padding:2px 4px;">🪪 KTP</td><td style="font-size:11px;">${cust.ktp || '-'}</td></tr>
+                </table>
+                ${mapsUrl ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
+                    <a href="${mapsUrl}" target="_blank" style="font-size:11px;color:#3b82f6;text-decoration:none;">
+                        <i class="bi bi-map"></i> Buka Google Maps
+                    </a>
+                </div>` : ''}
+            </div>
+        `;
+    }
+
+    function createCustomerMarker(lat, lng, cust) {
+        return L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: '',
+                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="28" height="36">
+                    <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="#3b82f6" stroke="#fff" stroke-width="1.5"/>
+                    <circle cx="12" cy="12" r="5" fill="white" opacity="0.9"/>
+                </svg>`,
+                iconSize: [28, 36],
+                iconAnchor: [14, 36],
+                popupAnchor: [0, -36]
+            })
+        }).bindPopup(buildCustomerPopup(cust), { maxWidth: 280 });
+    }
+
+    function showMap(lat, lng, cust) {
         if (!lat || !lng) return alert('Koordinat tidak disetel untuk pelanggan ini.');
 
         const modal = new bootstrap.Modal(document.getElementById('mapModal'));
         modal.show();
 
+        // Update modal title
         setTimeout(() => {
-            if (map) map.remove();
-            map = L.map('admin-map').setView([lat, lng], 15);
+            const mTitle = document.querySelector('#mapModal .modal-title');
+            if (mTitle) mTitle.innerHTML = `<i class="bi bi-geo-alt me-2 text-info"></i>${cust?.name || 'Lokasi Pelanggan'}`;
+        }, 50);
+
+        setTimeout(() => {
+            if (window.adminModalMap) {
+                window.adminModalMap.remove();
+                window.adminModalMap = null;
+            }
+            const map = L.map('admin-map').setView([lat, lng], 16);
+            window.adminModalMap = map;
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            L.marker([lat, lng]).addTo(map).bindPopup(name).openPopup();
+            createCustomerMarker(lat, lng, cust).addTo(map).openPopup();
         }, 300);
     }
 
@@ -108,28 +174,48 @@ export async function initCustomers() {
         modal.show();
 
         setTimeout(() => {
-            if (map) map.remove();
+            const mTitle = document.querySelector('#mapModal .modal-title');
+            if (mTitle) mTitle.innerHTML = `<i class="bi bi-map me-2 text-info"></i>Peta Semua Pelanggan`;
+        }, 50);
+
+        setTimeout(() => {
+            if (window.adminModalMap) {
+                window.adminModalMap.remove();
+                window.adminModalMap = null;
+            }
 
             const validCustomers = customersData.filter(c => c.lat && c.lng);
             if (validCustomers.length === 0) return alert('Tidak ada pelanggan dengan koordinat yang valid.');
 
             const first = validCustomers[0];
-            map = L.map('admin-map').setView([first.lat, first.lng], 12);
+            const map = L.map('admin-map').setView([first.lat, first.lng], 12);
+            window.adminModalMap = map;
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+            // Counter badge
+            const counter = L.control({ position: 'topright' });
+            counter.onAdd = () => {
+                const div = L.DomUtil.create('div');
+                div.style.cssText = 'background:rgba(30,30,30,0.85);color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid #444;';
+                div.innerHTML = `<i style="color:#3b82f6;">●</i> ${validCustomers.length} Pelanggan`;
+                return div;
+            };
+            counter.addTo(map);
 
             const markers = [];
             validCustomers.forEach(cust => {
-                const marker = L.marker([cust.lat, cust.lng]).addTo(map).bindPopup(`<b>${cust.name}</b><br>${cust.address}`);
+                const marker = createCustomerMarker(cust.lat, cust.lng, cust).addTo(map);
                 markers.push(marker);
             });
 
             if (validCustomers.length > 1) {
                 const group = new L.featureGroup(markers);
-                map.fitBounds(group.getBounds().pad(0.1));
+                map.fitBounds(group.getBounds().pad(0.12));
             }
         }, 300);
     }
 
+    // --------- CRUD Modal ---------
     async function showCustomerModal(cust = null) {
         const modal = new bootstrap.Modal(document.getElementById('crudModal'));
         const modalTitle = document.getElementById('crudModalTitle');
@@ -212,10 +298,8 @@ export async function initCustomers() {
             if (cust) {
                 result = await supabase.from('customers').update(formData).eq('id', cust.id);
             } else {
-                // Set default role to 'Customer'
                 const { data: roleData } = await supabase.from('roles').select('id').eq('name', 'Customer').single();
                 if (roleData) formData.role_id = roleData.id;
-
                 result = await supabase.from('customers').insert([formData]);
             }
 
