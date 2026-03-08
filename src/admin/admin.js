@@ -123,9 +123,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateBreadcrumb('Dashboard');
             } else if (target === 'settings-module') {
                 settingsContainer.classList.remove('d-none');
-                initModule('settings-content');
                 initModule('roles-content');
-                updateBreadcrumb('Sistem / Settings & Roles');
+                updateBreadcrumb('Sistem / Roles');
             } else {
                 // Check if it's a master data pane
                 masterDataContainer.classList.remove('d-none');
@@ -184,9 +183,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (targetId === 'roles-content') {
             const { initRoles } = await import('./modules/roles.js');
             initRoles();
-        } else if (targetId === 'settings-content') {
-            const { initSettings } = await import('./modules/settings.js');
-            initSettings();
         } else if (targetId === 'packages-content') {
             const { initPackages } = await import('./modules/packages.js');
             initPackages();
