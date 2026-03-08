@@ -34,7 +34,10 @@
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </button>
                 <button class="nav-item-custom nav-module-link" data-module="work-orders-content">
-                    <i class="bi bi-file-earmark-text"></i> Surat Perintah (WO)
+                    <i class="bi bi-file-earmark-text"></i> Antrian PSB
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="customer-map-view-content">
+                    <i class="bi bi-pin-map"></i> MAP View
                 </button>
 
                 <div class="px-3 py-2 mt-3 small text-uppercase text-white-50"
@@ -158,6 +161,16 @@
                             </div>
                             <div id="customers-list" class="card">
                                 <div class="card-body text-center py-5">Memuat data pelanggan...</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="customer-map-view-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="mb-0 text-white"><i class="bi bi-pin-map-fill me-2 text-accent"></i>MAP View
+                                    Pelanggan</h4>
+                                <span class="badge bg-info text-dark small">Peta Interaktif</span>
+                            </div>
+                            <div id="customer-map-view-container">
+                                <!-- Map view will be injected here -->
                             </div>
                         </div>
                         <div class="tab-pane fade" id="add-customer-view-content" role="tabpanel">

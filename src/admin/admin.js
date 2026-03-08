@@ -192,6 +192,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (targetId === 'work-orders-content') {
             const { initWorkOrders } = await import('./modules/work-orders.js');
             initWorkOrders();
+        } else if (targetId === 'customer-map-view-content') {
+            const { initCustomerMapView } = await import('./modules/customer-map-view.js');
+            initCustomerMapView();
         }
     }
 });
