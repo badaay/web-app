@@ -1,35 +1,206 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-width=1.0">
-    <title>Portal Pelanggan</title>
-    <meta name="theme-color" content="#ffffff">
-  <script type="module" crossorigin src="/web-app/assets/main-jqcohwPg.js"></script>
-  <link rel="modulepreload" crossorigin href="/web-app/assets/supabase-DlQAt1xf.js">
-  <link rel="stylesheet" crossorigin href="/web-app/assets/supabase-Ck-cEz_8.css">
-  <link rel="stylesheet" crossorigin href="/web-app/assets/main-jcxjkXAq.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landing Page - Internet Terbaik</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Custom Landing Page Styling (Midnight Slate) -->
+    <style>
+        /* Terapkan secara khusus ke elemen body atau tag HTML */
+        body,
+        [data-theme="dark"] body {
+            background-color: #111827 !important;
+            color: #F9FAFB !important;
+        }
+
+        [data-theme="dark"] .bg-dark {
+            background-color: #1F2937 !important;
+            /* Untuk card, navbar */
+        }
+
+        [data-theme="dark"] .text-white-50 {
+            color: #9CA3AF !important;
+            /* Membuat text redup lebih dapat dibaca */
+        }
+
+        [data-theme="dark"] .btn-primary {
+            background-color: #3B82F6 !important;
+            border-color: #3B82F6 !important;
+        }
+
+        [data-theme="dark"] .btn-primary:hover {
+            background-color: #2563EB !important;
+            /* Biru hover lebih gelap */
+            border-color: #2563EB !important;
+        }
+
+        /* Garis pembatas agar tidak terlalu kontras */
+        [data-theme="dark"] .border-secondary {
+            border-color: #374151 !important;
+        }
+    </style>
+  <link rel="stylesheet" crossorigin href="/web-app/assets/styles-Ck-cEz_8.css">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/admin-uD1hFd_Y.css">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/themes-imTZvkea.css">
 <link rel="manifest" href="/web-app/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/web-app/registerSW.js"></script></head>
 
-<body class="auth-page">
-    <div id="app" class="login-active">
-        <div class="customer-login-card">
-            <div class="login-header">
-                <h1>Selamat Datang</h1>
-                <p>Silakan masuk ke akun pelanggan Anda</p>
-            </div>
-            <div id="auth-section">
-                <input type="email" id="email" class="auth-input" placeholder="Alamat Email" required>
-                <input type="password" id="password" class="auth-input" placeholder="Kata Sandi" required>
-                <button id="login-btn" class="auth-btn">Masuk</button>
+<body class="bg-vscode min-vh-100 d-flex flex-column" style="overflow-x: hidden;">
+    <!-- Navbar -->
+    <nav
+        class="navbar navbar-expand-lg navbar-dark bg-dark bg-opacity-75 backdrop-blur border-bottom border-secondary fixed-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="/"><i class="bi bi-wifi fs-4 me-2"></i>NetMaster</a>
+            <button class="navbar-toggler border-secondary text-primary" type="button" data-bs-toggle="collapse"
+                data-bs-toggle="collapse" data-bs-target="#landingNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="landingNav">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 fw-medium">
+                    <li class="nav-item">
+                        <a class="nav-link text-white-50 px-3" href="/admin/add-psb.html"><i
+                                class="bi bi-person-plus me-1"></i> Daftar Baru</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white-50 px-3" href="/enduser/login.html"><i
+                                class="bi bi-box-arrow-in-right me-1"></i> Member Area</a>
+                    </li>
+                    <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
+                        <a class="btn btn-outline-primary btn-sm px-3 rounded-pill" href="/admin/login.html"><i
+                                class="bi bi-shield-lock me-1"></i> Admin Portal</a>
+                    </li>
+                </ul>
             </div>
         </div>
-        <div id="dashboard-content" style="display: none; padding: 40px;">
-            <h1>Dashboard Pelanggan</h1>
-            <div id="map-container" style="height: 400px; width: 100%;"></div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow-1 d-flex align-items-center" style="padding-top: 76px;">
+        <div class="container py-5 text-center">
+
+            <!-- Success Notification Alert -->
+            <div id="success-alert"
+                class="alert alert-success d-none shadow-sm rounded-4 border-success mb-5 mx-auto text-start"
+                style="max-width: 650px;">
+                <h4 class="alert-heading text-success fw-bold"><i
+                        class="bi bi-check-circle-fill me-2 fs-3 align-middle"></i> Pendaftaran Berhasil!</h4>
+                <p class="mb-2 text-dark opacity-100 fw-medium">Registrasi Pemasangan Baru Anda telah berhasil
+                    diproses dan masuk ke dalam sistem antrian kami.</p>
+                <hr class="border-success opacity-50">
+                <p class="mb-0 text-dark small"><i class="bi bi-info-circle me-1"></i> Silakan hubungi <b>Admin
+                        Sales</b> via WhatsApp untuk konfirmasi penjadwalan observasi, pemasangan, dan pembayaran. Atau
+                    masuk ke <a href="/enduser/login.html" class="fw-bold text-success text-decoration-underline">Member
+                        Area</a> untuk mengecek status secara mandiri sesaat lagi.</p>
+            </div>
+
+            <span
+                class="badge bg-primary text-white bg-opacity-10 text-primary border border-primary px-3 py-2 rounded-pill mb-4 shadow-sm fw-bold">Koneksi
+                Internet Super Kilat 🚀</span>
+            <h1 class="display-3 fw-bolder text-white text-shadow-sm mb-3">Nikmati Koneksi <span
+                    class="text-primary text-gradient">Tanpa Batas</span>.</h1>
+            <p class="lead text-white-50 mb-5 mx-auto" style="max-width: 700px;">
+                Ciptakan ekosistem digital terbaik untuk rumah atau kantor Anda dengan sistem pelayanan pasang baru yang
+                cepat, handal, dan transparan. Daftarkan diri Anda sekarang, dan rasakan perbedaannya.
+            </p>
+
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="/admin/add-psb.html"
+                    class="btn btn-primary btn-lg px-5 py-3 rounded-pill fw-bold shadow-lg transition-transform"
+                    style="transition: transform 0.2s; transform: scale(1.02) onhover;">
+                    <i class="bi bi-lightning-charge-fill me-2"></i> Daftar Sekarang
+                </a>
+                <a href="/enduser/login.html"
+                    class="btn btn-dark border-secondary btn-lg px-5 py-3 rounded-pill fw-bold shadow-sm transition-transform"
+                    style="transition: transform 0.2s;">
+                    <i class="bi bi-person-fill me-2"></i> Login Pelanggan
+                </a>
+            </div>
+
+            <!-- Features -->
+            <div class="row mt-5 pt-5 g-4 text-start justify-content-center">
+                <div class="col-md-4">
+                    <div class="card bg-dark bg-opacity-50 border-secondary h-100 shadow-sm rounded-4 p-3 transition-transform"
+                        style="transition: transform 0.2s; cursor: default;"
+                        onmouseover="this.style.transform='translateY(-5px)'"
+                        onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body">
+                            <i class="bi bi-speedometer fs-1 text-primary mb-3 d-block"></i>
+                            <h5 class="card-title text-white fw-bold">Speed Stabil</h5>
+                            <p class="card-text text-white-50 small mb-0">Rasio contention ideal dengan server peering
+                                yang handal untuk menjamin koneksi lancar di jam sibuk sekalipun.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-dark bg-opacity-50 border-secondary h-100 shadow-sm rounded-4 p-3 transition-transform"
+                        style="transition: transform 0.2s; cursor: default;"
+                        onmouseover="this.style.transform='translateY(-5px)'"
+                        onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body">
+                            <i class="bi bi-tools fs-1 text-success mb-3 d-block"></i>
+                            <h5 class="card-title text-white fw-bold">Support 24/7</h5>
+                            <p class="card-text text-white-50 small mb-0">Teknisi profesional yang selalu siap membantu
+                                Anda menghadapi masalah teknis kapan saja secara efisien.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-dark bg-opacity-50 border-secondary h-100 shadow-sm rounded-4 p-3 transition-transform"
+                        style="transition: transform 0.2s; cursor: default;"
+                        onmouseover="this.style.transform='translateY(-5px)'"
+                        onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body">
+                            <i class="bi bi-wallet2 fs-1 text-warning mb-3 d-block"></i>
+                            <h5 class="card-title text-white fw-bold">Harga Terjangkau</h5>
+                            <p class="card-text text-white-50 small mb-0">Paket kompetitif yang dapat disesuaikan dengan
+                                kebutuhan Anda sehari-hari tanpa biaya tersembunyi.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-    </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark bg-opacity-75 border-top border-secondary py-4 text-center mt-auto">
+        <div class="container">
+            <p class="mb-0 text-white-50 small">&copy; 2026 Portal Pelanggan. All Rights Reserved. Built securely and
+                transparently.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply theme logic
+            const savedTheme = localStorage.getItem('app-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            // Handle success message from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                const el = document.getElementById('success-alert');
+                el.classList.remove('d-none');
+
+                // Animate showing alert
+                el.animate([
+                    { opacity: 0, transform: 'translateY(-20px)' },
+                    { opacity: 1, transform: 'translateY(0)' }
+                ], { duration: 500, fill: 'forwards', easing: 'ease-out' });
+
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+    </script>
 </body>
 
 </html>
