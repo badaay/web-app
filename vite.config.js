@@ -2,6 +2,22 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
 
+function activityRewritePlugin() {
+    return {
+        name: 'activity-rewrite',
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                // Match /web-app/:employeeid/activity
+                if (req.url && req.url.match(/^\/web-app\/[^\/]+\/activity(?:\?.*)?$/)) {
+                    const queryParams = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+                    req.url = `/web-app/activity.html${queryParams}`;
+                }
+                next();
+            });
+        }
+    };
+}
+
 export default defineConfig({
     base: '/web-app/',
     build: {
@@ -12,6 +28,7 @@ export default defineConfig({
                 login: resolve(__dirname, 'admin/login.html'),
                 'add-psb': resolve(__dirname, 'admin/add-psb.html'),
                 'enduser-login': resolve(__dirname, 'enduser/login.html'),
+                'activity': resolve(__dirname, 'activity.html'),
             },
         },
         build: {
@@ -19,6 +36,7 @@ export default defineConfig({
         }
     },
     plugins: [
+        activityRewritePlugin(),
         VitePWA({
             registerType: 'autoUpdate',
             injectRegister: 'auto',
