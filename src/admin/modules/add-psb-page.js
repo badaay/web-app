@@ -1,182 +1,445 @@
 import { supabase } from '../../api/supabase.js';
+import { APP_BASE_URL } from '../../config.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // ── UI Elements ───────────────────────────────────────────────────────────
-    const step1Ind = document.getElementById('step-1-indicator');
-    const step2Ind = document.getElementById('step-2-indicator');
-    const step1Content = document.getElementById('step-1-content');
-    const step2Content = document.getElementById('step-2-content');
+    const container = document.getElementById('psb-form-container');
+    if (!container) return;
 
-    // Step 1
-    const customerSearch = document.getElementById('customer-search');
-    const searchResults = document.getElementById('search-results');
-    const selectedCustomerBadge = document.getElementById('selected-customer-badge');
-    const selectedCustName = document.getElementById('selected-cust-name');
-    const btnClearSelection = document.getElementById('btn-clear-selection');
-    const btnShowNewForm = document.getElementById('btn-show-new-form');
-    const btnCreateCustomerOnly = document.getElementById('btn-create-customer-only');
-    const newCustomerForm = document.getElementById('new-customer-form');
-    const btnNextStep = document.getElementById('btn-next-step');
+    const showInlineError = (elementId, message) => {
+        const el = document.getElementById(elementId);
+        if (!el) return;
 
-    // Step 2
-    const btnPrevStep = document.getElementById('btn-prev-step');
-    const btnSubmitPsb = document.getElementById('btn-submit-psb');
-    const psbRegDate = document.getElementById('psb-reg-date');
-    const psbPackage = document.getElementById('psb-package');
-    const psbReferral = document.getElementById('psb-referral');
-    const psbKet = document.getElementById('psb-ket');
+        const existingInfo = el.parentElement.querySelector('.custom-inline-error');
+        if (existingInfo) existingInfo.remove();
 
-    // Feed
-    const recentQueueList = document.getElementById('recent-queue-list');
-    const todayCountBadge = document.getElementById('today-count');
+        const errNode = document.createElement('div');
+        errNode.className = 'custom-inline-error mt-1 fw-bold shadow';
+        errNode.style.background = '#da3633';
+        errNode.style.color = '#fff';
+        errNode.style.padding = '6px 12px';
+        errNode.style.borderRadius = '6px';
+        errNode.style.fontSize = '0.8rem';
+        errNode.style.position = 'absolute';
+        errNode.style.zIndex = '1050';
+        errNode.style.animation = 'errorFadeIn 0.3s ease';
+        errNode.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i> ' + message;
 
-    // Photo
-    const photoDropZone = document.getElementById('photo-drop-zone');
-    const photoFileInput = document.getElementById('photo-file-input');
-    const photoCameraInput = document.getElementById('photo-camera-input');
-    const btnAttachPhoto = document.getElementById('btn-attach-photo');
-    const btnOpenCamera = document.getElementById('btn-open-camera');
-    const photoPreviewContainer = document.getElementById('photo-preview-container');
+        el.parentElement.style.position = 'relative';
 
-    // GPS
-    const btnGetLocation = document.getElementById('btn-get-location');
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.classList.add('is-invalid');
+            el.parentElement.insertBefore(errNode, el.nextSibling);
 
-    // ── State ─────────────────────────────────────────────────────────────────
-    let selectedCustomerId = null;
-    let psbMap = null;
-    let psbMarker = null;
-    let selectedPhotos = []; // Array of { file, dataUrl }
+            const clearValidity = () => {
+                el.classList.remove('is-invalid');
+                if (errNode.parentNode) errNode.remove();
+            };
+            el.addEventListener('input', clearValidity, { once: true });
+            el.addEventListener('change', clearValidity, { once: true });
+            el.focus();
+        } else {
+            errNode.style.left = '50%';
+            errNode.style.bottom = '10%';
+            errNode.style.transform = 'translate(-50%, 0)';
+            el.appendChild(errNode);
 
-    if (psbRegDate) psbRegDate.value = new Date().toISOString().split('T')[0];
-
-    await loadInitialData();
-
-    // ── DATA LOADING ──────────────────────────────────────────────────────────
-
-    async function loadInitialData() {
-        const { data: packages } = await supabase.from('internet_packages').select('*').order('name');
-        if (packages && psbPackage) {
-            psbPackage.innerHTML = '<option value="">Pilih Paket...</option>' +
-                packages.map(p => `<option value="${p.id}">${p.name} - Rp ${Number(p.price).toLocaleString('id-ID')}</option>`).join('');
+            const clearValidity = () => { if (errNode.parentNode) errNode.remove(); };
+            el.addEventListener('click', clearValidity, { once: true });
+            setTimeout(clearValidity, 4000);
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        loadRecentQueue();
-    }
+    };
 
-    async function loadRecentQueue() {
-        if (!recentQueueList) return;
-        const { data: queue, error } = await supabase
-            .from('work_orders')
-            .select('*, customers(name, address, phone)')
-            .eq('status', 'Antrian')
-            .order('created_at', { ascending: false });
+    const getRenderHeader = () => `
+        <style>
+            @keyframes errorFadeIn {
+                from { opacity: 0; transform: translateY(-5px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .package-card:hover {
+                transform: translateY(-5px) !important;
+                border-color: #58a6ff !important;
+                box-shadow: 0 8px 24px rgba(88, 166, 255, 0.2) !important;
+            }
+            .package-card:hover .package-body {
+                background-color: rgba(88, 166, 255, 0.05);
+            }
+        </style>
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h3 class="text-white mb-2"><i class="bi bi-person-plus text-primary me-2"></i>Registrasi Pelanggan</h3>
+                <p class="text-white-50">Lengkapi form di bawah untuk mendaftar layanan Pemasangan Baru.</p>
+            </div>
+        </div>
 
-        if (error) return console.error(error);
+        <!-- STEPPER INDICATORS -->
+        <div class="d-flex mb-4 justify-content-center flex-wrap gap-2 gap-md-4">
+            <div class="step-indicator active d-flex align-items-center" id="ind-step-1">
+                <div class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">1</div>
+                <span class="small fw-bold text-white">Pilih Paket</span>
+            </div>
+            <div class="step-indicator opacity-50 d-flex align-items-center" id="ind-step-2">
+                <div class="step-num bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">2</div>
+                <span class="small fw-bold text-white">Lokasi</span>
+            </div>
+            <div class="step-indicator opacity-50 d-flex align-items-center" id="ind-step-3">
+                <div class="step-num bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">3</div>
+                <span class="small fw-bold text-white">Biodata</span>
+            </div>
+        </div>
 
-        if (todayCountBadge) todayCountBadge.innerText = queue.length;
-        recentQueueList.innerHTML = queue.map(item => `
-            <div class="card bg-dark border-secondary mb-3 animate__animated animate__fadeInRight">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge bg-success small">ANTRIAN</span>
-                        <small class="text-white-50">${new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
-                    </div>
-                    <h6 class="mb-1 text-white">${item.customers?.name || 'Anonim'}</h6>
-                    <p class="small text-white-50 mb-1"><i class="bi bi-geo-alt me-1"></i>${item.customers?.address || '-'}</p>
-                    <div class="d-flex justify-content-between align-items-center mt-2 small">
-                        <span class="text-accent">${item.customers?.phone || '-'}</span>
-                        <span class="text-white-50 fst-italic">${item.ket || 'Data OK'}</span>
-                    </div>
+        <!-- LOADING OVERLAY -->
+        <div id="step-loading" class="d-none text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+            <p class="text-white-50 mt-3">Sedang memproses...</p>
+        </div>
+    `;
+
+    const getRenderStep1 = () => `
+            <!-- ====== STEP 1: PILIH PAKET ====== -->
+            <div id="step-1" class="step-section">
+
+                        <div class="row g-3" id="package-cards-container">
+                            <div class="col-12 text-center text-white-50 py-4"><div class="spinner-border spinner-border-sm me-2"></div> Memuat opsi paket...</div>
+                        </div>
+                        <input type="hidden" id="selected-package-name" required>
+                        <input type="hidden" id="selected-package-price">
+                        <input type="hidden" id="selected-package-speed">
+
+                <div class="text-end">
+                    <button type="button" class="btn btn-primary px-4 py-2 fw-bold transition-transform" id="btn-next-2">
+                        Selanjutnya <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
                 </div>
             </div>
-        `).join('') || '<div class="text-center py-5 text-white-50">Belum ada antrian hari ini.</div>';
-    }
+    `;
 
-    // ── CUSTOMER SEARCH ───────────────────────────────────────────────────────
+    const getRenderStep2 = () => `
+            <!-- ====== STEP 2: LOKASI PEMASANGAN ====== -->
+            <div id="step-2" class="step-section d-none">
+                <div class="card bg-vscode border-secondary mb-4 shadow-sm">
+                    <div class="card-header border-secondary bg-dark bg-opacity-50 pt-3 pb-2">
+                        <h5 class="mb-0 text-white"><span class="badge bg-primary rounded-circle me-2 px-2 py-1">2</span> Instalasi / Lokasi Pemasangan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4 d-flex align-items-stretch">
+                            <div class="col-md-7">
+                                <label class="form-label text-white-50 small mb-2">Pilih Titik Lokasi di Peta</label>
+                                <div class="position-relative">
+                                    <div id="location-picker-map" class="rounded border border-secondary shadow-sm" style="height: 350px; background: #1e1e1e; z-index: 1;"></div>
+                                    <button type="button" id="btn-get-location" class="btn btn-sm btn-dark border-secondary position-absolute" style="top: 10px; right: 10px; z-index: 1000;">
+                                        <i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya
+                                    </button>
+                                </div>
+                                <p class="text-white-50 mt-2 mb-0" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i> Klik pada peta untuk menentukan koordinat pasti lokasi pemasangan.</p>
+                                
+                                <!-- HIDDEN LAT LONG -->
+                                <div class="d-none">
+                                    <input type="number" step="any" id="adv-cust-lat" required>
+                                    <input type="number" step="any" id="adv-cust-lng" required>
+                                </div>
+                            </div>
+                            <div class="col-md-5 d-flex flex-column bg-dark bg-opacity-25 p-3 rounded border border-secondary">
+                                <div class="mb-3 flex-grow-1">
+                                    <label class="form-label text-white fw-medium small mb-2">Detail Alamat Pemasangan</label>
+                                    <textarea class="form-control bg-dark text-white border-secondary h-100" id="adv-cust-address" style="min-height: 120px;" placeholder="Tuliskan alamat lengkap... (Nama Jalan, Blok, No Rumah, RT/RW, Patokan)" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" id="btn-back-1">
+                        <i class="bi bi-arrow-left me-2"></i> Kembali
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 py-2 fw-bold transition-transform" id="btn-next-3">
+                        Selanjutnya <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+    `;
 
-    let searchTimeout;
-    if (customerSearch) {
-        customerSearch.addEventListener('input', () => {
-            clearTimeout(searchTimeout);
-            const query = customerSearch.value.trim();
-            if (query.length < 2) { if (searchResults) searchResults.innerHTML = ''; return; }
-            searchTimeout = setTimeout(async () => {
-                const { data } = await supabase
-                    .from('customers').select('*')
-                    .or(`name.ilike.%${query}%,phone.ilike.%${query}%,ktp.ilike.%${query}%`)
-                    .limit(5);
-                if (data) renderSearchResults(data);
-            }, 300);
-        });
-    }
+    const getRenderStep3 = () => `
+            <!-- ====== STEP 3: BIODATA DIRI ====== -->
+            <div id="step-3" class="step-section d-none">
+                <div class="card bg-vscode border-secondary mb-4 shadow-sm">
+                    <div class="card-header border-secondary bg-dark bg-opacity-50 pt-3 pb-2">
+                        <h5 class="mb-0 text-white"><span class="badge bg-primary rounded-circle me-2 px-2 py-1">3</span> Biodata Diri</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Selected Package Summary Card -->
+                        <div class="card bg-gradient border-primary mb-4 shadow" id="summary-package-card" style="display:none; background: linear-gradient(145deg, rgba(13,110,253,0.1) 0%, rgba(0,0,0,0) 100%);">
+                            <div class="card-body py-3 px-4">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <span class="text-white-50 small d-block mb-1">Paket yang dipilih:</span>
+                                        <h5 class="text-white mb-0 d-inline-block" id="summary-pkg-name">-</h5>
+                                        <span class="badge bg-info text-dark ms-2 align-bottom" id="summary-pkg-speed">-</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="text-white-50 small d-block mb-1">Estimasi Biaya</span>
+                                        <h4 class="text-success mb-0" id="summary-pkg-price">-</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-    function renderSearchResults(customers) {
-        if (!searchResults) return;
-        if (customers.length === 0) {
-            searchResults.innerHTML = '<div class="list-group-item bg-dark border-secondary text-white-50 small">Tidak ditemukan. Silakan daftar baru.</div>';
-            return;
-        }
-        searchResults.innerHTML = customers.map(c => `
-            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary small py-2" data-id="${c.id}" data-name="${c.name}">
-                <strong>${c.name}</strong> - ${c.phone} <br>
-                <span class="text-white-50 small">${c.address || ''}</span>
-            </button>
-        `).join('');
-        searchResults.querySelectorAll('button').forEach(btn => {
-            btn.onclick = () => selectCustomer(btn.dataset.id, btn.dataset.name);
-        });
-    }
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50 small">Nama Lengkap</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" id="adv-cust-name" placeholder="Sesuai KTP" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50 small">Email</label>
+                                <input type="email" class="form-control bg-dark text-white border-secondary" id="adv-cust-email" placeholder="email@contoh.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50 small">No. Handphone / WhatsApp</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" id="adv-cust-phone" placeholder="08xxxxxxxxxx" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50 small">No. HP Alternatif</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" id="adv-cust-alt-phone" placeholder="Keluarga / Kerabat (Opsional)">
+                            </div>
+                            <div class="col-12 mt-4">
+                                <h6 class="text-white mb-3 border-bottom border-secondary pb-2">Dokumen Pendukung</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50 small">Upload Foto Rumah <span class="text-danger">*</span></label>
+                                <div class="photo-drop-zone" id="drop-zone-rumah" onclick="document.getElementById('adv-cust-foto-rumah').click()">
+                                    <i class="bi bi-house-door fs-2 text-white-50 mb-2 d-block"></i>
+                                    <span class="small text-white-50">Klik untuk upload foto rumah</span>
+                                    <input type="file" id="adv-cust-foto-rumah" class="d-none" accept="image/*">
+                                </div>
+                                <div id="preview-rumah" class="mt-2 text-center" style="display:none;">
+                                    <img src="" class="img-thumbnail bg-dark border-secondary mb-2" style="max-height: 200px; width: 100%; object-fit: cover; border-radius: 8px;">
+                                    <button type="button" class="btn btn-sm btn-outline-danger w-100" id="btn-remove-rumah"><i class="bi bi-trash"></i> Hapus Foto Rumah</button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50 small">Upload Foto KTP <span class="text-danger">*</span></label>
+                                <div class="photo-drop-zone" id="drop-zone-ktp" onclick="document.getElementById('adv-cust-foto-ktp').click()">
+                                    <i class="bi bi-person-vcard fs-2 text-white-50 mb-2 d-block"></i>
+                                    <span class="small text-white-50">Klik untuk upload foto KTP</span>
+                                    <input type="file" id="adv-cust-foto-ktp" class="d-none" accept="image/*">
+                                </div>
+                                <div id="preview-ktp" class="mt-2 text-center" style="display:none;">
+                                    <img src="" class="img-thumbnail bg-dark border-secondary mb-2" style="max-height: 200px; width: 100%; object-fit: cover; border-radius: 8px;">
+                                    <button type="button" class="btn btn-sm btn-outline-danger w-100" id="btn-remove-ktp"><i class="bi bi-trash"></i> Hapus Foto KTP</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    function selectCustomer(id, name) {
-        selectedCustomerId = id;
-        if (customerSearch) customerSearch.value = '';
-        if (searchResults) searchResults.innerHTML = '';
-        if (selectedCustName) selectedCustName.innerText = name;
-        if (selectedCustomerBadge) selectedCustomerBadge.classList.remove('d-none');
-        if (customerSearch) customerSearch.parentElement.classList.add('d-none');
-        if (btnNextStep) btnNextStep.disabled = false;
-        if (newCustomerForm) newCustomerForm.classList.add('d-none');
-    }
+                <div class="d-flex justify-content-between flex-wrap gap-3 mt-4">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" id="btn-back-2">
+                        <i class="bi bi-arrow-left me-2"></i> Kembali
+                    </button>
+                    <button type="button" class="btn btn-success btn-lg px-5 py-2 fw-bold shadow-sm transition-transform" id="save-adv-customer-btn">
+                        <i class="bi bi-check-circle-fill me-2"></i> Selesaikan Registrasi
+                    </button>
+                </div>
+            </div>
+    `;
 
-    if (btnClearSelection) {
-        btnClearSelection.onclick = () => {
-            selectedCustomerId = null;
-            if (selectedCustomerBadge) selectedCustomerBadge.classList.add('d-none');
-            if (customerSearch) customerSearch.parentElement.classList.remove('d-none');
-            if (btnNextStep) btnNextStep.disabled = true;
-        };
-    }
+    container.innerHTML = getRenderHeader() +
+        '<form id="add-psb-registration-form">' +
+        getRenderStep1() +
+        getRenderStep2() +
+        getRenderStep3() +
+        '</form>';
 
-    if (btnShowNewForm) {
-        btnShowNewForm.onclick = () => {
-            newCustomerForm.classList.toggle('d-none');
-            if (!newCustomerForm.classList.contains('d-none')) {
-                newCustomerForm.scrollIntoView({ behavior: 'smooth' });
-                initMap();
+    // Setup photo upload previews
+    const setupPhotoUpload = (inputId, dropZoneId, previewContainerId, removeBtnId) => {
+        const input = document.getElementById(inputId);
+        const dropZone = document.getElementById(dropZoneId);
+        const previewContainer = document.getElementById(previewContainerId);
+        const previewImg = previewContainer.querySelector('img');
+        const removeBtn = document.getElementById(removeBtnId);
+
+        if (!input) return;
+
+        input.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    dropZone.style.display = 'none';
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
             }
-        };
+        });
+
+        removeBtn.addEventListener('click', function () {
+            input.value = '';
+            dropZone.style.display = 'block';
+            previewContainer.style.display = 'none';
+            previewImg.src = '';
+        });
+    };
+
+    setupPhotoUpload('adv-cust-foto-rumah', 'drop-zone-rumah', 'preview-rumah', 'btn-remove-rumah');
+    setupPhotoUpload('adv-cust-foto-ktp', 'drop-zone-ktp', 'preview-ktp', 'btn-remove-ktp');
+
+    // Initialize Map Variables
+    let pickMap;
+    let marker;
+    const defaultPos = [-7.150970, 112.721245];
+
+    // Functions for Step Transitions
+    const steps = [
+        document.getElementById('step-1'),
+        document.getElementById('step-2'),
+        document.getElementById('step-3')
+    ];
+    const inds = [
+        document.getElementById('ind-step-1'),
+        document.getElementById('ind-step-2'),
+        document.getElementById('ind-step-3')
+    ];
+    const loader = document.getElementById('step-loading');
+
+    function showLoader(duration = 500) {
+        return new Promise(resolve => {
+            steps.forEach(s => s.classList.add('d-none'));
+            loader.classList.remove('d-none');
+            setTimeout(() => {
+                loader.classList.add('d-none');
+                resolve();
+            }, duration);
+        });
     }
 
-    // ── MAP & GPS ─────────────────────────────────────────────────────────────
-
-    function initMap() {
-        if (psbMap) return;
-        const defaultPos = [-7.150970, 112.721245];
-        setTimeout(() => {
-            psbMap = L.map('psb-map').setView(defaultPos, 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(psbMap);
-            psbMap.on('click', (e) => pinLocation(e.latlng.lat, e.latlng.lng));
-            psbMap.invalidateSize();
-        }, 300);
+    function updateIndicators(targetIndex) {
+        inds.forEach((ind, i) => {
+            const num = ind.querySelector('.step-num');
+            if (i === targetIndex) {
+                ind.classList.remove('opacity-50');
+                num.classList.replace('bg-secondary', 'bg-primary');
+                if (num.classList.contains('bg-success')) num.classList.replace('bg-success', 'bg-primary');
+                num.innerHTML = i + 1;
+            } else if (i < targetIndex) {
+                // Completed
+                ind.classList.remove('opacity-50');
+                if (num.classList.contains('bg-secondary')) num.classList.replace('bg-secondary', 'bg-success');
+                if (num.classList.contains('bg-primary')) num.classList.replace('bg-primary', 'bg-success');
+                num.innerHTML = '<i class="bi bi-check"></i>';
+            } else {
+                // Future
+                ind.classList.add('opacity-50');
+                if (num.classList.contains('bg-primary')) num.classList.replace('bg-primary', 'bg-secondary');
+                if (num.classList.contains('bg-success')) num.classList.replace('bg-success', 'bg-secondary');
+                num.innerHTML = i + 1;
+            }
+        });
     }
 
-    function pinLocation(lat, lng) {
-        document.getElementById('new-cust-lat').value = lat.toFixed(7);
-        document.getElementById('new-cust-lng').value = lng.toFixed(7);
-        if (psbMarker) psbMarker.remove();
-        psbMarker = L.marker([lat, lng]).addTo(psbMap);
-        psbMap.setView([lat, lng], 16);
+    async function goToStep(stepIndex) {
+        await showLoader();
+        steps[stepIndex].classList.remove('d-none');
+        updateIndicators(stepIndex);
+
+        // Special actions on step enter
+        if (stepIndex === 1) {
+            // Re-render map inside the now-visible container
+            const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+            const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            });
+            const Stadia_AlidadeSatellite = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.{ext}', {
+                minZoom: 0,
+                maxZoom: 20,
+                attribution: '&copy; CNES, Distribution Airbus DS, © Airbus DS, © PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                ext: 'jpg'
+            });
+            const baseLayers = {
+                'OpenStreetMap': osm,
+                'Dark Mode': dark,
+                'Terrains': Stadia_AlidadeSatellite
+            };
+            if (!pickMap) {
+                pickMap = L.map('location-picker-map').addLayer(osm).setView(defaultPos, 13);
+                L.control.layers(baseLayers).addTo(pickMap);
+
+                pickMap.on('click', (e) => setPin(e.latlng.lat, e.latlng.lng));
+            }
+            setTimeout(() => pickMap.invalidateSize(), 200);
+        } else if (stepIndex === 2) {
+            // Ensure summary is shown and animated
+            const summaryCard = document.getElementById('summary-package-card');
+            summaryCard.style.display = 'block';
+            summaryCard.animate([
+                { opacity: 0, transform: 'translateY(-10px)' },
+                { opacity: 1, transform: 'translateY(0)' }
+            ], { duration: 300, fill: 'forwards' });
+        }
     }
 
+    // Event Listeners for Next/Back Buttons
+    function handleTransition(btnId, targetStep, validatingFn) {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.onclick = async () => {
+                if (validatingFn && !validatingFn()) return;
+                await goToStep(targetStep);
+            };
+        }
+    }
+
+    handleTransition('btn-next-2', 1, () => {
+        const pkgName = document.getElementById('selected-package-name').value;
+        if (!pkgName) {
+            showInlineError('package-cards-container', 'Silakan pilih paket internet terlebih dahulu.');
+            return false;
+        }
+        return true;
+    });
+
+    handleTransition('btn-next-3', 2, () => {
+        const lat = document.getElementById('adv-cust-lat').value;
+        const lng = document.getElementById('adv-cust-lng').value;
+        const addr = document.getElementById('adv-cust-address').value.trim();
+
+        let isValid = true;
+
+        if (!lat || !lng) {
+            showInlineError('location-picker-map', 'Silakan pilih titik lokasi pemasangan di peta.');
+            isValid = false;
+        }
+        if (!addr) {
+            showInlineError('adv-cust-address', 'Silakan isi detail alamat pemasangan.');
+            isValid = false;
+        }
+
+        return isValid;
+    });
+
+    handleTransition('btn-back-1', 0);
+    handleTransition('btn-back-2', 1);
+
+    // Default Install Date
+    const installDateEl = document.getElementById('adv-cust-install-date');
+    if (installDateEl) {
+        installDateEl.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Load initial packages
+    await loadPackages();
+
+    function setPin(lat, lng) {
+        document.getElementById('adv-cust-lat').value = lat.toFixed(7);
+        document.getElementById('adv-cust-lng').value = lng.toFixed(7);
+
+        if (marker) marker.remove();
+        marker = L.marker([lat, lng]).addTo(pickMap);
+        pickMap.setView([lat, lng], 16);
+    }
+
+    // GPS Button Logic
+    const btnGetLocation = document.getElementById('btn-get-location');
     if (btnGetLocation) {
         btnGetLocation.onclick = () => {
             if (!navigator.geolocation) return alert('Browser Anda tidak mendukung geolokasi.');
@@ -185,8 +448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    initMap();
-                    setTimeout(() => pinLocation(pos.coords.latitude, pos.coords.longitude), 400);
+                    setPin(pos.coords.latitude, pos.coords.longitude);
                     btnGetLocation.innerHTML = '<i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya';
                     btnGetLocation.disabled = false;
                 },
@@ -200,156 +462,154 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
-    // ── PHOTO LOGIC ───────────────────────────────────────────────────────────
+    // FINAL SUBMIT (Save Registration)
+    const saveBtn = document.getElementById('save-adv-customer-btn');
+    if (saveBtn) {
+        saveBtn.onclick = async () => {
+            const name = document.getElementById('adv-cust-name').value.trim();
+            const phone = document.getElementById('adv-cust-phone').value.trim();
+            const fotoRumah = document.getElementById('adv-cust-foto-rumah').files[0];
+            const fotoKtp = document.getElementById('adv-cust-foto-ktp').files[0];
 
-    function handlePhotoFiles(files) {
-        Array.from(files).forEach(file => {
-            if (!file.type.startsWith('image/')) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                selectedPhotos.push({ file, dataUrl: e.target.result });
-                renderPhotoPreview();
-            };
-            reader.readAsDataURL(file);
-        });
-    }
+            let isValid = true;
 
-    function renderPhotoPreview() {
-        if (!photoPreviewContainer) return;
-        photoPreviewContainer.innerHTML = selectedPhotos.map((p, i) => `
-            <div class="photo-thumb" data-index="${i}">
-                <img src="${p.dataUrl}" alt="foto ${i + 1}">
-                <button type="button" class="remove-photo" data-index="${i}" title="Hapus">✕</button>
-            </div>
-        `).join('');
-        photoPreviewContainer.querySelectorAll('.remove-photo').forEach(btn => {
-            btn.onclick = () => {
-                selectedPhotos.splice(parseInt(btn.dataset.index), 1);
-                renderPhotoPreview();
-            };
-        });
-    }
+            if (!name) {
+                showInlineError('adv-cust-name', 'Nama Lengkap wajib diisi.');
+                isValid = false;
+            }
+            if (!phone) {
+                showInlineError('adv-cust-phone', 'No. Handphone wajib diisi.');
+                isValid = false;
+            }
+            if (!fotoRumah) {
+                showInlineError('drop-zone-rumah', 'Foto Rumah wajib diunggah.');
+                isValid = false;
+            }
+            if (!fotoKtp) {
+                showInlineError('drop-zone-ktp', 'Foto KTP wajib diunggah.');
+                isValid = false;
+            }
 
-    if (photoDropZone) photoDropZone.onclick = () => photoFileInput && photoFileInput.click();
-    if (btnAttachPhoto) btnAttachPhoto.onclick = () => photoFileInput && photoFileInput.click();
-    if (btnOpenCamera) btnOpenCamera.onclick = () => photoCameraInput && photoCameraInput.click();
-    if (photoFileInput) photoFileInput.onchange = (e) => handlePhotoFiles(e.target.files);
-    if (photoCameraInput) photoCameraInput.onchange = (e) => handlePhotoFiles(e.target.files);
+            if (!isValid) return;
 
-    // ── CUSTOMER CREATION ─────────────────────────────────────────────────────
+            const pkgName = document.getElementById('selected-package-name').value;
+            const address = document.getElementById('adv-cust-address').value.trim();
+            const lat = document.getElementById('adv-cust-lat').value;
+            const lng = document.getElementById('adv-cust-lng').value;
+            const installDate = null;
+            const email = document.getElementById('adv-cust-email').value.trim();
+            const altPhone = document.getElementById('adv-cust-alt-phone').value.trim();
 
-    if (btnCreateCustomerOnly) {
-        btnCreateCustomerOnly.onclick = async () => {
-            const name = document.getElementById('new-cust-name').value.trim();
-            const phone = document.getElementById('new-cust-phone').value.trim();
-            const ktp = document.getElementById('new-cust-ktp').value.trim();
-            const address = document.getElementById('new-cust-address').value.trim();
-            const lat = document.getElementById('new-cust-lat').value;
-            const lng = document.getElementById('new-cust-lng').value;
+            let finalAddress = address;
+            if (email || altPhone) {
+                finalAddress += '\n(Email: ' + (email || '-') + ' | HP Alt: ' + (altPhone || '-') + ')';
+            }
 
-            if (!name || !phone) return alert('Nama dan No. HP wajib diisi.');
-            if (!lat || !lng) return alert('Silakan klik peta atau gunakan "Lokasi Saya" untuk menentukan lokasi.');
-
-            btnCreateCustomerOnly.disabled = true;
-            btnCreateCustomerOnly.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan Data...';
+            saveBtn.disabled = true;
 
             try {
+                // 1. Set default role to 'Customer'
                 const { data: roleData } = await supabase.from('roles').select('id').eq('name', 'Customer').single();
+                const role_id = roleData ? roleData.id : null;
 
-                const { data: newCust, error: custErr } = await supabase
-                    .from('customers')
-                    .insert([{ name, phone, ktp, address, lat: parseFloat(lat), lng: parseFloat(lng), role_id: roleData?.id || null }])
-                    .select().single();
+                // 2. Insert into customers
+                const { data: newCust, error: custErr } = await supabase.from('customers').insert([{
+                    name: name,
+                    address: finalAddress,
+                    phone: phone,
+                    packet: pkgName,
+                    install_date: installDate || null,
+                    lat: parseFloat(lat),
+                    lng: parseFloat(lng),
+                    role_id: role_id
+                }]).select().single();
 
                 if (custErr) throw custErr;
 
-                alert('Pelanggan berhasil terdaftar!');
-                selectCustomer(newCust.id, newCust.name);
-                if (btnNextStep) btnNextStep.click();
+                // 3. Insert into work_orders (Antrian PSB)
+                if (newCust && newCust.id) {
+                    const { error: woErr } = await supabase.from('work_orders').insert([{
+                        customer_id: newCust.id,
+                        status: 'Antrian',
+                        title: 'Pemasangan Baru (PSB)',
+                        registration_date: installDate || new Date().toISOString(),
+                        referral_name: '',
+                        ket: 'Paket: ' + pkgName,
+                        created_at: new Date().toISOString()
+                    }]);
+                    if (woErr) console.warn("Notice: Gagal membuat antrian PSB otomatis:", woErr.message);
+                }
+
+                alert('Registrasi Pelanggan berhasil diselesaikan! Data masuk ke Antrian.');
+                window.location.href = APP_BASE_URL + '/?success=true';
 
             } catch (err) {
-                alert('Gagal daftar pelanggan: ' + err.message);
-            } finally {
-                btnCreateCustomerOnly.disabled = false;
-                btnCreateCustomerOnly.innerHTML = '<i class="bi bi-check-lg me-1"></i> Simpan Pelanggan & Lanjut';
+                alert('Gagal memproses pendaftaran: ' + err.message);
+                saveBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Selesaikan Registrasi';
+                saveBtn.disabled = false;
             }
         };
-    }
-
-    // ── NAVIGATION ────────────────────────────────────────────────────────────
-
-    if (btnNextStep) {
-        btnNextStep.onclick = () => {
-            step1Content.classList.add('d-none');
-            step2Content.classList.remove('d-none');
-            if (step1Ind) { step1Ind.classList.remove('active'); step1Ind.classList.add('completed'); }
-            if (step2Ind) step2Ind.classList.add('active');
-        };
-    }
-
-    if (btnPrevStep) {
-        btnPrevStep.onclick = () => {
-            step2Content.classList.add('d-none');
-            step1Content.classList.remove('d-none');
-            if (step2Ind) step2Ind.classList.remove('active');
-            if (step1Ind) { step1Ind.classList.remove('completed'); step1Ind.classList.add('active'); }
-        };
-    }
-
-    // ── SUBMIT ────────────────────────────────────────────────────────────────
-
-    if (btnSubmitPsb) {
-        btnSubmitPsb.onclick = async () => {
-            if (!selectedCustomerId) return alert('Silakan pilih pelanggan terlebih dahulu.');
-            btnSubmitPsb.disabled = true;
-            btnSubmitPsb.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan Antrian...';
-
-            try {
-                const { error: woErr } = await supabase.from('work_orders').insert([{
-                    customer_id: selectedCustomerId,
-                    status: 'Antrian',
-                    title: 'Pemasangan Baru (PSB)',
-                    registration_date: psbRegDate.value,
-                    referral_name: psbReferral.value.trim(),
-                    ket: psbKet.value.trim() || 'Data OK',
-                    // Store photo data URLs as a JSON array string in the photo_url column.
-                    // NOTE: For production, consider uploading to Supabase Storage instead.
-                    photo_url: selectedPhotos.length > 0 ? JSON.stringify(selectedPhotos.map(p => p.dataUrl)) : null,
-                    created_at: new Date().toISOString()
-                }]);
-
-                if (woErr) throw woErr;
-
-                alert('Antrian PSB berhasil ditambahkan!');
-                resetForm();
-                loadRecentQueue();
-
-            } catch (err) {
-                alert('Gagal simpan antrian: ' + err.message);
-            } finally {
-                btnSubmitPsb.disabled = false;
-                btnSubmitPsb.innerHTML = 'Simpan & Tambah Ke Antrian <i class="bi bi-check-circle ms-2"></i>';
-            }
-        };
-    }
-
-    // ── RESET ─────────────────────────────────────────────────────────────────
-
-    function resetForm() {
-        selectedCustomerId = null;
-        selectedPhotos = [];
-        if (photoPreviewContainer) photoPreviewContainer.innerHTML = '';
-        if (selectedCustomerBadge) selectedCustomerBadge.classList.add('d-none');
-        if (customerSearch) customerSearch.parentElement.classList.remove('d-none');
-        if (newCustomerForm) newCustomerForm.classList.add('d-none');
-        document.querySelectorAll('#new-customer-form input, #new-customer-form textarea').forEach(el => el.value = '');
-        if (psbMarker) { psbMarker.remove(); psbMarker = null; }
-        if (psbReferral) psbReferral.value = '';
-        if (psbKet) psbKet.value = '';
-        if (btnNextStep) btnNextStep.disabled = true;
-        if (step2Content) step2Content.classList.add('d-none');
-        if (step1Content) step1Content.classList.remove('d-none');
-        if (step2Ind) step2Ind.classList.remove('active');
-        if (step1Ind) { step1Ind.classList.remove('completed'); step1Ind.classList.add('active'); }
     }
 });
+
+async function loadPackages() {
+    const container = document.getElementById('package-cards-container');
+    const { data, error } = await supabase.from('internet_packages').select('*').order('price', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center text-white-50 my-4">Belum ada paket tersedia di database.</div>';
+        return;
+    }
+
+    container.innerHTML = data.map(pkg => `
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card bg-dark border border-secondary package-card h-100 shadow-sm transition-all" 
+                 style="cursor: pointer; transition: all 0.2s;" 
+                 onclick="window.selectPackage('${pkg.name}', '${pkg.speed || ''}', '${pkg.price}', this)">
+                <div class="card-body package-body text-center d-flex flex-column p-4" style="transition: all 0.2s;">
+                    <div class="mb-3">
+                        <i class="bi bi-wifi fs-1 text-primary opacity-75"></i>
+                    </div>
+                    <h4 class="card-title text-white fw-bold mb-1">${pkg.name}</h4>
+                    <span class="badge bg-secondary text-white mx-auto mb-3 px-3 py-1 rounded-pill">${pkg.speed || 'Up to...'}</span>
+                    <p class="card-text small text-white-50 flex-grow-1">${pkg.description || 'Pilihan tepat untuk kebutuhan internet Anda.'}</p>
+                    <hr class="border-secondary mb-3">
+                    <h4 class="text-success mb-0 d-flex flex-column">
+                        <span class="fs-6 text-white-50 fw-normal">Biaya / bulan</span>
+                        <div class="mt-1">Rp ${Number(pkg.price).toLocaleString('id-ID')}</div>
+                    </h4>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.selectPackage = function (name, speed, price, el) {
+    // UI Selection
+    document.querySelectorAll('.package-card').forEach(c => {
+        c.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+        c.classList.add('border-secondary');
+        c.querySelector('.card-title').classList.remove('text-primary');
+        c.querySelector('.card-title').classList.add('text-white');
+        c.style.transform = 'scale(1)';
+        c.style.boxShadow = 'none';
+    });
+
+    el.classList.remove('border-secondary');
+    el.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+    el.querySelector('.card-title').classList.remove('text-white');
+    el.querySelector('.card-title').classList.add('text-primary');
+    el.style.transform = 'scale(1.02)';
+    el.style.boxShadow = '0 0 15px rgba(13,110,253,0.3)';
+
+    // Hidden inputs
+    document.getElementById('selected-package-name').value = name;
+    document.getElementById('selected-package-speed').value = speed;
+    document.getElementById('selected-package-price').value = price;
+
+    // Show summary on Step 3 Update texts early
+    document.getElementById('summary-pkg-name').textContent = name;
+    document.getElementById('summary-pkg-speed').textContent = speed || 'Promo';
+    document.getElementById('summary-pkg-price').textContent = 'Rp ' + Number(price).toLocaleString('id-ID');
+};
