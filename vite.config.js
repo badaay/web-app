@@ -11,6 +11,7 @@ export default defineConfig({
                 admin: resolve(__dirname, 'admin/index.html'),
                 login: resolve(__dirname, 'admin/login.html'),
                 'add-psb': resolve(__dirname, 'admin/add-psb.html'),
+                'enduser-login': resolve(__dirname, 'enduser/login.html'),
             },
         },
         build: {

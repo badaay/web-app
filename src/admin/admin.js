@@ -1,4 +1,5 @@
 import { supabase } from '../api/supabase.js';
+import { APP_BASE_URL } from '../config.js';
 
 console.log('Admin App Initialized');
 
@@ -10,13 +11,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (isLoginPage) {
         if (session) {
-            window.location.href = '/web-app/admin/';
+            window.location.href = APP_BASE_URL + '/admin/';
             return;
         }
         initLoginLogic();
     } else if (isDashboardPage) {
         if (!session) {
-            window.location.href = '/web-app/admin/login';
+            window.location.href = APP_BASE_URL + '/admin/login';
             return;
         }
         initDashboardLogic(session.user);
@@ -37,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('Login admin gagal: ' + error.message);
             } else {
                 console.log('Admin login successful:', data);
-                window.location.href = '/web-app/admin/';
+                window.location.href = APP_BASE_URL + '/admin/';
             }
         });
     }
@@ -65,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Logout buttons
         const logoutHandler = async () => {
             await supabase.auth.signOut();
-            window.location.href = '/web-app/admin/login';
+            window.location.href = APP_BASE_URL + '/admin/login';
         };
         const btnHeader = document.getElementById('nav-logout-btn');
         const btnSidebar = document.getElementById('nav-logout-btn-sidebar');

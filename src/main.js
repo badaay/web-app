@@ -1,4 +1,5 @@
 import { supabase } from './api/supabase.js';
+import { APP_BASE_URL } from './config.js';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const role = data.user.app_metadata.role || 'customer';
             // if (role === 'admin' || role === 'owner') {
-            window.location.href = '/web-app/admin/';
+            window.location.href = APP_BASE_URL + '/admin/';
             // } else {
             //     alert('Welcome, Customer!');
             // }
