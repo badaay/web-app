@@ -1,4 +1,4 @@
-import{s as o}from"./config-YQH4oVGj.js";async function r(){const n=document.getElementById("add-customer-view-container"),c=document.getElementById("back-to-customers-btn");c.onclick=()=>{window.switchAdminModule&&window.switchAdminModule("customers-content")},n.innerHTML=`
+import{s as o}from"./supabase-BeOTOPRS.js";async function r(){const n=document.getElementById("add-customer-view-container"),c=document.getElementById("back-to-customers-btn");c.onclick=()=>{window.switchAdminModule&&window.switchAdminModule("customers-content")},n.innerHTML=`
         <form id="add-customer-view-form" class="row g-3">
             <div class="col-md-7">
                 <div class="row g-3">

@@ -1,4 +1,4 @@
-import{s}from"./config-YQH4oVGj.js";async function g(){const n=document.getElementById("inventory-list"),c=document.getElementById("add-inventory-btn");c&&(c.onclick=()=>u());async function m(){n.innerHTML="Memuat inventaris...";const{data:t,error:a}=await s.from("inventory_items").select("*").order("name");if(a){n.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(t.length===0){n.innerHTML='<div class="text-muted">Tidak ada barang inventaris ditemukan.</div>';return}n.innerHTML=`
+import{s}from"./supabase-BeOTOPRS.js";async function g(){const n=document.getElementById("inventory-list"),c=document.getElementById("add-inventory-btn");c&&(c.onclick=()=>u());async function m(){n.innerHTML="Memuat inventaris...";const{data:t,error:a}=await s.from("inventory_items").select("*").order("name");if(a){n.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(t.length===0){n.innerHTML='<div class="text-muted">Tidak ada barang inventaris ditemukan.</div>';return}n.innerHTML=`
             <table class="table table-dark table-hover align-middle">
                 <thead class="table-light">
                     <tr>
