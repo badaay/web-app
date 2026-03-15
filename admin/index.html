@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="id" data-theme="modern-dark">
+<html lang="id">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset=" UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin - Portal</title>
     <!-- Bootstrap 5 CDN -->
@@ -13,27 +13,31 @@
     <meta name="theme-color" content="#ffffff">
     <!-- Leaflet JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <script type="module" crossorigin src="/web-app/assets/supabase-BeOTOPRS.js"></script>
-  <script type="module" crossorigin src="/web-app/assets/config-Bjz9BHCf.js"></script>
-  <script type="module" crossorigin src="/web-app/assets/admin-DTS3UJHd.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/config-CON8XM2G.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/auth-service-BA7j2u7-.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/admin-Dzs_qGtO.js"></script>
   <link rel="stylesheet" crossorigin href="/web-app/assets/styles-Ck-cEz_8.css">
-  <link rel="stylesheet" crossorigin href="/web-app/assets/themes-imTZvkea.css">
-  <link rel="stylesheet" crossorigin href="/web-app/assets/admin-uD1hFd_Y.css">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/themes-B9sxqOeE.css">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/admin-DM0aeYee.css">
 <link rel="manifest" href="/web-app/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/web-app/registerSW.js"></script></head>
 
 <body>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <div id="dashboard-section" class="dashboard-wrapper">
         <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="admin-sidebar">
             <div class="sidebar-header">
                 <i class="bi bi-shield-lock-fill text-accent me-2"></i>
-                <span>Portal Admin</span>
+                <span class="fw-bold">SiFatih Admin</span>
             </div>
             <div class="sidebar-nav">
-                <div class="px-3 py-2 small text-uppercase text-white-50"
-                    style="font-size: 0.7rem; letter-spacing: 1px;">Menu Utama</div>
-                <button class="nav-item-custom" data-module="dashboard">
+                <div class="px-4 py-2 small text-uppercase text-white-50 fw-bold"
+                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Menu Utama</div>
+                <button class="nav-item-custom nav-module-link active" data-module="dashboard">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </button>
                 <button class="nav-item-custom nav-module-link" data-module="work-orders-content">
@@ -43,8 +47,8 @@
                     <i class="bi bi-pin-map"></i> MAP View
                 </button>
 
-                <div class="px-3 py-2 mt-3 small text-uppercase text-white-50"
-                    style="font-size: 0.7rem; letter-spacing: 1px;">Master Data</div>
+                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Master Data</div>
                 <button class="nav-item-custom nav-module-link" data-module="employees-content">
                     <i class="bi bi-person-vcard"></i> Karyawan
                 </button>
@@ -58,12 +62,12 @@
                     <i class="bi bi-tags"></i> Paket Layanan
                 </button>
 
-                <div class="px-3 py-2 mt-3 small text-uppercase text-white-50"
-                    style="font-size: 0.7rem; letter-spacing: 1px;">Sistem</div>
-                <button class="nav-item-custom" data-module="settings-module">
+                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Sistem</div>
+                <button class="nav-item-custom nav-module-link" data-module="settings-module">
                     <i class="bi bi-gear"></i> Settings / Roles
                 </button>
-                <button class="nav-item-custom" id="nav-logout-btn-sidebar">
+                <button class="nav-item-custom mt-auto" id="nav-logout-btn-sidebar">
                     <i class="bi bi-box-arrow-right text-danger"></i> Keluar
                 </button>
             </div>
@@ -71,19 +75,14 @@
 
         <!-- Main Content Area -->
         <div class="main-content">
-            <header class="top-header">
+            <header class="top-header shadow-sm">
                 <div class="d-flex align-items-center">
-                    <button class="btn btn-link text-white-50 d-md-none me-2 p-0">
-                        <i class="bi bi-list fs-4"></i>
+                    <button class="btn btn-link text-white d-md-none me-3 p-0" id="sidebar-toggle">
+                        <i class="bi bi-list fs-3"></i>
                     </button>
-                    <nav aria-label="breadcrumb" class="d-none d-md-block">
-                        <ol class="breadcrumb mb-0 small">
-                            <li class="breadcrumb-item"><a href="#" class="text-white-50 text-decoration-none">Admin</a>
-                            </li>
-                            <li class="breadcrumb-item active text-white" aria-current="page" id="breadcrumb-current">
-                                Dashboard</li>
-                        </ol>
-                    </nav>
+                    <div class="d-none d-md-block">
+                        <h5 class="mb-0 fw-bold" id="page-title">Dashboard</h5>
+                    </div>
                 </div>
 
                 <div class="d-flex align-items-center">
@@ -96,15 +95,18 @@
 
                     <div class="dropdown">
                         <button
-                            class="btn btn-link text-white-50 dropdown-toggle d-flex align-items-center p-0 text-decoration-none"
+                            class="btn btn-link text-white dropdown-toggle d-flex align-items-center p-0 text-decoration-none"
                             type="button" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span id="user-display-email" class="small me-2 d-none d-md-inline">user@example.com</span>
-                            <i class="bi bi-person-circle fs-5"></i>
+                            <span id="user-display-email" class="small me-2 d-none d-md-inline">admin@sifatih.com</span>
+                            <div class="rounded-circle bg-accent d-flex align-items-center justify-content-center"
+                                style="width: 32px; height: 32px;">
+                                <i class="bi bi-person text-white"></i>
+                            </div>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2"
                             aria-labelledby="userProfileDropdown">
                             <li>
-                                <div class="dropdown-header" id="user-role-header">Role: ADMIN</div>
+                                <div class="dropdown-header fw-bold" id="user-role-header">Role: SUPER ADMIN</div>
                             </li>
                             <li>
                                 <hr class="dropdown-divider">
@@ -154,9 +156,6 @@
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <h4 class="mb-0 text-white">Daftar Pelanggan</h4>
                                 <div>
-                                    <button class="btn btn-outline-info btn-sm me-2" id="view-all-customers-map-btn">
-                                        <i class="bi bi-map me-1"></i> Lihat Peta
-                                    </button>
                                     <button class="btn btn-primary btn-sm" id="add-customer-view-btn">
                                         <i class="bi bi-plus-lg me-1"></i> Pelanggan Baru
                                     </button>
@@ -183,7 +182,7 @@
                                     <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
                                 </button>
                             </div>
-                            <div id="add-customer-view-container" class="card bg-vscode p-4">
+                            <div id="add-customer-view-container" class="bg-vscode p-4">
                                 <!-- Detailed Add Customer Form with Map -->
                             </div>
                         </div>
@@ -274,6 +273,26 @@
             </div>
         </div>
     </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="admin-mobile-nav">
+        <a href="#" class="menu-item active" data-module="dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span>Beranda</span>
+        </a>
+        <a href="#" class="menu-item" data-module="work-orders-content">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Antrian</span>
+        </a>
+        <a href="#" class="menu-item" data-module="customers-content">
+            <i class="bi bi-people"></i>
+            <span>Pelanggan</span>
+        </a>
+        <a href="#" class="menu-item" data-module="inventory-content">
+            <i class="bi bi-box-seam"></i>
+            <span>Barang</span>
+        </a>
+    </nav>
 
     <!-- Leaflet & JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

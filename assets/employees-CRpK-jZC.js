@@ -1,43 +1,51 @@
-import{s as o}from"./supabase-BeOTOPRS.js";async function p(){const d=document.getElementById("employees-list"),n=document.getElementById("add-employee-btn");n&&(n.onclick=()=>m());async function c(){d.innerHTML="Memuat karyawan...";const{data:e,error:l}=await o.from("employees").select("*, roles(name)").order("name");if(l){d.innerHTML=`<div class="text-danger">Kesalahan: ${l.message}</div>`;return}if(e.length===0){d.innerHTML='<div class="text-muted text-center py-4">Tidak ada data karyawan ditemukan.</div>';return}d.innerHTML=`
-            <div class="table-responsive">
-                <table class="table table-dark table-hover align-middle">
+import{A as p}from"./auth-service-BA7j2u7-.js";import{s}from"./config-CON8XM2G.js";async function y(){const i=document.getElementById("employees-list"),n=document.getElementById("add-employee-btn");n&&(n.onclick=()=>m());async function c(){i.innerHTML="Memuat karyawan...";const{data:e,error:l}=await s.from("employees").select("*, roles(name)").order("name");if(l){i.innerHTML=`<div class="text-danger">Kesalahan: ${l.message}</div>`;return}if(e.length===0){i.innerHTML=`
+                <div class="text-white-50 text-center py-5">
+                    <i class="bi bi-person-x fs-1 d-block mb-3"></i>
+                    Tidak ada data karyawan ditemukan.
+                </div>`;return}i.innerHTML=`
+            <div class="table-container shadow-sm">
+            <table class="table table-dark table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>Nama / ID</th>
                             <th>Role / Jabatan</th>
                             <th>Status</th>
                             <th>Masuk</th>
-                            <th>Pendidikan</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${e.map(t=>`
+                        ${e.map(a=>`
                             <tr>
                                 <td>
-                                    <div class="fw-bold">${t.name}</div>
-                                    <div class="small text-white-50">${t.employee_id}</div>
+                                    <div class="fw-bold">
+                                        <a href="/web-app/activity.html?code=${a.employee_id}" class="text-info text-decoration-none" target="_blank">
+                                            <i class="bi bi-person-badge me-1 small"></i>${a.name}
+                                        </a>
+                                    </div>
+                                    <div class="small text-white-50">${a.employee_id}</div>
                                 </td>
                                 <td>
-                                    <div class="fw-bold">${t.roles?.name||"-"}</div>
-                                    <div class="small text-white-50">${t.position}</div>
+                                    <div class="fw-bold">${a.roles?.name||"-"}</div>
+                                    <div class="small text-white-50">${a.position}</div>
                                 </td>
                                 <td>
-                                    <span class="badge ${t.status==="Aktif"?"bg-success":"bg-danger"}">
-                                        ${t.status}
+                                    <span class="badge rounded-pill px-3 ${a.status==="Aktif"?"bg-success":"bg-danger"}">
+                                        ${a.status}
                                     </span>
                                 </td>
-                                <td>${t.join_date||"-"}</td>
-                                <td>${t.education||"-"}</td>
+                                <td>${a.join_date||"-"}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-emp" data-id="${t.id}">Edit</button>
+                                    <button class="btn btn-sm btn-outline-primary edit-emp" data-id="${a.id}">
+                                        <i class="bi bi-pencil me-1"></i> Edit
+                                    </button>
                                 </td>
                             </tr>
                         `).join("")}
                     </tbody>
                 </table>
             </div>
-        `,document.querySelectorAll(".edit-emp").forEach(t=>{t.onclick=()=>m(e.find(s=>s.id===t.dataset.id))})}async function m(e=null){const l=new bootstrap.Modal(document.getElementById("crudModal")),t=document.getElementById("crudModalTitle"),s=document.getElementById("crudModalBody"),r=document.getElementById("save-crud-btn"),{data:u}=await o.from("roles").select("id, name").order("name");t.innerText=e?"Edit Karyawan":"Tambah Karyawan",s.innerHTML=`
+        `,document.querySelectorAll(".edit-emp").forEach(a=>{a.onclick=()=>m(e.find(o=>o.id===a.dataset.id))})}async function m(e=null){const l=new bootstrap.Modal(document.getElementById("crudModal")),a=document.getElementById("crudModalTitle"),o=document.getElementById("crudModalBody"),r=document.getElementById("save-crud-btn"),{data:b}=await s.from("roles").select("id, name").order("name");a.innerText=e?"Edit Karyawan":"Tambah Karyawan",o.innerHTML=`
             <form id="employee-form" class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Nama Lengkap</label>
@@ -51,7 +59,7 @@ import{s as o}from"./supabase-BeOTOPRS.js";async function p(){const d=document.g
                     <label class="form-label">Role Aplikasi</label>
                     <select class="form-select" id="emp-role-id">
                         <option value="">Pilih Role...</option>
-                        ${u?.map(a=>`<option value="${a.id}" ${e?.role_id===a.id?"selected":""}>${a.name}</option>`).join("")}
+                        ${b?.map(t=>`<option value="${t.id}" ${e?.role_id===t.id?"selected":""}>${t.name}</option>`).join("")}
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -100,4 +108,4 @@ import{s as o}from"./supabase-BeOTOPRS.js";async function p(){const d=document.g
                     </select>
                 </div>
             </form>
-        `,r.onclick=async()=>{const a={name:document.getElementById("emp-name").value,employee_id:document.getElementById("emp-id").value,role_id:document.getElementById("emp-role-id").value||null,position:document.getElementById("emp-position").value,status:document.getElementById("emp-status").value,birth_place:document.getElementById("emp-birthplace").value,birth_date:document.getElementById("emp-birthdate").value,address:document.getElementById("emp-address").value,join_date:document.getElementById("emp-join-date").value,education:document.getElementById("emp-education").value,training:document.getElementById("emp-training").value,bpjs:document.getElementById("emp-bpjs").value};if(!a.name||!a.employee_id)return alert("Nama dan ID wajib diisi.");let i;e?i=await o.from("employees").update(a).eq("id",e.id):i=await o.from("employees").insert([a]),i.error?alert("Gagal menyimpan: "+i.error.message):(l.hide(),c())},l.show()}c()}export{p as initEmployees};
+        `,r.onclick=async()=>{const t={name:document.getElementById("emp-name").value,employee_id:document.getElementById("emp-id").value,role_id:document.getElementById("emp-role-id").value||null,position:document.getElementById("emp-position").value,status:document.getElementById("emp-status").value,birth_place:document.getElementById("emp-birthplace").value,birth_date:document.getElementById("emp-birthdate").value,address:document.getElementById("emp-address").value,join_date:document.getElementById("emp-join-date").value,education:document.getElementById("emp-education").value,training:document.getElementById("emp-training").value,bpjs:document.getElementById("emp-bpjs").value};if(!t.name||!t.employee_id)return alert("Nama dan ID wajib diisi.");let d;if(e)d=await s.from("employees").update(t).eq("id",e.id);else{const u=`${t.employee_id.toLowerCase()}@fatih.com`;d=await p.registerEmployee(u,"fatih1234",t)}d.error?alert("Gagal menyimpan: "+d.error.message):(l.hide(),c())},l.show()}c()}export{y as initEmployees};
