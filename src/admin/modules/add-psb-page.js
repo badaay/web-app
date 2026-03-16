@@ -1,4 +1,5 @@
 import { supabase } from '../../api/supabase.js';
+import { AuthService } from '../../api/auth-service.js';
 import { APP_BASE_URL } from '../../config.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -127,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <label class="form-label text-white-50 small mb-2">Pilih Titik Lokasi di Peta</label>
                                 <div class="position-relative">
                                     <div id="location-picker-map" class="rounded border border-secondary shadow-sm" style="height: 350px; background: #1e1e1e; z-index: 1;"></div>
-                                    <button type="button" id="btn-get-location" class="btn btn-sm btn-dark border-secondary position-absolute" style="top: 10px; right: 10px; z-index: 1000;">
+                                    <button type="button" id="btn-get-location" class="btn btn-sm btn-dark border-secondary position-absolute" style="top: 315px; right: 5px; z-index: 1000;">
                                         <i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya
                                     </button>
                                 </div>
@@ -196,6 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="col-md-6">
                                 <label class="form-label text-white-50 small">No. Handphone / WhatsApp</label>
                                 <input type="text" class="form-control bg-dark text-white border-secondary" id="adv-cust-phone" placeholder="08xxxxxxxxxx" required>
+                                <div id="phone-duplicate-msg" class="small mt-1 d-none"></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-white-50 small">No. HP Alternatif</label>
@@ -284,6 +286,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupPhotoUpload('adv-cust-foto-rumah', 'drop-zone-rumah', 'preview-rumah', 'btn-remove-rumah');
     setupPhotoUpload('adv-cust-foto-ktp', 'drop-zone-ktp', 'preview-ktp', 'btn-remove-ktp');
 
+    // Duplicate Phone Check
+    const phoneInput = document.getElementById('adv-cust-phone');
+    const phoneMsg = document.getElementById('phone-duplicate-msg');
+    if (phoneInput) {
+        phoneInput.addEventListener('blur', async () => {
+            const val = phoneInput.value.trim();
+            if (val.length < 10) return;
+
+            phoneMsg.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengecek...';
+            phoneMsg.classList.remove('d-none', 'text-danger', 'text-success');
+
+            const { data, error } = await supabase.from('customers').select('id').eq('phone', val).maybeSingle();
+            if (data) {
+                phoneMsg.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Nomor ini sudah terdaftar sebagai pelanggan.';
+                phoneMsg.classList.add('text-danger');
+                phoneInput.classList.add('is-invalid');
+            } else {
+                phoneMsg.innerHTML = '<i class="bi bi-check-circle-fill"></i> Nomor tersedia.';
+                phoneMsg.classList.add('text-success');
+                phoneInput.classList.remove('is-invalid');
+            }
+        });
+    }
+
     // Initialize Map Variables
     let pickMap;
     let marker;
@@ -346,9 +372,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (stepIndex === 1) {
             // Re-render map inside the now-visible container
             const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-            const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            });
             const Stadia_AlidadeSatellite = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.{ext}', {
                 minZoom: 0,
                 maxZoom: 20,
@@ -356,8 +379,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ext: 'jpg'
             });
             const baseLayers = {
-                'OpenStreetMap': osm,
-                'Dark Mode': dark,
+                'Default': osm,
                 'Terrains': Stadia_AlidadeSatellite
             };
             if (!pickMap) {
@@ -513,8 +535,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { data: roleData } = await supabase.from('roles').select('id').eq('name', 'Customer').single();
                 const role_id = roleData ? roleData.id : null;
 
-                // 2. Insert into customers
-                const { data: newCust, error: custErr } = await supabase.from('customers').insert([{
+                const customerPayload = {
                     name: name,
                     address: finalAddress,
                     phone: phone,
@@ -523,17 +544,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                     lat: parseFloat(lat),
                     lng: parseFloat(lng),
                     role_id: role_id
-                }]).select().single();
+                };
 
-                if (custErr) throw custErr;
+                // 2. Register with Auth and Database via AuthService
+                // Generate secure temporary password - user should reset on first login
+                const regEmail = email || `${phone}@fatih.com`; // Fallback email if not provided
+                const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!'; // Secure random password
+                const { data: regResult, error: regErr } = await AuthService.registerCustomer(
+                    regEmail,
+                    tempPassword,
+                    customerPayload
+                );
+
+                if (regErr) throw regErr;
+                const newCust = regResult.customer;
 
                 // 3. Insert into work_orders (Antrian PSB)
                 if (newCust && newCust.id) {
                     const { error: woErr } = await supabase.from('work_orders').insert([{
                         customer_id: newCust.id,
-                        status: 'Antrian',
+                        status: 'waiting', // New default status
+                        source: 'customer', // Mark source
                         title: 'Pemasangan Baru (PSB)',
-                        registration_date: installDate || new Date().toISOString(),
+                        registration_date: new Date().toISOString().split('T')[0],
                         referral_name: '',
                         ket: 'Paket: ' + pkgName,
                         created_at: new Date().toISOString()

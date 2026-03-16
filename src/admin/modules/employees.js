@@ -1,3 +1,4 @@
+import { AuthService } from '../../api/auth-service.js';
 import { supabase } from '../../api/supabase.js';
 
 export async function initEmployees() {
@@ -20,20 +21,23 @@ export async function initEmployees() {
         }
 
         if (data.length === 0) {
-            listContainer.innerHTML = '<div class="text-muted text-center py-4">Tidak ada data karyawan ditemukan.</div>';
+            listContainer.innerHTML = `
+                <div class="text-white-50 text-center py-5">
+                    <i class="bi bi-person-x fs-1 d-block mb-3"></i>
+                    Tidak ada data karyawan ditemukan.
+                </div>`;
             return;
         }
 
         listContainer.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-dark table-hover align-middle">
+            <div class="table-container shadow-sm">
+            <table class="table table-dark table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>Nama / ID</th>
                             <th>Role / Jabatan</th>
                             <th>Status</th>
                             <th>Masuk</th>
-                            <th>Pendidikan</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -41,7 +45,11 @@ export async function initEmployees() {
                         ${data.map(emp => `
                             <tr>
                                 <td>
-                                    <div class="fw-bold">${emp.name}</div>
+                                    <div class="fw-bold">
+                                        <a href="/web-app/activity.html?code=${emp.employee_id}" class="text-info text-decoration-none" target="_blank">
+                                            <i class="bi bi-person-badge me-1 small"></i>${emp.name}
+                                        </a>
+                                    </div>
                                     <div class="small text-white-50">${emp.employee_id}</div>
                                 </td>
                                 <td>
@@ -49,14 +57,15 @@ export async function initEmployees() {
                                     <div class="small text-white-50">${emp.position}</div>
                                 </td>
                                 <td>
-                                    <span class="badge ${emp.status === 'Aktif' ? 'bg-success' : 'bg-danger'}">
+                                    <span class="badge rounded-pill px-3 ${emp.status === 'Aktif' ? 'bg-success' : 'bg-danger'}">
                                         ${emp.status}
                                     </span>
                                 </td>
                                 <td>${emp.join_date || '-'}</td>
-                                <td>${emp.education || '-'}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-emp" data-id="${emp.id}">Edit</button>
+                                    <button class="btn btn-sm btn-outline-primary edit-emp" data-id="${emp.id}">
+                                        <i class="bi bi-pencil me-1"></i> Edit
+                                    </button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -167,7 +176,10 @@ export async function initEmployees() {
             if (emp) {
                 result = await supabase.from('employees').update(formData).eq('id', emp.id);
             } else {
-                result = await supabase.from('employees').insert([formData]);
+                // Generate secure temporary password for new employee
+                const empEmail = `${formData.employee_id.toLowerCase()}@fatih.com`;
+                const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!'; // Secure random password
+                result = await AuthService.registerEmployee(empEmail, tempPassword, formData);
             }
 
             if (result.error) {
