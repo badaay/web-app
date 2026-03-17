@@ -1,6 +1,7 @@
 import { supabase } from '../../api/supabase.js';
 import { generatePassword, generateCustomerCode, adminCreateCustomer } from '../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink } from '../utils/ui-common.js';
+import { showToast } from '../utils/toast.js';
 
 export async function initAddCustomerView() {
     const container = document.getElementById('add-customer-view-container');
@@ -259,7 +260,7 @@ export async function initAddCustomerView() {
 
     // Save Logic
     document.getElementById('save-adv-customer-btn').onclick = async () => {
-        if (!currentCredentials) return alert('Silakan klik "Buat Kredensial Otomatis" terlebih dahulu.');
+        if (!currentCredentials) return showToast('warning', 'Silakan klik "Buat Kredensial Otomatis" terlebih dahulu.');
 
         const profileData = {
             name: document.getElementById('adv-cust-name').value.trim(),
@@ -276,7 +277,7 @@ export async function initAddCustomerView() {
         };
 
         if (!profileData.name || !profileData.phone || !profileData.address) {
-            return alert('Nama, No. HP, dan Alamat wajib diisi.');
+            return showToast('warning', 'Nama, No. HP, dan Alamat wajib diisi.');
         }
 
         const btnSave = document.getElementById('save-adv-customer-btn');
@@ -300,12 +301,12 @@ export async function initAddCustomerView() {
 
             if (updateError) throw updateError;
 
-            alert(`Sukses! Pelanggan "${profileData.name}" berhasil didaftarkan.\n\nID LOGIN: ${currentCredentials.code}\nPASSWORD: ${currentCredentials.pass}\nKODE PELANGGAN: ${currentCredentials.code}`);
+            showToast('success', `Sukses! Pelanggan "${profileData.name}" berhasil didaftarkan.\n\nID LOGIN: ${currentCredentials.code}\nPASSWORD: ${currentCredentials.pass}`);
 
             document.dispatchEvent(new CustomEvent('navigate', { detail: 'customers-content' }));
         } catch (err) {
             console.error("Save customer error:", err);
-            alert("Terjadi kesalahan: " + err.message);
+            showToast('error', "Terjadi kesalahan: " + err.message);
         } finally {
             btnSave.disabled = false;
             btnSave.innerHTML = originalText;

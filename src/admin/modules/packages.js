@@ -1,4 +1,6 @@
 import { supabase } from '../../api/supabase.js';
+import { showToast } from '../utils/toast.js';
+import { getSpinner } from '../utils/ui-common.js';
 
 export async function initPackages() {
     const listContainer = document.getElementById('packages-list');
@@ -7,7 +9,7 @@ export async function initPackages() {
     if (addBtn) addBtn.onclick = () => showPackageModal();
 
     async function loadPackages() {
-        listContainer.innerHTML = 'Memuat paket...';
+        listContainer.innerHTML = getSpinner('Memuat paket...');
         const { data, error } = await supabase.from('internet_packages').select('*').order('price');
 
         if (error) {
@@ -16,13 +18,17 @@ export async function initPackages() {
         }
 
         if (data.length === 0) {
-            listContainer.innerHTML = '<div class="text-muted text-center py-4">Tidak ada data paket ditemukan.</div>';
+            listContainer.innerHTML = `
+                <div class="text-white-50 text-center py-5">
+                    <i class="bi bi-tags fs-1 d-block mb-3"></i>
+                    Tidak ada data paket ditemukan.
+                </div>`;
             return;
         }
 
         listContainer.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-dark table-hover align-middle">
+            <div class="table-container shadow-sm">
+                <table class="table table-dark table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Nama Paket</th>
@@ -35,12 +41,16 @@ export async function initPackages() {
                     <tbody>
                         ${data.map(pkg => `
                             <tr>
-                                <td class="fw-bold">${pkg.name}</td>
-                                <td>${pkg.speed || '-'}</td>
-                                <td>Rp ${new Intl.NumberFormat('id-ID').format(pkg.price)}</td>
-                                <td class="small text-white-50">${pkg.description || '-'}</td>
+                                <td class="fw-bold text-accent">${pkg.name}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-pkg" data-id="${pkg.id}">Edit</button>
+                                    <span class="badge bg-vscode-header border border-secondary text-white fw-normal">${pkg.speed || '-'}</span>
+                                </td>
+                                <td class="fw-bold">Rp ${new Intl.NumberFormat('id-ID').format(pkg.price)}</td>
+                                <td class="small text-white-50 text-wrap" style="max-width: 200px;">${pkg.description || '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-pkg" data-id="${pkg.id}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -90,7 +100,7 @@ export async function initPackages() {
             const speed = document.getElementById('pkg-speed').value;
             const description = document.getElementById('pkg-desc').value;
 
-            if (!name || isNaN(price)) return alert('Nama dan Harga wajib diisi.');
+            if (!name || isNaN(price)) return showToast('warning', 'Nama dan Harga wajib diisi.');
 
             const payload = { name, price, speed, description };
 
@@ -102,8 +112,9 @@ export async function initPackages() {
             }
 
             if (result.error) {
-                alert('Gagal menyimpan: ' + result.error.message);
+                showToast('error', 'Gagal menyimpan: ' + result.error.message);
             } else {
+                showToast('success', 'Paket berhasil disimpan!');
                 modal.hide();
                 loadPackages();
             }

@@ -1,6 +1,7 @@
 import { AuthService } from '../api/auth-service.js';
 import { supabase } from '../api/supabase.js';
 import { APP_BASE_URL } from '../config.js';
+import { showToast } from './utils/toast.js';
 
 console.log('Admin App Initialized');
 
@@ -36,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const password = document.getElementById('admin-password').value;
             const { data, error } = await AuthService.login(email, password);
             if (error) {
-                alert('Login admin gagal: ' + error.message);
+                showToast('error', 'Login admin gagal: ' + error.message);
             } else {
                 console.log('Admin login successful:', data);
                 window.location.href = APP_BASE_URL + '/admin/';

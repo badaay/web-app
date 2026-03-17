@@ -1,6 +1,7 @@
 import { supabase } from '../../api/supabase.js';
 import { adminResetPassword, generatePassword } from '../../api/registration-service.js';
-import { populatePackagesDropdown, getGoogleMapsLink, showSharedMap, createStandardMarker } from '../utils/ui-common.js';
+import { populatePackagesDropdown, getGoogleMapsLink, showSharedMap, createStandardMarker, getSpinner } from '../utils/ui-common.js';
+import { showToast } from '../utils/toast.js';
 
 export async function initCustomers() {
     const listContainer = document.getElementById('customers-list');
@@ -16,7 +17,7 @@ export async function initCustomers() {
 
 
     async function loadCustomers() {
-        listContainer.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-white-50">Memuat pelanggan...</div></div>';
+        listContainer.innerHTML = getSpinner('Memuat pelanggan...');
 
         const { data, error } = await supabase
             .from('customers')
@@ -136,10 +137,10 @@ export async function initCustomers() {
 
                     await adminResetPassword(userId, newPass);
 
-                    alert(`Kata sandi berhasil diatur ulang!\n\nUser: ${userName}\nPassword Baru: ${newPass}\n\nSilakan simpan kata sandi ini.`);
+                    showToast('success', `Kata sandi berhasil diatur ulang!\n\nUser: ${userName}\nPassword Baru: ${newPass}`);
                 } catch (err) {
                     console.error("Reset password error:", err);
-                    alert("Gagal mengatur ulang kata sandi: " + err.message);
+                    showToast('error', "Gagal mengatur ulang kata sandi: " + err.message);
                 } finally {
                     btn.disabled = false;
                     icon.className = originalClass;
@@ -149,7 +150,7 @@ export async function initCustomers() {
     }
 
     function showMap(lat, lng, cust) {
-        if (!lat || !lng) return alert('Koordinat tidak disetel untuk pelanggan ini.');
+        if (!lat || !lng) return showToast('warning', 'Koordinat tidak disetel untuk pelanggan ini.');
 
         const mapsUrl = getGoogleMapsLink(lat, lng);
         const popupHtml = `
@@ -437,7 +438,7 @@ export async function initCustomers() {
                 email: document.getElementById('cust-email').value.trim() || (cust?.email && !cust?.email.includes('@sifatih.id') ? cust.email : null)
             };
 
-            if (!formData.name || !formData.address) return alert('Nama dan Alamat wajib diisi.');
+            if (!formData.name || !formData.address) return showToast('warning', 'Nama dan Alamat wajib diisi.');
 
             saveBtn.disabled = true;
             const originalText = saveBtn.innerHTML;
@@ -454,12 +455,12 @@ export async function initCustomers() {
                 const { error } = await supabase.from('customers').update(formData).eq('id', cust.id);
                 if (error) throw error;
 
-                alert('Data pelanggan berhasil diperbarui!');
+                showToast('success', 'Data pelanggan berhasil diperbarui!');
                 modal.hide();
                 loadCustomers();
             } catch (err) {
                 console.error("Save edit error:", err);
-                alert('Gagal menyimpan: ' + err.message);
+                showToast('error', 'Gagal menyimpan: ' + err.message);
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = originalText;

@@ -1,4 +1,6 @@
 import { supabase } from '../../api/supabase.js';
+import { showToast } from '../utils/toast.js';
+import { getSpinner } from '../utils/ui-common.js';
 
 export async function initWorkOrders() {
     const listContainer = document.getElementById('work-orders-list');
@@ -11,10 +13,21 @@ export async function initWorkOrders() {
 
     if (addBtn) addBtn.onclick = () => showWorkOrderModal();
 
+    // Listen for quick-wo events (from other modules)
+    document.addEventListener('quick-wo', (e) => {
+        const cust = e.detail;
+        if (cust) {
+            // Wait for any module transitions
+            setTimeout(() => {
+                showWorkOrderModal(null, cust);
+            }, 100);
+        }
+    });
+
     // ---------- Data Loading ----------
     async function loadWorkOrders() {
         if (!listContainer) return;
-        listContainer.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-white-50">Memuat Antrian...</div></div>';
+        listContainer.innerHTML = getSpinner('Memuat Antrian...');
 
         const { data, error } = await supabase
             .from('work_orders')
@@ -42,7 +55,7 @@ export async function initWorkOrders() {
             return acc;
         }, {});
 
-        const statuses = ['Antrian', 'Pending', 'Konfirmasi', 'ODP Penuh', 'Cancel', 'Completed'];
+        const statuses = ['waiting', 'confirmed', 'open', 'closed'];
 
         summaryContainer.innerHTML = `
             <button class="badge me-1 mb-1 p-2 border-0 wo-filter-badge ${currentFilter === 'All' ? 'ring-active' : ''}"
@@ -118,7 +131,7 @@ export async function initWorkOrders() {
         const filtered = getFilteredOrders();
 
         listContainer.innerHTML = `
-            <div class="table-responsive">
+            <div class="table-container shadow-sm">
                 <table class="table table-dark table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
@@ -130,7 +143,10 @@ export async function initWorkOrders() {
                         </tr>
                     </thead>
                     <tbody>
-                        ${filtered.length === 0 ? `<tr><td colspan="5" class="text-center text-white-50 py-4">Tidak ada data yang cocok.</td></tr>` : ''}
+                        ${filtered.length === 0 ? `<tr><td colspan="5" class="text-center text-white-50 py-5">
+                            <i class="bi bi-clipboard-x fs-1 d-block mb-3"></i>
+                            Tidak ada data yang cocok.
+                        </td></tr>` : ''}
                         ${filtered.map(wo => `
                             <tr>
                                 <td>
@@ -139,7 +155,7 @@ export async function initWorkOrders() {
                                 </td>
                                 <td>
                                     <div class="mb-1">
-                                        <span class="badge" style="background-color:${getStatusColor(wo.status) || '#6c757d'};color:#fff;">
+                                        <span class="badge rounded-pill px-3" style="background-color:${getStatusColor(wo.status) || '#6c757d'};color:#fff;">
                                             ${wo.status}
                                         </span>
                                     </div>
@@ -148,7 +164,7 @@ export async function initWorkOrders() {
                                 <td>
                                     <div class="fw-bold">${wo.customers?.name || '-'}</div>
                                     <div class="small text-white-50">${wo.customers?.phone || '-'}</div>
-                                    <div class="small fst-italic text-white-50">${wo.customers?.address || '-'}</div>
+                                    <div class="small fst-italic text-white-50 text-wrap" style="max-width: 250px;">${wo.customers?.address || '-'}</div>
                                 </td>
                                 <td>
                                     <div class="fw-bold">${wo.employees?.name || '-'}</div>
@@ -158,7 +174,7 @@ export async function initWorkOrders() {
                                         <button class="btn btn-outline-primary edit-wo" data-id="${wo.id}" title="Edit"><i class="bi bi-pencil"></i></button>
                                         <button class="btn btn-outline-info view-wo-map" data-id="${wo.id}" title="Lihat Peta"><i class="bi bi-geo-alt"></i></button>
                                         <button class="btn btn-outline-light copy-wo-format" data-id="${wo.id}" title="Salin Format"><i class="bi bi-clipboard"></i></button>
-                                        ${wo.status === 'Konfirmasi' || wo.status === 'Completed' || wo.status === 'Selesai' ? `<button class="btn btn-outline-success monitor-wo" data-id="${wo.id}" title="Pantau Pemasangan"><i class="bi bi-tools"></i></button>` : ''}
+                                        ${wo.status === 'confirmed' || wo.status === 'open' || wo.status === 'closed' ? `<button class="btn btn-outline-success monitor-wo" data-id="${wo.id}" title="Pantau Pemasangan"><i class="bi bi-tools"></i></button>` : ''}
                                     </div>
                                 </td>
                             </tr>
@@ -180,7 +196,7 @@ export async function initWorkOrders() {
                 const mapLink = wo.customers?.lat ? `https://www.google.com/maps?q=${wo.customers.lat},${wo.customers.lng}` : '(Peta belum set)';
                 const format = `${wo.customers?.name || '-'}, ${wo.customers?.address || '-'}, ${wo.customers?.phone || '-'}, ${mapLink}, (${wo.points || 0} poin)`;
                 navigator.clipboard.writeText(format);
-                showToast('Format PSB berhasil disalin!');
+                showToast('success', 'Format PSB berhasil disalin!');
             };
         });
         document.querySelectorAll('.monitor-wo').forEach(btn => {
@@ -191,32 +207,30 @@ export async function initWorkOrders() {
     // ---------- Status Colors ----------
     function getStatusColor(status) {
         const map = {
-            'Antrian': '#22c55e',  // green
-            'Pending': '#f97316',  // orange
-            'Konfirmasi': '#3b82f6', // blue
-            'ODP Penuh': '#a16207',  // amber-brown
-            'Cancel': '#374151',  // dark gray
-            'Completed': '#6b7280',  // gray
-            'Selesai': '#6b7280',  // gray
+            'waiting': '#f97316',   // orange
+            'confirmed': '#22c55e', // green
+            'open': '#3b82f6',      // blue
+            'closed': '#6b7280',    // gray
+            'Pending': '#f97316',
+            'Konfirmasi': '#22c55e',
+            'Selesai': '#6b7280',
+            'Cancel': '#374151',
         };
         return map[status] || '#6c757d';
     }
 
     function getStatusBadgeClass(status) {
         switch (status) {
-            case 'Antrian': return 'bg-success';
-            case 'Pending': return 'bg-warning text-dark';
-            case 'Completed':
-            case 'Selesai': return 'bg-secondary';
-            case 'Konfirmasi': return 'bg-primary';
-            case 'ODP Penuh': return 'bg-brown';
-            case 'Cancel': return 'bg-dark border border-secondary';
+            case 'waiting': return 'bg-warning text-dark';
+            case 'confirmed': return 'bg-success';
+            case 'open': return 'bg-primary';
+            case 'closed': return 'bg-secondary';
             default: return 'bg-info text-dark';
         }
     }
 
     // ---------- Modal CRUD ----------
-    async function showWorkOrderModal(wo = null) {
+    async function showWorkOrderModal(wo = null, predefinedCustomer = null) {
         const modal = new bootstrap.Modal(document.getElementById('crudModal'));
         const modalTitle = document.getElementById('crudModalTitle');
         const modalBody = document.getElementById('crudModalBody');
@@ -224,6 +238,7 @@ export async function initWorkOrders() {
 
         const { data: customers } = await supabase.from('customers').select('*').order('name');
         const { data: employees } = await supabase.from('employees').select('id, name').order('name');
+        const { data: queueTypes } = await supabase.from('master_queue_types').select('*').order('name');
 
         let monitoringData = null;
         if (wo) {
@@ -231,7 +246,7 @@ export async function initWorkOrders() {
             monitoringData = monData;
         }
 
-        modalTitle.innerText = wo ? 'Edit Antrian PSB' : 'Tambah Antrian PSB Baru';
+        modalTitle.innerText = wo ? 'Edit Antrian PSB' : (predefinedCustomer ? 'Buat Tiket Perbaikan' : 'Tambah Antrian PSB Baru');
         modalBody.innerHTML = `
             <form id="work-order-form" class="row">
                 <!-- LEFT COLUMN: CUSTOMER -->
@@ -242,7 +257,7 @@ export async function initWorkOrders() {
                         <label class="form-label small text-white-50">Cari / Pilih Pelanggan (Sedia Ada)</label>
                         <select class="form-select" id="wo-customer-select">
                             <option value="">-- Buat Pelanggan Baru --</option>
-                            ${customers?.map(c => `<option value="${c.id}" ${wo?.customer_id === c.id ? 'selected' : ''} 
+                            ${customers?.map(c => `<option value="${c.id}" ${(wo?.customer_id === c.id || predefinedCustomer?.id === c.id) ? 'selected' : ''} 
                                 data-name="${c.name || ''}" data-phone="${c.phone || ''}" data-address="${c.address || ''}" 
                                 data-lat="${c.lat || ''}" data-lng="${c.lng || ''}" data-ktp="${c.ktp || ''}">
                                 ${c.name} - ${c.phone || ''}
@@ -252,24 +267,24 @@ export async function initWorkOrders() {
 
                     <div class="mb-3">
                         <label class="form-label small text-white-50">Nama Pelanggan (Wajib)</label>
-                        <input type="text" class="form-control" id="wo-cust-name" value="${wo?.customers?.name || ''}" required placeholder="Nama Sesuai KTP">
+                        <input type="text" class="form-control" id="wo-cust-name" value="${wo?.customers?.name || predefinedCustomer?.name || ''}" required placeholder="Nama Sesuai KTP">
                     </div>
                     <div class="mb-3">
                         <label class="form-label small text-white-50">No Handphone (Wajib)</label>
-                        <input type="text" class="form-control" id="wo-cust-phone" value="${wo?.customers?.phone || ''}" required placeholder="08xxxxxxxx">
+                        <input type="text" class="form-control" id="wo-cust-phone" value="${wo?.customers?.phone || predefinedCustomer?.phone || ''}" required placeholder="08xxxxxxxx">
                     </div>
                     <div class="mb-3">
                         <label class="form-label small text-white-50">Alamat Lengkap</label>
-                        <textarea class="form-control" id="wo-cust-address" rows="2" placeholder="Detail Alamat">${wo?.customers?.address || ''}</textarea>
+                        <textarea class="form-control" id="wo-cust-address" rows="2" placeholder="Detail Alamat">${wo?.customers?.address || predefinedCustomer?.address || ''}</textarea>
                     </div>
                     <div class="row g-2 mb-3 align-items-center">
                         <div class="col-sm-6">
                             <label class="form-label small text-white-50">Latitude</label>
-                            <input type="number" step="any" class="form-control" id="wo-cust-lat" value="${wo?.customers?.lat || ''}" placeholder="-7.xxxxx">
+                            <input type="number" step="any" class="form-control" id="wo-cust-lat" value="${wo?.customers?.lat || predefinedCustomer?.lat || ''}" placeholder="-7.xxxxx">
                         </div>
                         <div class="col-sm-6">
                             <label class="form-label small text-white-50">Longitude</label>
-                            <input type="number" step="any" class="form-control" id="wo-cust-lng" value="${wo?.customers?.lng || ''}" placeholder="112.xxxxx">
+                            <input type="number" step="any" class="form-control" id="wo-cust-lng" value="${wo?.customers?.lng || predefinedCustomer?.lng || ''}" placeholder="112.xxxxx">
                         </div>
                         <div class="col-12 mt-2">
                             <div class="position-relative">
@@ -301,12 +316,12 @@ export async function initWorkOrders() {
                         <div class="col-sm-6">
                             <label class="form-label small text-white-50">Foto KTP</label>
                             <div class="input-group input-group-sm">
-                                <input type="text" class="form-control" id="wo-photo-ktp" value="${wo?.customers?.ktp || ''}" placeholder="URL / File">
+                                <input type="text" class="form-control" id="wo-photo-ktp" value="${wo?.customers?.ktp || predefinedCustomer?.ktp || ''}" placeholder="URL / File">
                                 <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('wo-file-ktp').click()"><i class="bi bi-upload"></i></button>
                                 <input type="file" id="wo-file-ktp" class="d-none" accept="image/*">
                             </div>
-                            <div id="wo-preview-ktp" class="mt-2 text-center" style="${wo?.customers?.ktp ? 'display:block;' : 'display:none;'}">
-                                <img src="${wo?.customers?.ktp || ''}" class="img-thumbnail bg-dark border-secondary" style="max-height: 120px; object-fit: cover; border-radius: 6px;">
+                            <div id="wo-preview-ktp" class="mt-2 text-center" style="${wo?.customers?.ktp || predefinedCustomer?.ktp ? 'display:block;' : 'display:none;'}">
+                                <img src="${wo?.customers?.ktp || predefinedCustomer?.ktp || ''}" class="img-thumbnail bg-dark border-secondary" style="max-height: 120px; object-fit: cover; border-radius: 6px;">
                             </div>
                         </div>
                         <div class="col-12 small text-white-50 fst-italic mt-1" style="font-size:0.75rem;">* Anda bisa input URL langsung atau upload file gambar dari perangkat Anda.</div>
@@ -325,18 +340,24 @@ export async function initWorkOrders() {
                         <div class="col-sm-6">
                             <label class="form-label small text-white-50">Status Antrian</label>
                             <select class="form-select" id="wo-status">
-                                <option value="Antrian" ${wo?.status === 'Antrian' ? 'selected' : ''}>Antrian</option>
-                                <option value="Pending" ${wo?.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                                <option value="Konfirmasi" ${wo?.status === 'Konfirmasi' ? 'selected' : ''}>Konfirmasi</option>
-                                <option value="ODP Penuh" ${wo?.status === 'ODP Penuh' ? 'selected' : ''}>ODP Penuh</option>
-                                <option value="Cancel" ${wo?.status === 'Cancel' ? 'selected' : ''}>Cancel</option>
-                                <option value="Completed" ${wo?.status === 'Completed' || wo?.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                                <option value="waiting" ${wo?.status === 'waiting' ? 'selected' : ''}>Waiting (Menunggu)</option>
+                                <option value="confirmed" ${wo?.status === 'confirmed' ? 'selected' : ''}>Confirmed (Divalidasi)</option>
+                                <option value="open" ${wo?.status === 'open' ? 'selected' : ''}>Open (Pengerjaan)</option>
+                                <option value="closed" ${wo?.status === 'closed' ? 'selected' : ''}>Closed (Selesai)</option>
                             </select>
                         </div>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-white-50">Tipe Antrian</label>
+                        <select class="form-select" id="wo-type-id">
+                            <option value="">-- Pilih Tipe --</option>
+                            ${queueTypes?.map(t => `<option value="${t.id}" ${(wo?.type_id === t.id || (predefinedCustomer && t.name === 'Repair')) ? 'selected' : ''}>${t.name}</option>`).join('')}
+                        </select>
+                    </div>
                     
                     <div class="mb-3">
-                        <label class="form-label small text-white-50">Teknisi / Petugas</label>
+                        <label class="form-label small text-white-50">Teknisi / Petugas (Lead)</label>
                         <select class="form-select" id="wo-employee-id">
                             <option value="">Belum Ditugaskan...</option>
                             ${employees?.map(e => `<option value="${e.id}" ${wo?.employee_id === e.id ? 'selected' : ''}>${e.name}</option>`).join('')}
@@ -424,7 +445,7 @@ export async function initWorkOrders() {
             pickMap.on('click', (e) => setPin(e.latlng.lat, e.latlng.lng));
 
             document.getElementById('wo-btn-get-location').onclick = () => {
-                if (!navigator.geolocation) return alert('Geolokasi tidak didukung.');
+                if (!navigator.geolocation) return showToast('warning', 'Geolokasi tidak didukung.');
                 document.getElementById('wo-btn-get-location').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>...';
                 navigator.geolocation.getCurrentPosition(
                     pos => {
@@ -432,7 +453,7 @@ export async function initWorkOrders() {
                         document.getElementById('wo-btn-get-location').innerHTML = '<i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya';
                     },
                     err => {
-                        alert('Gagal: ' + err.message);
+                        showToast('error', 'Gagal: ' + err.message);
                         document.getElementById('wo-btn-get-location').innerHTML = '<i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya';
                     }
                 );
@@ -528,7 +549,7 @@ export async function initWorkOrders() {
             const isConfirmed = document.getElementById('wo-is-confirmed').checked;
 
             if (!custName || !custPhone || !regDate) {
-                return alert('Mohon isi field Wajib (Nama, No HP, Tanggal Daftar).');
+                return showToast('warning', 'Mohon isi field Wajib (Nama, No HP, Tanggal Daftar).');
             }
 
             saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
@@ -558,7 +579,9 @@ export async function initWorkOrders() {
                 const woData = {
                     customer_id: activeCustomerId,
                     employee_id: empId,
+                    type_id: document.getElementById('wo-type-id').value || null,
                     status: status,
+                    source: wo ? wo.source : 'admin',
                     title: 'Pemasangan Baru (PSB)',
                     payment_status: payment,
                     ket: ket,
@@ -579,7 +602,7 @@ export async function initWorkOrders() {
                 }
 
                 // Installation Monitoring Sync
-                if (status === 'Konfirmasi' || status === 'Completed' || status === 'Selesai' || plannedDate || actualDate || actDate || isConfirmed || monitoringData) {
+                if (status === 'confirmed' || status === 'open' || status === 'closed' || plannedDate || actualDate || actDate || isConfirmed || monitoringData) {
                     const monData = {
                         work_order_id: activeWoId,
                         customer_id: activeCustomerId,
@@ -600,8 +623,9 @@ export async function initWorkOrders() {
 
                 modal.hide();
                 loadWorkOrders();
+                showToast('success', 'Data antrian berhasil disimpan!');
             } catch (err) {
-                alert('Gagal menyimpan: ' + err.message);
+                showToast('error', 'Gagal menyimpan: ' + err.message);
             } finally {
                 saveBtn.innerHTML = 'Simpan';
                 saveBtn.disabled = false;
@@ -733,16 +757,17 @@ export async function initWorkOrders() {
                 }
 
                 // Also optionally update the wo table if confirmed
-                if (monPayload.is_confirmed && wo.status !== 'Completed' && wo.status !== 'Selesai') {
-                    if (confirm('Pemasangan dikonfirmasi. Ganti status antrian PSB menjadi Selesai?')) {
-                        await supabase.from('work_orders').update({ status: 'Selesai' }).eq('id', wo.id);
+                if (monPayload.is_confirmed && wo.status !== 'closed') {
+                    if (confirm('Pemasangan dikonfirmasi. Ganti status antrian PSB menjadi Closed (Selesai)?')) {
+                        await supabase.from('work_orders').update({ status: 'closed' }).eq('id', wo.id);
                     }
                 }
 
                 modal.hide();
                 loadWorkOrders();
+                showToast('success', 'Monitoring instalasi berhasil diperbarui!');
             } catch (err) {
-                alert('Error: ' + err.message);
+                showToast('error', 'Error: ' + err.message);
             } finally {
                 saveBtn.innerHTML = 'Simpan';
                 saveBtn.disabled = false;
@@ -752,7 +777,7 @@ export async function initWorkOrders() {
 
     // ---------- Single Map ----------
     function showSingleMap(wo) {
-        if (!wo.customers?.lat || !wo.customers?.lng) return alert('Koordinat tidak disetel untuk pelanggan ini.');
+        if (!wo.customers?.lat || !wo.customers?.lng) return showToast('warning', 'Koordinat tidak disetel untuk pelanggan ini.');
 
         const modal = new bootstrap.Modal(document.getElementById('mapModal'));
         modal.show();

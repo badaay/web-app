@@ -1,5 +1,6 @@
-import { AuthService } from '../../api/auth-service.js';
 import { supabase } from '../../api/supabase.js';
+import { showToast } from '../utils/toast.js';
+import { getSpinner } from '../utils/ui-common.js';
 
 export async function initEmployees() {
     const listContainer = document.getElementById('employees-list');
@@ -8,7 +9,7 @@ export async function initEmployees() {
     if (addBtn) addBtn.onclick = () => showEmployeeModal();
 
     async function loadEmployees() {
-        listContainer.innerHTML = 'Memuat karyawan...';
+        listContainer.innerHTML = getSpinner('Memuat karyawan...');
         // Fetch employees with their roles
         const { data, error } = await supabase
             .from('employees')
@@ -170,7 +171,7 @@ export async function initEmployees() {
                 bpjs: document.getElementById('emp-bpjs').value
             };
 
-            if (!formData.name || !formData.employee_id) return alert('Nama dan ID wajib diisi.');
+            if (!formData.name || !formData.employee_id) return showToast('warning', 'Nama dan ID wajib diisi.');
 
             let result;
             if (emp) {
@@ -183,8 +184,9 @@ export async function initEmployees() {
             }
 
             if (result.error) {
-                alert('Gagal menyimpan: ' + result.error.message);
+                showToast('error', 'Gagal menyimpan: ' + result.error.message);
             } else {
+                showToast('success', emp ? 'Data karyawan diperbarui.' : 'Karyawan baru berhasil didaftarkan.');
                 modal.hide();
                 loadEmployees();
             }

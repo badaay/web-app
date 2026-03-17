@@ -1,6 +1,7 @@
 import { supabase } from '../../api/supabase.js';
 import { AuthService } from '../../api/auth-service.js';
 import { APP_BASE_URL } from '../../config.js';
+import { showToast } from '../utils/toast.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('psb-form-container');
@@ -464,7 +465,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnGetLocation = document.getElementById('btn-get-location');
     if (btnGetLocation) {
         btnGetLocation.onclick = () => {
-            if (!navigator.geolocation) return alert('Browser Anda tidak mendukung geolokasi.');
+            if (!navigator.geolocation) return showToast('warning', 'Browser Anda tidak mendukung geolokasi.');
             btnGetLocation.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Mencari...';
             btnGetLocation.disabled = true;
 
@@ -475,7 +476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnGetLocation.disabled = false;
                 },
                 (err) => {
-                    alert('Gagal mendapatkan lokasi: ' + err.message);
+                    showToast('error', 'Gagal mendapatkan lokasi: ' + err.message);
                     btnGetLocation.innerHTML = '<i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya';
                     btnGetLocation.disabled = false;
                 },
@@ -574,11 +575,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (woErr) console.warn("Notice: Gagal membuat antrian PSB otomatis:", woErr.message);
                 }
 
-                alert('Registrasi Pelanggan berhasil diselesaikan! Data masuk ke Antrian.');
+                showToast('success', 'Registrasi Pelanggan berhasil diselesaikan! Data masuk ke Antrian.');
                 window.location.href = APP_BASE_URL + '/?success=true';
 
             } catch (err) {
-                alert('Gagal memproses pendaftaran: ' + err.message);
+                showToast('error', 'Gagal memproses pendaftaran: ' + err.message);
                 saveBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Selesaikan Registrasi';
                 saveBtn.disabled = false;
             }

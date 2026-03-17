@@ -1,4 +1,6 @@
 import { supabase } from '../../api/supabase.js';
+import { showToast } from '../utils/toast.js';
+import { getSpinner } from '../utils/ui-common.js';
 
 export async function initInventory() {
     const listContainer = document.getElementById('inventory-list');
@@ -7,7 +9,7 @@ export async function initInventory() {
     if (addBtn) addBtn.onclick = () => showInventoryModal();
 
     async function loadInventory() {
-        listContainer.innerHTML = 'Memuat inventaris...';
+        listContainer.innerHTML = getSpinner('Memuat inventaris...');
         const { data, error } = await supabase.from('inventory_items').select('*').order('name');
 
         if (error) {
@@ -16,35 +18,47 @@ export async function initInventory() {
         }
 
         if (data.length === 0) {
-            listContainer.innerHTML = '<div class="text-muted">Tidak ada barang inventaris ditemukan.</div>';
+            listContainer.innerHTML = `
+                <div class="text-white-50 text-center py-5">
+                    <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
+                    Tidak ada barang inventaris ditemukan.
+                </div>`;
             return;
         }
 
         listContainer.innerHTML = `
-            <table class="table table-dark table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Nama Barang</th>
-                        <th>Stok</th>
-                        <th>Satuan</th>
-                        <th>Kategori</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${data.map(item => `
+            <div class="table-container shadow-sm">
+                <table class="table table-dark table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td>${item.name}</td>
-                            <td>${item.stock}</td>
-                            <td>${item.unit}</td>
-                            <td>${item.category || '-'}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary edit-item" data-id="${item.id}">Edit</button>
-                            </td>
+                            <th>Nama Barang</th>
+                            <th>Stok</th>
+                            <th>Satuan</th>
+                            <th>Kategori</th>
+                            <th>Aksi</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        ${data.map(item => `
+                            <tr>
+                                <td class="fw-bold">${item.name}</td>
+                                <td>
+                                    <span class="badge bg-vscode-header border border-secondary text-white px-3 fs-6">${item.stock}</span>
+                                </td>
+                                <td>${item.unit}</td>
+                                <td>
+                                    <span class="badge bg-secondary opacity-75 fw-normal">${item.category || '-'}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-item" data-id="${item.id}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
         `;
 
         document.querySelectorAll('.edit-item').forEach(btn => {
@@ -88,7 +102,7 @@ export async function initInventory() {
             const unit = document.getElementById('item-unit').value;
             const category = document.getElementById('item-category').value;
 
-            if (!name || isNaN(stock) || !unit) return alert('Nama, Stok, dan Satuan wajib diisi.');
+            if (!name || isNaN(stock) || !unit) return showToast('warning', 'Nama, Stok, dan Satuan wajib diisi.');
 
             let result;
             if (item) {
@@ -98,8 +112,9 @@ export async function initInventory() {
             }
 
             if (result.error) {
-                alert('Gagal menyimpan: ' + result.error.message);
+                showToast('error', 'Gagal menyimpan: ' + result.error.message);
             } else {
+                showToast('success', 'Barang berhasil disimpan!');
                 modal.hide();
                 loadInventory();
             }
