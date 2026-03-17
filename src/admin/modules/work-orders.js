@@ -910,16 +910,7 @@ export async function initWorkOrders() {
         legend.addTo(mapInstance);
     }
 
-    function showToast(msg) {
-        const t = document.createElement('div');
-        t.className = 'position-fixed bottom-0 end-0 m-3';
-        t.style.zIndex = 9999;
-        t.innerHTML = `<div class="toast show align-items-center text-white bg-success border-0" role="alert">
-            <div class="d-flex"><div class="toast-body">${msg}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`;
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 3000);
-    }
+
 
     // Brown badge CSS
     if (!document.getElementById('psb-styles')) {
