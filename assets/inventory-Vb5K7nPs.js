@@ -1,4 +1,4 @@
-import{s as r}from"./config-CON8XM2G.js";async function g(){const n=document.getElementById("inventory-list"),c=document.getElementById("add-inventory-btn");c&&(c.onclick=()=>u());async function m(){n.innerHTML="Memuat inventaris...";const{data:t,error:a}=await r.from("inventory_items").select("*").order("name");if(a){n.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(t.length===0){n.innerHTML=`
+import{s as r}from"./config-CON8XM2G.js";import{s as c}from"./toast-D3E5iWRc.js";import{g}from"./ui-common-hIOATXsD.js";async function B(){const n=document.getElementById("inventory-list"),m=document.getElementById("add-inventory-btn");m&&(m.onclick=()=>b());async function u(){n.innerHTML=g("Memuat inventaris...");const{data:t,error:a}=await r.from("inventory_items").select("*").order("name");if(a){n.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(t.length===0){n.innerHTML=`
                 <div class="text-white-50 text-center py-5">
                     <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
                     Tidak ada barang inventaris ditemukan.
@@ -35,7 +35,7 @@ import{s as r}from"./config-CON8XM2G.js";async function g(){const n=document.get
                     </tbody>
                 </table>
             </div>
-        `,document.querySelectorAll(".edit-item").forEach(e=>{e.onclick=()=>u(t.find(o=>o.id===e.dataset.id))})}function u(t=null){const a=new bootstrap.Modal(document.getElementById("crudModal")),e=document.getElementById("crudModalTitle"),o=document.getElementById("crudModalBody"),y=document.getElementById("save-crud-btn");e.innerText=t?"Edit Barang":"Tambah Barang",o.innerHTML=`
+        `,document.querySelectorAll(".edit-item").forEach(e=>{e.onclick=()=>b(t.find(i=>i.id===e.dataset.id))})}function b(t=null){const a=new bootstrap.Modal(document.getElementById("crudModal")),e=document.getElementById("crudModalTitle"),i=document.getElementById("crudModalBody"),v=document.getElementById("save-crud-btn");e.innerText=t?"Edit Barang":"Tambah Barang",i.innerHTML=`
             <form id="inventory-form">
                 <div class="mb-3">
                     <label class="form-label">Nama Barang</label>
@@ -56,4 +56,4 @@ import{s as r}from"./config-CON8XM2G.js";async function g(){const n=document.get
                     <input type="text" class="form-control" id="item-category" value="${t?.category||""}">
                 </div>
             </form>
-        `,y.onclick=async()=>{const d=document.getElementById("item-name").value,i=parseInt(document.getElementById("item-stock").value),s=document.getElementById("item-unit").value,b=document.getElementById("item-category").value;if(!d||isNaN(i)||!s)return alert("Nama, Stok, dan Satuan wajib diisi.");let l;t?l=await r.from("inventory_items").update({name:d,stock:i,unit:s,category:b}).eq("id",t.id):l=await r.from("inventory_items").insert([{name:d,stock:i,unit:s,category:b}]),l.error?alert("Gagal menyimpan: "+l.error.message):(a.hide(),m())},a.show()}m()}export{g as initInventory};
+        `,v.onclick=async()=>{const s=document.getElementById("item-name").value,l=parseInt(document.getElementById("item-stock").value),d=document.getElementById("item-unit").value,y=document.getElementById("item-category").value;if(!s||isNaN(l)||!d)return c("warning","Nama, Stok, dan Satuan wajib diisi.");let o;t?o=await r.from("inventory_items").update({name:s,stock:l,unit:d,category:y}).eq("id",t.id):o=await r.from("inventory_items").insert([{name:s,stock:l,unit:d,category:y}]),o.error?c("error","Gagal menyimpan: "+o.error.message):(c("success","Barang berhasil disimpan!"),a.hide(),u())},a.show()}u()}export{B as initInventory};

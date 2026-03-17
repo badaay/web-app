@@ -1,4 +1,4 @@
-import{A as p}from"./auth-service-BA7j2u7-.js";import{s}from"./config-CON8XM2G.js";async function y(){const i=document.getElementById("employees-list"),n=document.getElementById("add-employee-btn");n&&(n.onclick=()=>m());async function c(){i.innerHTML="Memuat karyawan...";const{data:e,error:l}=await s.from("employees").select("*, roles(name)").order("name");if(l){i.innerHTML=`<div class="text-danger">Kesalahan: ${l.message}</div>`;return}if(e.length===0){i.innerHTML=`
+import{s as d,A as y}from"./config-CON8XM2G.js";import{s as n}from"./toast-D3E5iWRc.js";import{g as f}from"./ui-common-hIOATXsD.js";async function $(){const i=document.getElementById("employees-list"),c=document.getElementById("add-employee-btn");c&&(c.onclick=()=>m());async function r(){i.innerHTML=f("Memuat karyawan...");const{data:e,error:l}=await d.from("employees").select("*, roles(name)").order("name");if(l){i.innerHTML=`<div class="text-danger">Kesalahan: ${l.message}</div>`;return}if(e.length===0){i.innerHTML=`
                 <div class="text-white-50 text-center py-5">
                     <i class="bi bi-person-x fs-1 d-block mb-3"></i>
                     Tidak ada data karyawan ditemukan.
@@ -19,7 +19,7 @@ import{A as p}from"./auth-service-BA7j2u7-.js";import{s}from"./config-CON8XM2G.j
                             <tr>
                                 <td>
                                     <div class="fw-bold">
-                                        <a href="/web-app/activity.html?code=${a.employee_id}" class="text-info text-decoration-none" target="_blank">
+                                        <a href="${y}/activity.html?code=${a.employee_id}" class="text-info text-decoration-none" target="_blank">
                                             <i class="bi bi-person-badge me-1 small"></i>${a.name}
                                         </a>
                                     </div>
@@ -45,7 +45,7 @@ import{A as p}from"./auth-service-BA7j2u7-.js";import{s}from"./config-CON8XM2G.j
                     </tbody>
                 </table>
             </div>
-        `,document.querySelectorAll(".edit-emp").forEach(a=>{a.onclick=()=>m(e.find(o=>o.id===a.dataset.id))})}async function m(e=null){const l=new bootstrap.Modal(document.getElementById("crudModal")),a=document.getElementById("crudModalTitle"),o=document.getElementById("crudModalBody"),r=document.getElementById("save-crud-btn"),{data:b}=await s.from("roles").select("id, name").order("name");a.innerText=e?"Edit Karyawan":"Tambah Karyawan",o.innerHTML=`
+        `,document.querySelectorAll(".edit-emp").forEach(a=>{a.onclick=()=>m(e.find(o=>o.id===a.dataset.id))})}async function m(e=null){const l=new bootstrap.Modal(document.getElementById("crudModal")),a=document.getElementById("crudModalTitle"),o=document.getElementById("crudModalBody"),b=document.getElementById("save-crud-btn"),{data:u}=await d.from("roles").select("id, name").order("name");a.innerText=e?"Edit Karyawan":"Tambah Karyawan",o.innerHTML=`
             <form id="employee-form" class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Nama Lengkap</label>
@@ -59,7 +59,7 @@ import{A as p}from"./auth-service-BA7j2u7-.js";import{s}from"./config-CON8XM2G.j
                     <label class="form-label">Role Aplikasi</label>
                     <select class="form-select" id="emp-role-id">
                         <option value="">Pilih Role...</option>
-                        ${b?.map(t=>`<option value="${t.id}" ${e?.role_id===t.id?"selected":""}>${t.name}</option>`).join("")}
+                        ${u?.map(t=>`<option value="${t.id}" ${e?.role_id===t.id?"selected":""}>${t.name}</option>`).join("")}
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -108,4 +108,4 @@ import{A as p}from"./auth-service-BA7j2u7-.js";import{s}from"./config-CON8XM2G.j
                     </select>
                 </div>
             </form>
-        `,r.onclick=async()=>{const t={name:document.getElementById("emp-name").value,employee_id:document.getElementById("emp-id").value,role_id:document.getElementById("emp-role-id").value||null,position:document.getElementById("emp-position").value,status:document.getElementById("emp-status").value,birth_place:document.getElementById("emp-birthplace").value,birth_date:document.getElementById("emp-birthdate").value,address:document.getElementById("emp-address").value,join_date:document.getElementById("emp-join-date").value,education:document.getElementById("emp-education").value,training:document.getElementById("emp-training").value,bpjs:document.getElementById("emp-bpjs").value};if(!t.name||!t.employee_id)return alert("Nama dan ID wajib diisi.");let d;if(e)d=await s.from("employees").update(t).eq("id",e.id);else{const u=`${t.employee_id.toLowerCase()}@fatih.com`;d=await p.registerEmployee(u,"fatih1234",t)}d.error?alert("Gagal menyimpan: "+d.error.message):(l.hide(),c())},l.show()}c()}export{y as initEmployees};
+        `,b.onclick=async()=>{const t={name:document.getElementById("emp-name").value,employee_id:document.getElementById("emp-id").value,role_id:document.getElementById("emp-role-id").value||null,position:document.getElementById("emp-position").value,status:document.getElementById("emp-status").value,birth_place:document.getElementById("emp-birthplace").value,birth_date:document.getElementById("emp-birthdate").value,address:document.getElementById("emp-address").value,join_date:document.getElementById("emp-join-date").value,education:document.getElementById("emp-education").value,training:document.getElementById("emp-training").value,bpjs:document.getElementById("emp-bpjs").value};if(!t.name||!t.employee_id)return n("warning","Nama dan ID wajib diisi.");let s;if(e)s=await d.from("employees").update(t).eq("id",e.id);else{const p=`${t.employee_id.toLowerCase()}@fatih.com`,v=Math.random().toString(36).slice(-12)+"Aa1!";s=await AuthService.registerEmployee(p,v,t)}s.error?n("error","Gagal menyimpan: "+s.error.message):(n("success",e?"Data karyawan diperbarui.":"Karyawan baru berhasil didaftarkan."),l.hide(),r())},l.show()}r()}export{$ as initEmployees};

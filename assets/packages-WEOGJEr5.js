@@ -1,4 +1,4 @@
-import{s}from"./config-CON8XM2G.js";async function h(){const d=document.getElementById("packages-list"),i=document.getElementById("add-package-btn");i&&(i.onclick=()=>r());async function o(){d.innerHTML="Memuat paket...";const{data:e,error:a}=await s.from("internet_packages").select("*").order("price");if(a){d.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(e.length===0){d.innerHTML=`
+import{s as l}from"./config-CON8XM2G.js";import{s as i}from"./toast-D3E5iWRc.js";import{g as h}from"./ui-common-hIOATXsD.js";async function w(){const d=document.getElementById("packages-list"),o=document.getElementById("add-package-btn");o&&(o.onclick=()=>c());async function r(){d.innerHTML=h("Memuat paket...");const{data:e,error:a}=await l.from("internet_packages").select("*").order("price");if(a){d.innerHTML=`<div class="text-danger">Kesalahan: ${a.message}</div>`;return}if(e.length===0){d.innerHTML=`
                 <div class="text-white-50 text-center py-5">
                     <i class="bi bi-tags fs-1 d-block mb-3"></i>
                     Tidak ada data paket ditemukan.
@@ -33,7 +33,7 @@ import{s}from"./config-CON8XM2G.js";async function h(){const d=document.getEleme
                     </tbody>
                 </table>
             </div>
-        `,document.querySelectorAll(".edit-pkg").forEach(t=>{t.onclick=()=>r(e.find(n=>n.id===t.dataset.id))})}function r(e=null){const a=new bootstrap.Modal(document.getElementById("crudModal")),t=document.getElementById("crudModalTitle"),n=document.getElementById("crudModalBody"),p=document.getElementById("save-crud-btn");t.innerText=e?"Edit Paket":"Tambah Paket",n.innerHTML=`
+        `,document.querySelectorAll(".edit-pkg").forEach(t=>{t.onclick=()=>c(e.find(s=>s.id===t.dataset.id))})}function c(e=null){const a=new bootstrap.Modal(document.getElementById("crudModal")),t=document.getElementById("crudModalTitle"),s=document.getElementById("crudModalBody"),u=document.getElementById("save-crud-btn");t.innerText=e?"Edit Paket":"Tambah Paket",s.innerHTML=`
             <form id="package-form">
                 <div class="mb-3">
                     <label class="form-label">Nama Paket</label>
@@ -54,4 +54,4 @@ import{s}from"./config-CON8XM2G.js";async function h(){const d=document.getEleme
                     <textarea class="form-control" id="pkg-desc" rows="2">${e?.description||""}</textarea>
                 </div>
             </form>
-        `,p.onclick=async()=>{const c=document.getElementById("pkg-name").value,m=parseFloat(document.getElementById("pkg-price").value),u=document.getElementById("pkg-speed").value,g=document.getElementById("pkg-desc").value;if(!c||isNaN(m))return alert("Nama dan Harga wajib diisi.");const b={name:c,price:m,speed:u,description:g};let l;e?l=await s.from("internet_packages").update(b).eq("id",e.id):l=await s.from("internet_packages").insert([b]),l.error?alert("Gagal menyimpan: "+l.error.message):(a.hide(),o())},a.show()}o()}export{h as initPackages};
+        `,u.onclick=async()=>{const m=document.getElementById("pkg-name").value,p=parseFloat(document.getElementById("pkg-price").value),g=document.getElementById("pkg-speed").value,f=document.getElementById("pkg-desc").value;if(!m||isNaN(p))return i("warning","Nama dan Harga wajib diisi.");const b={name:m,price:p,speed:g,description:f};let n;e?n=await l.from("internet_packages").update(b).eq("id",e.id):n=await l.from("internet_packages").insert([b]),n.error?i("error","Gagal menyimpan: "+n.error.message):(i("success","Paket berhasil disimpan!"),a.hide(),r())},a.show()}r()}export{w as initPackages};

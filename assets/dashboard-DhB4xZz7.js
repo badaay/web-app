@@ -1,4 +1,4 @@
-import{_ as c}from"./admin-Dzs_qGtO.js";import"./auth-service-BA7j2u7-.js";import"./config-CON8XM2G.js";async function v(){const e=document.getElementById("role-feature");e&&(e.innerHTML=`
+import{_ as c}from"./admin-Bqyhn_VI.js";import"./auth-service-PfjuabZR.js";import"./config-CON8XM2G.js";import"./toast-D3E5iWRc.js";async function b(){const t=document.getElementById("role-feature");t&&(t.innerHTML=`
         <div class="container-fluid py-4">
             <div class="row g-4">
                 <div class="col-12">
@@ -36,7 +36,7 @@ import{_ as c}from"./admin-Dzs_qGtO.js";import"./auth-service-BA7j2u7-.js";impor
 
                 <div class="col-md-6 col-lg-4">
                     <div class="card bg-vscode border-0 h-100 shadow-sm hover-scale transition-300 pointer-cursor" 
-                         onclick="window.switchAdminModule('work-orders-content')"
+                         id="quick-wo-btn"
                          style="border-radius: 12px; border-left: 4px solid #ffca28 !important;">
                         <div class="card-body p-4 d-flex align-items-center">
                             <div class="rounded-3 bg-warning bg-opacity-10 p-3 me-3">
@@ -52,7 +52,7 @@ import{_ as c}from"./admin-Dzs_qGtO.js";import"./auth-service-BA7j2u7-.js";impor
 
                 <div class="col-md-6 col-lg-4">
                     <div class="card bg-vscode border-0 h-100 shadow-sm hover-scale transition-300 pointer-cursor" 
-                         onclick="window.switchAdminModule('customer-map-view-content')"
+                         id="quick-map-btn"
                          style="border-radius: 12px; border-left: 4px solid #29b6f6 !important;">
                         <div class="card-body p-4 d-flex align-items-center">
                             <div class="rounded-3 bg-info bg-opacity-10 p-3 me-3">
@@ -99,4 +99,4 @@ import{_ as c}from"./admin-Dzs_qGtO.js";import"./auth-service-BA7j2u7-.js";impor
                 </div>
             </div>
         </div>
-    `,document.getElementById("quick-add-customer-btn").onclick=()=>{window.switchAdminModule&&window.switchAdminModule("add-customer-view-content")},l())}async function l(){try{const{supabase:e}=await c(async()=>{const{supabase:d}=await import("./config-CON8XM2G.js").then(o=>o.b);return{supabase:d}},[]),[t,i,s,a]=await Promise.all([e.from("customers").select("*",{count:"exact",head:!0}),e.from("work_orders").select("*",{count:"exact",head:!0}).neq("status","closed"),e.from("employees").select("*",{count:"exact",head:!0}).eq("status","Aktif"),e.from("internet_packages").select("*",{count:"exact",head:!0})]);document.getElementById("stat-total-customers").innerText=t.count||0,document.getElementById("stat-active-wo").innerText=i.count||0,document.getElementById("stat-total-employees").innerText=s.count||0,document.getElementById("stat-total-packages").innerText=a.count||0}catch(e){console.error("Dashboard stats error:",e)}}export{v as initDashboard};
+    `,document.getElementById("quick-add-customer-btn").onclick=()=>{document.dispatchEvent(new CustomEvent("navigate",{detail:"add-customer-view-content"}))},document.getElementById("quick-wo-btn").onclick=()=>{document.dispatchEvent(new CustomEvent("navigate",{detail:"work-orders-content"}))},document.getElementById("quick-map-btn").onclick=()=>{document.dispatchEvent(new CustomEvent("navigate",{detail:"customer-map-view-content"}))},l())}async function l(){try{const{supabase:t}=await c(async()=>{const{supabase:d}=await import("./config-CON8XM2G.js").then(o=>o.b);return{supabase:d}},[]),[e,a,i,s]=await Promise.all([t.from("customers").select("*",{count:"exact",head:!0}),t.from("work_orders").select("*",{count:"exact",head:!0}).neq("status","closed"),t.from("employees").select("*",{count:"exact",head:!0}).eq("status","Aktif"),t.from("internet_packages").select("*",{count:"exact",head:!0})]);document.getElementById("stat-total-customers").innerText=e.count||0,document.getElementById("stat-active-wo").innerText=a.count||0,document.getElementById("stat-total-employees").innerText=i.count||0,document.getElementById("stat-total-packages").innerText=s.count||0}catch(t){console.error("Dashboard stats error:",t)}}export{b as initDashboard};

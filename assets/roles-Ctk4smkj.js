@@ -1,8 +1,8 @@
-import{s}from"./config-CON8XM2G.js";async function y(){const d=document.getElementById("roles-list"),i=document.getElementById("add-role-btn");i&&(i.onclick=()=>c());async function r(){d.innerHTML='<div class="card-body text-center py-5">Memuat data role...</div>';const{data:e,error:a}=await s.from("roles").select("*").order("name");if(a){d.innerHTML=`<div class="card-body text-center py-5 text-danger">Kesalahan: ${a.message}</div>`;return}if(e.length===0){d.innerHTML=`
+import{s as i}from"./config-CON8XM2G.js";import{g as f}from"./ui-common-hIOATXsD.js";import"./toast-D3E5iWRc.js";async function v(){const l=document.getElementById("roles-list"),s=document.getElementById("add-role-btn");s&&(s.onclick=()=>c());async function r(){l.innerHTML=f("Memuat data role...");const{data:e,error:a}=await i.from("roles").select("*").order("name");if(a){l.innerHTML=`<div class="card-body text-center py-5 text-danger">Kesalahan: ${a.message}</div>`;return}if(e.length===0){l.innerHTML=`
                 <div class="text-white-50 text-center py-5">
                     <i class="bi bi-shield-lock fs-1 d-block mb-3"></i>
                     Tidak ada data role ditemukan.
-                </div>`;return}d.innerHTML=`
+                </div>`;return}l.innerHTML=`
             <div class="table-container shadow-sm">
                 <table class="table table-dark table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -44,4 +44,4 @@ import{s}from"./config-CON8XM2G.js";async function y(){const d=document.getEleme
                     <textarea class="form-control" id="role-desc" rows="2">${e?.description||""}</textarea>
                 </div>
             </form>
-        `,u.onclick=async()=>{const n=document.getElementById("role-name").value,m=document.getElementById("role-code").value.toUpperCase(),b=document.getElementById("role-desc").value;if(!n||!m)return alert("Nama dan Kode wajib diisi.");const p={name:n,code:m,description:b};let l;e?l=await s.from("roles").update({name:n,description:b}).eq("id",e.id):l=await s.from("roles").insert([p]),l.error?alert("Gagal menyimpan: "+l.error.message):(a.hide(),r())},a.show()}r()}export{y as initRoles};
+        `,u.onclick=async()=>{const n=document.getElementById("role-name").value,m=document.getElementById("role-code").value.toUpperCase(),b=document.getElementById("role-desc").value;if(!n||!m)return alert("Nama dan Kode wajib diisi.");const p={name:n,code:m,description:b};let d;e?d=await i.from("roles").update({name:n,description:b}).eq("id",e.id):d=await i.from("roles").insert([p]),d.error?alert("Gagal menyimpan: "+d.error.message):(a.hide(),r())},a.show()}r()}export{v as initRoles};
