@@ -2,15 +2,18 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
 
+const BASE_URL = '/web-app/';
+
 function activityRewritePlugin() {
     return {
         name: 'activity-rewrite',
         configureServer(server) {
             server.middlewares.use((req, res, next) => {
-                // Match /web-app/:employeeid/activity
-                if (req.url && req.url.match(/^\/web-app\/[^\/]+\/activity(?:\?.*)?$/)) {
+                // Match ${BASE_URL}:employeeid/activity
+                const activityRegex = new RegExp('^' + BASE_URL.replace(/\//g, '\\/') + '[^\\/]+\\/activity(?:\\?.*)?$');
+                if (req.url && req.url.match(activityRegex)) {
                     const queryParams = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
-                    req.url = `/web-app/activity.html${queryParams}`;
+                    req.url = `${BASE_URL}activity.html${queryParams}`;
                 }
                 next();
             });
@@ -19,7 +22,7 @@ function activityRewritePlugin() {
 }
 
 export default defineConfig({
-    base: '/web-app/',
+    base: BASE_URL,
     build: {
         rollupOptions: {
             input: {

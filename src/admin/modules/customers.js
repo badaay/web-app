@@ -2,6 +2,7 @@ import { supabase } from '../../api/supabase.js';
 import { adminResetPassword, generatePassword } from '../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink, showSharedMap, createStandardMarker, getSpinner } from '../utils/ui-common.js';
 import { showToast } from '../utils/toast.js';
+import { APP_BASE_URL } from '../../config.js';
 
 export async function initCustomers() {
     const listContainer = document.getElementById('customers-list');
@@ -57,7 +58,7 @@ export async function initCustomers() {
                             <tr>
                                 <td>
                                     <div class="fw-bold">
-                                        <a href="/web-app/enduser/dashboard.html?code=${cust.customer_code || cust.id}&customer=true" class="text-info text-decoration-none" target="_blank">
+                                        <a href="${APP_BASE_URL}/enduser/dashboard.html?code=${cust.customer_code || cust.id}&customer=true" class="text-info text-decoration-none" target="_blank">
                                             <i class="bi bi-box-arrow-in-right me-1 small"></i>${cust.name}
                                         </a>
                                     </div>

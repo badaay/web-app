@@ -1,4 +1,5 @@
 import { supabase } from './api/supabase.js';
+import { APP_BASE_URL } from './config.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('activity-chat-container');
