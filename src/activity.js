@@ -1,5 +1,6 @@
 import { supabase } from './api/supabase.js';
 import { APP_BASE_URL } from './config.js';
+import { createGoogleMapsLink } from './utils/map.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('activity-chat-container');
@@ -24,24 +25,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const execSn = document.getElementById('exec-sn');
     const execActualDate = document.getElementById('exec-actual-date');
     const execActivationDate = document.getElementById('exec-activation-date');
-    
+    const execCableLabel = document.getElementById('exec-cable-label');
+
+    // Claim Section Elements
+    const claimSection = document.getElementById('claim-section');
+    const executionDetailsSection = document.getElementById('execution-details-section');
+    const teamSelectionContainer = document.getElementById('team-selection-container');
+    const btnConfirmClaim = document.getElementById('btn-confirm-claim');
+
     let currentExecutingWO = null;
     let currentPhotoBase64 = null;
 
     // Refresh & PWA Install
     const btnRefresh = document.getElementById('btn-refresh');
     const btnInstall = document.getElementById('btn-install');
-
-    if (btnRefresh) {
-        btnRefresh.addEventListener('click', async () => {
-            if (techId.innerText && techId.innerText !== 'ID TKN') {
-                const dbIdResult = await supabase.from('employees').select('id').eq('employee_id', techId.innerText).single();
-                if (dbIdResult.data) {
-                    await loadWorkOrders(dbIdResult.data.id);
-                }
-            }
-        });
-    }
+    let techDbId_Global; // Declare here to avoid Temporal Dead Zone (TDZ)
 
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -52,6 +50,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update UI to notify the user they can add to home screen
         if (btnInstall) btnInstall.classList.remove('d-none');
     });
+
+    if (btnRefresh) {
+        btnRefresh.addEventListener('click', async () => {
+            if (techDbId_Global) {
+                await loadWorkOrders(techDbId_Global);
+            }
+        });
+    }
 
     if (btnInstall) {
         btnInstall.addEventListener('click', async () => {
@@ -68,11 +74,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Handle Photo Upload Preview
     if (execPhoto) {
-        execPhoto.addEventListener('change', function(e) {
+        execPhoto.addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(evt) {
+                reader.onload = function (evt) {
                     currentPhotoBase64 = evt.target.result;
                     execPhotoPreview.src = currentPhotoBase64;
                     photoPreviewContainer.classList.remove('d-none');
@@ -86,23 +92,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 1. Get employeeID and shortGenerated from URL
-    // URL pattern is /web-app/{employeeid}/activity?shortGenerated=securitycode
-    const pathParts = window.location.pathname.split('/');
-    // Example: ["", "web-app", "TKN-001", "activity"] -> length could vary based on base url
-    const activityIndex = pathParts.findIndex(p => p === 'activity' || p === 'activity.html');
-    
-    let employeeId = null;
-    if (activityIndex > 0) {
-        employeeId = pathParts[activityIndex - 1];
-    }
-    
-    // Fallback if not mapped properly via Vite rewrite: check URLSearchParams
+    // 1. Get employeeID from URL parameter 'code'
+    // URL pattern is ?code={employecode}
     const urlParams = new URLSearchParams(window.location.search);
-    const securityCode = urlParams.get('shortGenerated');
-    
+    const employeeId = urlParams.get('code');
+
     if (!employeeId) {
-        showError('Format URL tidak valid. ID Teknisi tidak ditemukan di URL.');
+        showError('Akses ditolak. Format URL tidak valid atau kode teknisi tidak ditemukan. Mengalihkan ke halaman login...');
+        setTimeout(() => {
+            window.location.href = APP_BASE_URL + '/admin/login';
+        }, 3000);
         return;
     }
 
@@ -122,6 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Show Tech Info
         techName.innerText = tech.name;
         techId.innerText = tech.employee_id;
+        techDbId_Global = tech.id; // Initialize global ID
         techInfo.classList.remove('d-none');
 
         // 3. Load Work Orders assigned to this technician
@@ -146,9 +146,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             .select(`
                 *,
                 customers ( name, address, phone, lat, lng ),
-                installation_monitorings (*)
+                installation_monitorings (*),
+                master_queue_types(name, color, icon)
             `)
-            .eq('employee_id', techDbId)
+            .or(`status.eq.confirmed,employee_id.eq.${techDbId},claimed_by.eq.${techDbId}`)
             .order('created_at', { ascending: true });
 
         if (woErr) {
@@ -174,73 +175,158 @@ document.addEventListener('DOMContentLoaded', async () => {
             const customerAddress = wo.customers?.address || '-';
             const customerLat = wo.customers?.lat;
             const customerLng = wo.customers?.lng;
-            
-            let mapLinkHtml = '';
-            if (customerLat && customerLng) {
-                mapLinkHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${customerLat},${customerLng}" target="_blank" class="badge bg-success text-decoration-none ms-1"><i class="bi bi-geo-alt-fill"></i> Map</a>`;
-            }
-            
+
+            const mapLinkHtml = createGoogleMapsLink(customerLat, customerLng);
+
             // Format time
             const date = new Date(wo.created_at);
             const timeString = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
             const dateString = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
             const statusBadgeColor = getStatusColor(wo.status);
+            const type = wo.master_queue_types;
 
             const bubble = document.createElement('div');
             bubble.className = 'chat-bubble';
+            bubble.style.borderLeftColor = type?.color || '#3B82F6';
+            
             bubble.innerHTML = `
-                <div class="chat-header">
-                    <span><i class="bi bi-clock"></i> ${dateString} ${timeString}</span>
-                    <span class="badge bg-${statusBadgeColor}">${wo.status}</span>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center">
+                         <span class="badge rounded-pill px-2 me-2" style="background:${type?.color || '#6b7280'}">
+                            <i class="bi ${type?.icon || 'bi-ticket-detailed'} me-1"></i>
+                            ${type?.name || 'Tiket'}
+                        </span>
+                        <div>
+                            <div class="fw-bold mb-0">${wo.title}</div>
+                            <div class="small text-muted"><i class="bi bi-clock me-1"></i> ${dateString} ${timeString}</div>
+                        </div>
+                    </div>
+                    <span class="badge rounded-pill bg-${statusBadgeColor} bg-opacity-10 text-${statusBadgeColor} px-3 py-2" style="font-size: 0.75rem">${wo.status}</span>
                 </div>
-                <div class="chat-title">${wo.title}</div>
-                <div class="chat-detail mb-2">
-                    <i class="bi bi-person text-white-50 me-1"></i> ${customerName}<br>
-                    <i class="bi bi-geo-alt text-white-50 me-1"></i> ${customerAddress} ${mapLinkHtml}
+
+                <div class="p-3 bg-light rounded-4 mb-3 border border-light">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-person-circle fs-5 text-primary me-3"></i>
+                        <div>
+                            <div class="small text-muted" style="font-size: 0.7rem">Nama Pelanggan</div>
+                            <div class="fw-medium">${customerName}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-geo-alt-fill fs-5 text-danger me-3"></i>
+                        <div>
+                            <div class="small text-muted" style="font-size: 0.7rem">Alamat Pemasangan</div>
+                            <div class="fw-medium small">${customerAddress} ${mapLinkHtml}</div>
+                        </div>
+                    </div>
                 </div>
-                ${wo.description ? `<div class="p-2 bg-dark bg-opacity-50 rounded text-white-50 small mb-2">${wo.description}</div>` : ''}
+
+                ${wo.description ? `<div class="p-2 border-start border-primary border-4 bg-primary bg-opacity-10 rounded-end small mb-3 text-muted">${wo.description}</div>` : ''}
                 
-                ${wo.status !== 'Selesai' ? `
-                <button class="btn btn-primary btn-sm btn-eksekusi fw-bold" data-target="${wo.id}">
-                    <i class="bi bi-play-fill text-white"></i> Eksekusi
-                </button>
-                ` : `
-                <button class="btn btn-outline-secondary btn-sm btn-eksekusi fw-bold" disabled>
-                    <i class="bi bi-check2-all"></i> Selesai
-                </button>
-                `}
+                <div class="mt-3">
+                    ${wo.status === 'confirmed' ? `
+                    <button class="btn btn-success btn-eksekusi fw-bold shadow-sm" data-action="claim" data-id="${wo.id}">
+                        <i class="bi bi-unlock-fill"></i> Ambil & Buka Tiket
+                    </button>
+                    ` : wo.status === 'open' ? `
+                    <button class="btn btn-primary btn-eksekusi fw-bold shadow-sm" data-action="execute" data-id="${wo.id}">
+                        <i class="bi bi-lightning-fill"></i> Update / Selesaikan
+                    </button>
+                    ` : `
+                    <button class="btn btn-outline-secondary btn-eksekusi fw-bold" disabled>
+                        <i class="bi bi-check2-all"></i> ${wo.status === 'closed' ? 'Tiket Ditutup' : wo.status}
+                    </button>
+                    `}
+                </div>
             `;
 
-            const btn = bubble.querySelector('.btn-eksekusi:not([disabled])');
-            if (btn) {
-                btn.addEventListener('click', () => openExecutionModal(wo));
+            const btnExec = bubble.querySelector('.btn-eksekusi[data-action="execute"]');
+            if (btnExec) {
+                btnExec.addEventListener('click', () => openExecutionModal(wo));
+            }
+
+            const btnClaim = bubble.querySelector('.btn-eksekusi[data-action="claim"]');
+            if (btnClaim) {
+                btnClaim.addEventListener('click', () => openClaimModal(wo));
             }
 
             container.appendChild(bubble);
         });
     }
 
-    function openExecutionModal(wo) {
-        if(!executionModal) return;
+    async function openClaimModal(wo) {
+        if (!executionModal) return;
         currentExecutingWO = wo;
-        
+
+        claimSection.classList.remove('d-none');
+        executionDetailsSection.classList.add('d-none');
+        document.getElementById('btn-save-exec').classList.add('d-none');
+
+        // Load technicians for team selection
+        teamSelectionContainer.innerHTML = '<div class="spinner-border spinner-border-sm text-success"></div>';
+        const { data: emps } = await supabase.from('employees').select('id, name').neq('id', techDbId_Global);
+
+        teamSelectionContainer.innerHTML = emps.map(e => `
+            <div class="form-check">
+                <input class="btn-check team-member-check" type="checkbox" id="team-${e.id}" value="${e.id}" autocomplete="off">
+                <label class="btn btn-sm btn-outline-success rounded-pill px-3" for="team-${e.id}">${e.name}</label>
+            </div>
+        `).join('');
+
+        btnConfirmClaim.onclick = async () => {
+            btnConfirmClaim.disabled = true;
+            btnConfirmClaim.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses...';
+
+            try {
+                const selectedTeam = Array.from(document.querySelectorAll('.team-member-check:checked')).map(c => c.value);
+                const { error } = await supabase.from('work_orders').update({
+                    status: 'open',
+                    claimed_by: techDbId_Global,
+                    claimed_at: new Date().toISOString(),
+                    ket: 'Team Lead: ' + techName.innerText + (selectedTeam.length > 0 ? ' | Anggota: ' + selectedTeam.length : '')
+                }).eq('id', wo.id);
+
+                if (error) throw error;
+                executionModal.hide();
+                await loadWorkOrders(techDbId_Global);
+            } catch (err) {
+                alert('Gagal mengambil tiket: ' + err.message);
+            } finally {
+                btnConfirmClaim.disabled = false;
+                btnConfirmClaim.innerText = 'Konfirmasi & Mulai Pengerjaan';
+            }
+        };
+
+        executionModal.show();
+    }
+
+
+    function openExecutionModal(wo) {
+        if (!executionModal) return;
+        currentExecutingWO = wo;
+
+        claimSection.classList.add('d-none');
+        executionDetailsSection.classList.remove('d-none');
+        document.getElementById('btn-save-exec').classList.remove('d-none');
+
         // Reset form
         execNotes.value = wo.ket || '';
-        execStatus.value = wo.status === 'Selesai' ? 'Selesai' : 'Pending';
+        execStatus.value = wo.status === 'closed' ? 'closed' : 'open';
         execPhoto.value = '';
         currentPhotoBase64 = null;
         photoPreviewContainer.classList.add('d-none');
         execPhotoPreview.src = '';
-        
+
         // Fill from existing monitorings if present
-        const monitoring = (wo.installation_monitorings && wo.installation_monitorings.length > 0) 
-            ? wo.installation_monitorings[0] 
+        const monitoring = (wo.installation_monitorings && wo.installation_monitorings.length > 0)
+            ? wo.installation_monitorings[0]
             : null;
 
         if (monitoring) {
             execMac.value = monitoring.mac_address || '';
             execSn.value = monitoring.sn_modem || '';
+            execCableLabel.value = monitoring.cable_label || '';
             execActualDate.value = monitoring.actual_date || '';
             execActivationDate.value = monitoring.activation_date || '';
             if (monitoring.photo_proof) {
@@ -251,6 +337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             execMac.value = '';
             execSn.value = '';
+            execCableLabel.value = '';
             execActualDate.value = new Date().toISOString().split('T')[0];
             execActivationDate.value = new Date().toISOString().split('T')[0];
         }
@@ -258,7 +345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         executionModal.show();
     }
 
-    if(btnSaveExec) {
+    if (btnSaveExec) {
         btnSaveExec.addEventListener('click', async () => {
             if (!currentExecutingWO) return;
 
@@ -269,15 +356,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             btnSaveExec.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Menyimpan...`;
 
             try {
+                // Calculate Points if status is closed
+                let points = currentExecutingWO.points || 0;
+                if (newStatus === 'closed') {
+                    const { data: qType } = await supabase.from('master_queue_types').select('base_point').eq('id', currentExecutingWO.type_id).maybeSingle();
+                    if (qType) points = qType.base_point;
+                    else points = 100; // Default fallback
+                }
+
                 // Update work order
                 const { error: updateErr } = await supabase
                     .from('work_orders')
-                    .update({ 
+                    .update({
                         status: newStatus,
-                        ket: notes ? notes : currentExecutingWO.ket 
+                        points: points,
+                        ket: notes ? notes : currentExecutingWO.ket
                     })
                     .eq('id', currentExecutingWO.id);
-                
+
                 if (updateErr) throw updateErr;
 
                 // Upsert to installation_monitorings
@@ -287,6 +383,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     employee_id: currentExecutingWO.employee_id,
                     mac_address: execMac.value || null,
                     sn_modem: execSn.value || null,
+                    cable_label: execCableLabel.value || null,
                     actual_date: execActualDate.value || null,
                     activation_date: execActivationDate.value || null,
                     photo_proof: currentPhotoBase64,
@@ -309,9 +406,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (monitorErr) throw monitorErr;
 
                 executionModal.hide();
-                // Reload list
-                const techDbId = currentExecutingWO.employee_id;
-                await loadWorkOrders(techDbId);
+                // Reload list using current technician's actual DB ID
+                await loadWorkOrders(techDbId_Global);
 
             } catch (err) {
                 console.error('Update error:', err);
@@ -331,6 +427,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function getStatusColor(status) {
         const s = status ? status.toLowerCase() : '';
+        if (s === 'waiting') return 'warning';
+        if (s === 'confirmed') return 'success';
+        if (s === 'open') return 'info';
+        if (s === 'closed') return 'secondary';
+        
         if (s.includes('pending') || s.includes('antrian')) return 'warning';
         if (s.includes('selesai')) return 'success';
         if (s.includes('proses')) return 'info';

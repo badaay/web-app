@@ -119,6 +119,9 @@ export async function initDashboard() {
 
     // Load simple stats
     loadDashboardStats();
+
+    // [WO-005] Load today's queue widget
+    loadTodayQueue();
 }
 
 async function loadDashboardStats() {
@@ -139,4 +142,115 @@ async function loadDashboardStats() {
     } catch (err) {
         console.error("Dashboard stats error:", err);
     }
+}
+
+/**
+ * [WO-005] Load and render the "Today's Active Queue" widget.
+ */
+async function loadTodayQueue() {
+    const container = document.querySelector('.container-fluid.py-4');
+    if (!container) return;
+
+    const widgetHtml = `
+        <div class="row g-4 mt-2">
+            <div class="col-12">
+                <div id="today-queue-widget">
+                    <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                         <h5 class="text-white-50 fw-bold" style="letter-spacing: 1px; font-size: 0.8rem;">ANTRIAN AKTIF HARI INI</h5>
+                         <button class="btn btn-link btn-sm text-white-50" id="view-all-wo-link">Lihat Semua →</button>
+                    </div>
+                    <div class="card bg-vscode border-secondary border-opacity-25">
+                        <div class="card-body p-2" id="today-queue-list" style="max-height: 320px; overflow-y: auto;">
+                            <div class="text-center p-5">
+                                <div class="spinner-border text-white-50" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-white-50">Memuat antrian...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', widgetHtml);
+
+    document.getElementById('view-all-wo-link').onclick = () => {
+        document.dispatchEvent(new CustomEvent('navigate', { detail: 'work-orders-content' }));
+    };
+
+    const listContainer = document.getElementById('today-queue-list');
+    const { supabase } = await import('../../api/supabase.js');
+    const { getStatusColor, getStatusDisplayText } = await import('./work-orders/utils.js');
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+        .from('work_orders')
+        .select(`*, customers(name, phone), employees(name), master_queue_types(name, color, icon)`)
+        .or(`registration_date.eq.${today},status.in.(confirmed,open)`)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+    if (error) {
+        listContainer.innerHTML = `<div class="p-3 text-danger">Error: ${error.message}</div>`;
+        return;
+    }
+
+    if (data.length === 0) {
+        listContainer.innerHTML = `
+            <div class="text-center p-5">
+                <i class="bi bi-check2-circle fs-1 text-success"></i>
+                <p class="mt-2 text-white-50">Tidak ada antrian aktif untuk hari ini. Santai!</p>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = data.map(wo => {
+        const type = wo.master_queue_types;
+        const customer = wo.customers;
+        const employee = wo.employees;
+        const statusColor = getStatusColor(wo.status);
+        const statusText = getStatusDisplayText(wo.status);
+
+        return `
+            <div class="list-group-item list-group-item-action bg-transparent text-white border-bottom border-secondary border-opacity-25 p-3">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <span class="badge rounded-pill me-3" style="background-color:${type?.color || '#6b7280'}; padding: 0.5em 0.7em;">
+                            <i class="bi ${type?.icon || 'bi-ticket-detailed'}"></i>
+                        </span>
+                        <div>
+                            <h6 class="mb-0 fw-bold">${customer?.name || 'N/A'}</h6>
+                            <small class="text-white-50">${customer?.phone || ''} &middot; ${type?.name || 'Tiket'}</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center text-nowrap">
+                        <div class="text-end me-3 d-none d-sm-block">
+                            <span class="badge" style="background-color:${statusColor}; color:#fff;">${statusText}</span>
+                            <br>
+                            <small class="text-white-50">${employee?.name || 'Belum ditugaskan'}</small>
+                        </div>
+                        ${wo.status === 'waiting' ? `
+                            <button class="btn btn-sm btn-success dashboard-confirm-wo" data-wo-id="${wo.id}" title="Konfirmasi & Tugaskan">
+                                Konfirmasi
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Event listener for the confirm buttons
+    listContainer.querySelectorAll('.dashboard-confirm-wo').forEach(btn => {
+        btn.onclick = async () => {
+            const woId = btn.dataset.woId;
+            const { initWorkOrders } = await import('./work-orders/index.js');
+            
+            // This is a workaround to get access to the confirmation panel function.
+            // A better approach would be a more robust event bus or shared utility.
+            document.dispatchEvent(new CustomEvent('request-wo-confirmation', { detail: { woId } }));
+        };
+    });
 }

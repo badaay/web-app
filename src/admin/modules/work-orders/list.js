@@ -40,20 +40,22 @@ export function renderStatusSummary(allWorkOrders, currentFilter, onFilterChange
 
     // Create step-based progress flow
     const stepsHtml = `
-        <div class="d-flex align-items-center gap-2 mb-3" style="flex-wrap: wrap;">
-            <div class="text-muted small">Status Flow:</div>
-            ${statuses.map((s, idx) => `
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <button class="badge p-2 border-0 wo-filter-badge ${currentFilter === s ? 'ring-active' : ''}"
-                        style="background-color:${getStatusColor(s)};color:#fff;cursor:pointer;min-width:80px;"
-                        data-filter="${s}"
-                        title="Click to filter">
-                        <i class="bi bi-check-circle-fill me-1"></i>${getStatusDisplayText(s)}<br><small>${counts[s] || 0}</small>
-                    </button>
-                    ${idx < statuses.length - 1 ? '<i class="bi bi-arrow-right text-muted"></i>' : ''}
-                </div>
-            `).join('')}
-            <div class="ms-auto">
+        <div class="d-flex justify-content-between align-items-center mb-3" style="flex-wrap: wrap;">
+            <div class="d-flex align-items-center gap-2" style="flex-wrap: wrap;">
+                <div class="text-muted small me-2">Status Flow:</div>
+                ${statuses.map((s, idx) => `
+                    <div class="d-inline-flex align-items-center">
+                        <button class="badge p-2 border-0 wo-filter-badge ${currentFilter === s ? 'ring-active' : ''}"
+                            style="background-color:${getStatusColor(s)};color:#fff;cursor:pointer;min-width:80px;"
+                            data-filter="${s}"
+                            title="Click to filter">
+                            ${getStatusDisplayText(s)}<br><small>${counts[s] || 0}</small>
+                        </button>
+                        ${idx < statuses.length - 1 ? '<i class="bi bi-arrow-right text-muted mx-2"></i>' : ''}
+                    </div>
+                `).join('')}
+            </div>
+            <div class="ms-auto mt-2 mt-md-0">
                 <button class="badge p-2 border-0 wo-filter-badge ${currentFilter === 'All' ? 'ring-active' : ''}"
                     style="background:var(--vscode-accent);color:#fff;cursor:pointer;min-width:80px;"
                     data-filter="All"
@@ -131,7 +133,7 @@ export function getFilteredOrders(allWorkOrders, currentFilter, searchQuery) {
 /**
  * Render work orders table with rows and actions
  */
-export function renderWorkOrders(filteredOrders, onEditClick) {
+export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick) {
     const tableContainer = document.getElementById('work-orders-list');
     if (!tableContainer) return;
 
@@ -171,9 +173,15 @@ export function renderWorkOrders(filteredOrders, onEditClick) {
                             <td><small>${wo.employees?.name || 'Belum ditugaskan'}</small></td>
                             <td><small>${wo.ket?.substring(0, 15) || wo.payment_status || '-'}</small></td>
                             <td>
-                                <button class="btn btn-sm btn-primary edit-wo-btn" data-id="${wo.id}" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
+                                ${wo.status === 'waiting' ? `
+                                    <button class="btn btn-sm btn-success assign-confirm-wo" data-id="${wo.id}" title="Konfirmasi & Tugaskan">
+                                        Konfirmasi
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-sm btn-primary view-wo-details-btn" data-id="${wo.id}" title="Lihat Aksi">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                `}
                             </td>
                         </tr>
                     `).join('')}
@@ -184,12 +192,21 @@ export function renderWorkOrders(filteredOrders, onEditClick) {
 
     tableContainer.innerHTML = tableHtml;
 
-    // Wire up edit buttons
-    tableContainer.querySelectorAll('.edit-wo-btn').forEach(btn => {
+    // Wire up action buttons for non-waiting rows
+    tableContainer.querySelectorAll('.view-wo-details-btn').forEach(btn => {
         btn.onclick = () => {
             const woId = btn.dataset.id;
             const wo = filteredOrders.find(w => w.id === woId);
-            if (onEditClick) onEditClick(wo);
+            if (onRowClick) onRowClick(wo);
+        };
+    });
+
+    // Wire up "Konfirmasi" buttons for waiting rows
+    tableContainer.querySelectorAll('.assign-confirm-wo').forEach(btn => {
+        btn.onclick = () => {
+            const woId = btn.dataset.id;
+            const wo = filteredOrders.find(w => w.id === woId);
+            if (onConfirmClick) onConfirmClick(wo);
         };
     });
 }

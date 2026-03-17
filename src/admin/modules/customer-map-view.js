@@ -23,7 +23,7 @@ export async function initCustomerMapView() {
     let markersLayer = null;
     let legendCtrl = null;
 
-    // ---- Status Antrian PSB config (same as work-orders.js) ----
+    // ---- Status Antrian PSB config (same as work-orders module) ----
     const STATUS_COLORS = {
         'Antrian': '#22c55e',
         'Pending': '#f97316',

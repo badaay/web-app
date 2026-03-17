@@ -84,6 +84,20 @@ export async function initWorkOrders() {
         currentSearch = query;
         updateDisplay();
     });
+
+    // [WO-005] Listen for confirmation requests from other modules (like dashboard)
+    document.addEventListener('request-wo-confirmation', async (e) => {
+        const { woId } = e.detail;
+        const wo = allWorkOrders.find(w => w.id === woId);
+        if (wo) {
+            showAssignConfirmPanel(wo);
+        } else {
+            // If not in the current loaded data, fetch it
+            const { data, error } = await supabase.from('work_orders').select('*').eq('id', woId).single();
+            if (data) showAssignConfirmPanel(data);
+            else showToast(`Work order with ID ${woId} not found.`, 'error');
+        }
+    });
 }
 
 /**
@@ -103,11 +117,86 @@ function updateDisplay() {
     exposeMapGlobal(filtered, currentFilter);
 
     // Render table
-    renderWorkOrders(filtered, async (wo) => {
-        // Show action menu for clicked row
-        showWorkOrderActions(wo);
-    });
+    renderWorkOrders(filtered, 
+        (wo) => showWorkOrderActions(wo), // Main row click action
+        (wo) => showAssignConfirmPanel(wo)  // "Konfirmasi" button action
+    );
 }
+
+/**
+ * [WO-004] Show panel to quickly confirm a work order.
+ * @param {object} wo - The work order object.
+ */
+async function showAssignConfirmPanel(wo) {
+    const modalEl = document.getElementById('assignConfirmModal');
+    const modal = new bootstrap.Modal(modalEl);
+    const woCodeEl = document.getElementById('assign-wo-code');
+    const saveBtn = document.getElementById('save-assign-confirm-btn');
+
+    woCodeEl.textContent = wo.work_order_code;
+
+    const saveHandler = async () => {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
+
+        // 1. Update work order status to 'confirmed'
+        const { error: updateError } = await supabase
+            .from('work_orders')
+            .update({ status: 'confirmed' })
+            .eq('id', wo.id);
+
+        if (updateError) {
+            showToast(`Error: ${updateError.message}`, 'error');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Simpan';
+            return;
+        }
+
+        // 2. Create initial installation monitoring record
+        const { error: monitorError } = await supabase
+            .from('installation_monitorings')
+            .insert({
+                work_order_id: wo.id,
+                status: 'confirmed',
+                notes: 'Work order dikonfirmasi oleh admin.',
+                updated_by: (await supabase.auth.getUser()).data.user.email
+            });
+        
+        if (monitorError) {
+            showToast(`Work order dikonfirmasi, tapi gagal membuat log monitoring: ${monitorError.message}`, 'warning');
+        } else {
+            showToast('Work order berhasil dikonfirmasi.', 'success');
+        }
+        
+        modal.hide();
+        
+        // Refresh data without full page reload
+        const listContainer = document.getElementById('work-orders-list');
+        loadWorkOrders(listContainer, (data) => {
+            allWorkOrders = data;
+            updateDisplay();
+        });
+    };
+
+    // Remove any existing listener before adding a new one
+    if (saveBtn._clickHandler) {
+        saveBtn.removeEventListener('click', saveBtn._clickHandler);
+    }
+    saveBtn._clickHandler = saveHandler;
+    saveBtn.addEventListener('click', saveBtn._clickHandler);
+    
+    // Reset button state when modal is hidden
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = 'Simpan';
+        if (saveBtn._clickHandler) {
+            saveBtn.removeEventListener('click', saveBtn._clickHandler);
+        }
+    }, { once: true });
+
+    modal.show();
+}
+
 
 /**
  * Show action menu for work order
