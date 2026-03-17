@@ -1,0 +1,1 @@
+function o(e){return{waiting:"#FFA500",confirmed:"#3B82F6",open:"#10B981",closed:"#6B7280"}[e]||"#6B7280"}function t(e){return{waiting:"⏳ Menunggu",confirmed:"✓ Divalidasi",open:"▶ Pengerjaan",closed:"✓✓ Selesai"}[e]||e}export{o as getStatusColor,t as getStatusDisplayText};

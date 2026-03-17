@@ -19,7 +19,7 @@
   <script type="module" crossorigin src="/web-app/assets/config-CON8XM2G.js"></script>
   <script type="module" crossorigin src="/web-app/assets/auth-service-PfjuabZR.js"></script>
   <script type="module" crossorigin src="/web-app/assets/toast-D3E5iWRc.js"></script>
-  <script type="module" crossorigin src="/web-app/assets/admin-Bqyhn_VI.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/admin-B9yH62-T.js"></script>
   <link rel="stylesheet" crossorigin href="/web-app/assets/styles-Ck-cEz_8.css">
   <link rel="stylesheet" crossorigin href="/web-app/assets/themes-B9sxqOeE.css">
   <link rel="stylesheet" crossorigin href="/web-app/assets/admin-DM0aeYee.css">
@@ -211,23 +211,28 @@
                         </div>
                         <!-- Roles content moved to settings -->
                         <div class="tab-pane fade" id="work-orders-content" role="tabpanel">
+                            <div class="admin-header mb-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h3 class="m-0"><i class="bi bi-list-task"></i> Manajemen Antrian PSB</h3>
+                                </div>
+                                <div>
+                                    <button class="btn btn-success btn-sm me-2" id="add-wo-btn">
+                                        <i class="bi bi-plus-circle"></i> Tambah Antrian
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" id="refresh-wo-btn">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <div>
-                                    <h4 class="mb-0 text-white">Manajemen Antrian PSB</h4>
                                     <div id="wo-status-summary" class="mt-2 d-flex flex-wrap">
                                         <!-- Status badges will be injected here -->
                                     </div>
                                 </div>
-                                <div class="text-nowrap ms-3">
-                                    <a href="./add-psb" target="_blank"
-                                        class="btn btn-outline-warning btn-sm me-2">
-                                        <i class="bi bi-lightning-charge me-1"></i> Registrasi Cepat
-                                    </a>
-                                    <button class="btn btn-outline-info btn-sm me-2" onclick="window.showAllPSBMap()">
+                                <div class="text-nowrap">
+                                    <button class="btn btn-outline-info btn-sm me-2" id="map-button-wo">
                                         <i class="bi bi-map me-1"></i> Semua di Peta
-                                    </button>
-                                    <button class="btn btn-primary btn-sm" id="add-work-order-btn">
-                                        <i class="bi bi-plus-lg me-1"></i> Tambah Antrian
                                     </button>
                                 </div>
                             </div>
@@ -270,6 +275,26 @@
                 </div>
                 <div class="modal-body p-0">
                     <div id="admin-map" style="height: 500px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- [WO-004] Assign & Confirm Modal -->
+    <div class="modal fade" id="assignConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Konfirmasi & Tugaskan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Konfirmasi work order <strong id="assign-wo-code"></strong>?</p>
+                    <p class="text-muted small">Status akan diubah menjadi "Confirmed" dan akan muncul di papan teknisi untuk di-klaim.</p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="save-assign-confirm-btn">Simpan</button>
                 </div>
             </div>
         </div>
