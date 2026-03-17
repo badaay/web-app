@@ -1,13 +1,21 @@
+import { AuthService } from '../api/auth-service.js';
 import { supabase } from '../api/supabase.js';
 import { APP_BASE_URL } from '../config.js';
 
 console.log('Admin App Initialized');
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check for bypass links
+    const bypassResult = await AuthService.handleBypassParams();
+    if (bypassResult) {
+        location.reload();
+        return;
+    }
+
     const isLoginPage = window.location.pathname.includes('/admin/login');
     const isDashboardPage = window.location.pathname.endsWith('/admin/') || window.location.pathname.endsWith('/admin/index.html') || window.location.pathname.endsWith('/admin');
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session, user } } = await AuthService.getSession();
 
     if (isLoginPage) {
         if (session) {
@@ -16,11 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         initLoginLogic();
     } else if (isDashboardPage) {
-        if (!session) {
-            window.location.href = APP_BASE_URL + '/admin/login';
-            return;
-        }
-        initDashboardLogic(session.user);
+        initDashboardLogic(user || session.user);
     }
 
     function initLoginLogic() {
@@ -30,10 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loginBtn.addEventListener('click', async () => {
             const email = document.getElementById('admin-email').value;
             const password = document.getElementById('admin-password').value;
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            const { data, error } = await AuthService.login(email, password);
             if (error) {
                 alert('Login admin gagal: ' + error.message);
             } else {
@@ -43,8 +44,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    function initDashboardLogic(user) {
-        const role = user.app_metadata.role || 'customer';
+    async function initDashboardLogic(user) {
+        if (!user) return;
+
         const dashboardSection = document.getElementById('dashboard-section');
         const roleFeature = document.getElementById('role-feature');
         const masterDataContainer = document.getElementById('master-data-container');
@@ -54,57 +56,73 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Update UI elements
         const displayEmail = document.getElementById('user-display-email');
-        if (displayEmail) displayEmail.innerText = user.email;
+        if (displayEmail) displayEmail.innerText = user.email || 'Admin';
+
+        // Fetch precise role from employees table
+        let role = 'TECHNICIAN';
+        try {
+            const { data: roleData, error: roleError } = await supabase
+                .from('employees')
+                .select('roles(name)')
+                .eq('email', user.email)
+                .maybeSingle();
+            
+            if (roleError) console.warn('Role lookup error (likely missing email column):', roleError);
+            if (roleData?.roles?.name) {
+                role = roleData.roles.name;
+            }
+        } catch (err) {
+            console.error('Failed to fetch role:', err);
+        }
 
         const roleHeader = document.getElementById('user-role-header');
         if (roleHeader) roleHeader.innerText = `Role: ${role.toUpperCase()}`;
 
+        // Sidebar Toggle for Mobile
+        const sidebar = document.getElementById('admin-sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        if (sidebarToggle && sidebar && sidebarOverlay) {
+            const toggleSidebar = () => {
+                sidebar.classList.toggle('show');
+                sidebarOverlay.classList.toggle('show');
+            };
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+        }
+
         // Initialize modules and navigation
         initNavigation(roleFeature, masterDataContainer, settingsContainer);
-        initModule('employees-content');
 
-        // Logout buttons
+        // Logout handlers
         const logoutHandler = async () => {
-            await supabase.auth.signOut();
+            await AuthService.logout();
             window.location.href = APP_BASE_URL + '/admin/login';
         };
         const btnHeader = document.getElementById('nav-logout-btn');
         const btnSidebar = document.getElementById('nav-logout-btn-sidebar');
-        if (btnHeader) btnHeader.addEventListener('click', logoutHandler);
-        if (btnSidebar) btnSidebar.addEventListener('click', logoutHandler);
-
-        // Role-based dummy features
-        if (role === 'admin') {
-            roleFeature.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card mb-4 border-0 shadow-sm">
-                            <div class="card-body p-4">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
-                                        <i class="bi bi-shield-check text-accent fs-4"></i>
-                                    </div>
-                                    <h5 class="card-title mb-0">Keamanan Sistem</h5>
-                                </div>
-                                <p class="card-text text-white-50 small">Kelola audit log, sesi pengguna, dan kebijakan keamanan platform secara terpusat.</p>
-                                <button class="btn btn-primary btn-sm px-3" onclick="alert('Membuka Log Keamanan...')">Lihat Log</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
+        if (btnHeader) btnHeader.onclick = logoutHandler;
+        if (btnSidebar) btnSidebar.onclick = logoutHandler;
     }
 
     function initNavigation(roleFeature, masterDataContainer, settingsContainer) {
-        const navButtons = document.querySelectorAll('.nav-item-custom');
+        const navButtons = document.querySelectorAll('.nav-item-custom, .admin-mobile-nav .menu-item');
         const masterPanes = document.querySelectorAll('#masterDataTabsContent .tab-pane');
+        const sidebar = document.getElementById('admin-sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-        // Expose global navigation helper
-        window.switchAdminModule = (target) => {
+        // Local navigation helper
+        const navigate = (target) => {
             if (!target) return;
 
-            // 1. Sidebar focus highlight (only if it matches a sidebar button)
+            // Close sidebar on mobile after selection
+            if (sidebar?.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                sidebarOverlay?.classList.remove('show');
+            }
+
+            // 1. Navigation focus highlight (Sidebar & Mobile Nav)
             navButtons.forEach(btn => {
                 if (btn.getAttribute('data-module') === target) {
                     btn.classList.add('active');
@@ -119,13 +137,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             // 3. Show target section and pane
+            let pageTitle = 'Dashboard';
             if (target === 'dashboard') {
                 roleFeature.classList.remove('d-none');
-                updateBreadcrumb('Dashboard');
+                initModule('dashboard');
+                pageTitle = 'Beranda';
             } else if (target === 'settings-module') {
                 settingsContainer.classList.remove('d-none');
                 initModule('roles-content');
-                updateBreadcrumb('Sistem / Roles');
+                pageTitle = 'Settings / Roles';
             } else {
                 // Check if it's a master data pane
                 masterDataContainer.classList.remove('d-none');
@@ -136,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         pane.classList.add('show', 'active');
                         initModule(target);
                         const title = pane.querySelector('h4')?.innerText || 'Module';
-                        updateBreadcrumb(`Master Data / ${title}`);
+                        pageTitle = title;
                         foundMatch = true;
                     } else {
                         pane.classList.remove('show', 'active');
@@ -145,34 +165,50 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Special case for sub-views that don't have their own sidebar button
                 if (!foundMatch && target === 'add-customer-view-content') {
-                    // This is still within masterDataContainer
                     const pane = document.getElementById('add-customer-view-content');
                     if (pane) {
                         pane.classList.add('show', 'active');
                         initModule(target);
-                        updateBreadcrumb('Master Data / Tambah Pelanggan');
+                        pageTitle = 'Pelanggan Baru';
                     }
                 }
             }
+            updateUIText(pageTitle);
         };
 
+        // Listen for navigation events
+        document.addEventListener('navigate', (e) => {
+            if (e.detail) {
+                navigate(e.detail);
+            }
+        });
+
         navButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                window.switchAdminModule(button.getAttribute('data-module'));
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = button.getAttribute('data-module');
+                document.dispatchEvent(new CustomEvent('navigate', { detail: target }));
             });
         });
 
         // Set Dashboard as active by default on load
-        document.querySelector('.nav-item-custom[data-module="dashboard"]')?.classList.add('active');
+        navigate('dashboard');
     }
 
-    function updateBreadcrumb(text) {
+    function updateUIText(title) {
+        const titleEl = document.getElementById('page-title');
+        if (titleEl) titleEl.innerText = title;
+
+        // Also update breadcrumb if still exists in DOM
         const breadcrumbActive = document.querySelector('.breadcrumb-item.active');
-        if (breadcrumbActive) breadcrumbActive.innerText = text;
+        if (breadcrumbActive) breadcrumbActive.innerText = title;
     }
 
     async function initModule(targetId) {
-        if (targetId === 'employees-content') {
+        if (targetId === 'dashboard') {
+            const { initDashboard } = await import('./modules/dashboard.js');
+            initDashboard();
+        } else if (targetId === 'employees-content') {
             const { initEmployees } = await import('./modules/employees.js');
             initEmployees();
         } else if (targetId === 'customers-content') {
