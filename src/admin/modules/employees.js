@@ -1,6 +1,7 @@
 import { supabase } from '../../api/supabase.js';
 import { showToast } from '../utils/toast.js';
 import { getSpinner } from '../utils/ui-common.js';
+import { APP_BASE_URL } from '../../config.js';
 
 export async function initEmployees() {
     const listContainer = document.getElementById('employees-list');
@@ -47,7 +48,7 @@ export async function initEmployees() {
                             <tr>
                                 <td>
                                     <div class="fw-bold">
-                                        <a href="/web-app/activity.html?code=${emp.employee_id}" class="text-info text-decoration-none" target="_blank">
+                                        <a href="${APP_BASE_URL}/activity.html?code=${emp.employee_id}" class="text-info text-decoration-none" target="_blank">
                                             <i class="bi bi-person-badge me-1 small"></i>${emp.name}
                                         </a>
                                     </div>

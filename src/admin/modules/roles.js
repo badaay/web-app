@@ -1,4 +1,5 @@
 import { supabase } from '../../api/supabase.js';
+import { getSpinner } from '../utils/ui-common.js';
 
 export async function initRoles() {
     const listContainer = document.getElementById('roles-list');
@@ -7,7 +8,7 @@ export async function initRoles() {
     if (addBtn) addBtn.onclick = () => showRoleModal();
 
     async function loadRoles() {
-        listContainer.innerHTML = '<div class="card-body text-center py-5">Memuat data role...</div>';
+        listContainer.innerHTML = getSpinner('Memuat data role...');
         const { data, error } = await supabase.from('roles').select('*').order('name');
 
         if (error) {
@@ -16,13 +17,17 @@ export async function initRoles() {
         }
 
         if (data.length === 0) {
-            listContainer.innerHTML = '<div class="card-body text-center py-5 text-muted">Tidak ada data role ditemukan.</div>';
+            listContainer.innerHTML = `
+                <div class="text-white-50 text-center py-5">
+                    <i class="bi bi-shield-lock fs-1 d-block mb-3"></i>
+                    Tidak ada data role ditemukan.
+                </div>`;
             return;
         }
 
         listContainer.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-dark table-hover align-middle">
+            <div class="table-container shadow-sm">
+                <table class="table table-dark table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Nama Role</th>
@@ -34,11 +39,13 @@ export async function initRoles() {
                     <tbody>
                         ${data.map(role => `
                             <tr>
-                                <td class="fw-bold">${role.name}</td>
-                                <td><span class="badge bg-info text-dark">${role.code}</span></td>
-                                <td class="small text-white-50">${role.description || '-'}</td>
+                                <td class="fw-bold text-accent">${role.name}</td>
+                                <td><span class="badge rounded-pill bg-info text-dark px-3">${role.code}</span></td>
+                                <td class="small text-white-50 text-wrap" style="max-width: 250px;">${role.description || '-'}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-role" data-id="${role.id}">Edit</button>
+                                    <button class="btn btn-sm btn-outline-primary edit-role" data-id="${role.id}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
                                 </td>
                             </tr>
                         `).join('')}

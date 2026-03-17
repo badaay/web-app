@@ -1,10 +1,11 @@
 import { supabase } from '../../api/supabase.js';
+import { getSpinner } from '../utils/ui-common.js';
 
 export async function initSettings() {
     const listContainer = document.getElementById('settings-content');
 
     async function loadSettings() {
-        listContainer.innerHTML = '<div class="card-body text-center py-5">Memuat pengaturan...</div>';
+        listContainer.innerHTML = getSpinner('Memuat pengaturan...');
         const { data, error } = await supabase.from('app_settings').select('*').order('setting_key');
 
         if (error) {
