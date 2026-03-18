@@ -99,18 +99,86 @@
             opacity: 0.85;
             backdrop-filter: blur(4px);
         }
+
+        /* ── PWA Install Banner ── */
+        .pwa-install-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 2050;
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            box-shadow: 0 -8px 32px rgba(37, 99, 235, 0.45);
+            transform: translateY(105%);
+            transition: transform 0.42s cubic-bezier(0.34, 1.30, 0.64, 1);
+        }
+        .pwa-install-banner.pwa-banner--visible {
+            transform: translateY(0);
+        }
+        .pwa-banner-inner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .pwa-banner-icon {
+            width: 46px;
+            height: 46px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .pwa-banner-copy {
+            flex: 1;
+            color: #fff;
+            line-height: 1.35;
+        }
+        .pwa-banner-copy .title { font-weight: 700; font-size: 0.95rem; }
+        .pwa-banner-copy .sub   { font-size: 0.78rem; opacity: 0.75; }
+        .pwa-banner-btns {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 
 <body class="min-vh-100">
 
     <div class="app-controls">
-        <button id="btn-refresh" class="btn btn-sm btn-light rounded-circle shadow-sm me-2" title="Refresh">
+        <button id="btn-refresh" class="btn btn-sm btn-light rounded-circle shadow-sm" title="Refresh">
             <i class="bi bi-arrow-clockwise"></i>
         </button>
-        <button id="btn-install" class="btn btn-sm btn-success rounded-circle shadow-sm d-none" title="Install App">
-            <i class="bi bi-download"></i>
-        </button>
+    </div>
+
+    <!-- PWA Install Banner (slides up from bottom) -->
+    <div id="pwa-install-banner" class="pwa-install-banner d-none" role="complementary" aria-label="Install Aplikasi">
+        <div class="pwa-banner-inner">
+            <div class="pwa-banner-icon">
+                <i class="bi bi-wifi fs-4 text-white"></i>
+            </div>
+            <div class="pwa-banner-copy">
+                <div class="title">Install Aplikasi SiFatih</div>
+                <div class="sub" data-pwa-android>Akses lebih cepat &amp; bisa offline</div>
+                <div class="sub d-none" data-pwa-ios>
+                    Tap <i class="bi bi-box-arrow-up"></i> &rarr; <strong>"Add to Home Screen"</strong>
+                </div>
+            </div>
+            <div class="pwa-banner-btns">
+                <button class="btn btn-light btn-sm fw-bold rounded-pill px-3" data-pwa-install>
+                    <i class="bi bi-download me-1"></i>Install
+                </button>
+                <button class="btn btn-link btn-sm text-white opacity-60 p-1 lh-1" data-pwa-dismiss aria-label="Tutup">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="chat-container">

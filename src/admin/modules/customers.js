@@ -58,7 +58,7 @@ export async function initCustomers() {
                             <tr>
                                 <td>
                                     <div class="fw-bold">
-                                        <a href="${APP_BASE_URL}/enduser/dashboard.html?code=${cust.customer_code || cust.id}&customer=true" class="text-info text-decoration-none" target="_blank">
+                                        <a href="${APP_BASE_URL}/enduser/dashboard.html?cid=${cust.customer_code || cust.id}&customer=true" class="text-info text-decoration-none" target="_blank">
                                             <i class="bi bi-box-arrow-in-right me-1 small"></i>${cust.name}
                                         </a>
                                     </div>

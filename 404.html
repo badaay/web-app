@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Redirecting...</title>
+  <script>
+    // GitHub Pages SPA fallback:
+    // Encodes the full URL path+query into a query param on index.html
+    // so the client-side router can restore it.
+    var l = window.location;
+    var base = '/web-app';
+    var path = l.pathname.replace(base, '') + l.search + l.hash;
+    l.replace(base + '/?redirect=' + encodeURIComponent(path));
+  </script>
+</head>
+<body></body>
+</html>

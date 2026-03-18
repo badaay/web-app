@@ -48,7 +48,7 @@ export async function initEmployees() {
                             <tr>
                                 <td>
                                     <div class="fw-bold">
-                                        <a href="${APP_BASE_URL}/activity.html?code=${emp.employee_id}" class="text-info text-decoration-none" target="_blank">
+                                        <a href="${APP_BASE_URL}/activity.html?eid=${emp.employee_id}" class="text-info text-decoration-none" target="_blank">
                                             <i class="bi bi-person-badge me-1 small"></i>${emp.name}
                                         </a>
                                     </div>

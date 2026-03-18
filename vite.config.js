@@ -9,11 +9,16 @@ function activityRewritePlugin() {
         name: 'activity-rewrite',
         configureServer(server) {
             server.middlewares.use((req, res, next) => {
-                // Match ${BASE_URL}:employeeid/activity
-                const activityRegex = new RegExp('^' + BASE_URL.replace(/\//g, '\\/') + '[^\\/]+\\/activity(?:\\?.*)?$');
-                if (req.url && req.url.match(activityRegex)) {
-                    const queryParams = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
-                    req.url = `${BASE_URL}activity.html${queryParams}`;
+                // Match ${BASE_URL}:employeeid/activity  (pretty URL pattern)
+                // e.g. /web-app/EMP001/activity  →  /web-app/activity.html?eid=EMP001
+                // NOTE: 'code' is reserved by Supabase PKCE — we use 'eid' instead.
+                const activityRegex = new RegExp('^' + BASE_URL.replace(/\//g, '\\/') + '([^\\/]+)\\/activity(\\?.*)?$');
+                const match = req.url && req.url.match(activityRegex);
+                if (match) {
+                    const employeeId = match[1];
+                    const existingQuery = match[2] || '';
+                    const separator = existingQuery ? '&' : '?';
+                    req.url = `${BASE_URL}activity.html${existingQuery}${separator}eid=${employeeId}`;
                 }
                 next();
             });

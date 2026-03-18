@@ -1,6 +1,7 @@
 import { supabase } from './api/supabase.js';
 import { APP_BASE_URL } from './config.js';
 import { createGoogleMapsLink } from './utils/map.js';
+import { initPWAInstall } from './utils/pwa-install.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('activity-chat-container');
@@ -36,38 +37,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentExecutingWO = null;
     let currentPhotoBase64 = null;
 
-    // Refresh & PWA Install
+    // Refresh
     const btnRefresh = document.getElementById('btn-refresh');
-    const btnInstall = document.getElementById('btn-install');
     let techDbId_Global; // Declare here to avoid Temporal Dead Zone (TDZ)
 
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent Chrome 67 and earlier from automatically showing the prompt
-        e.preventDefault();
-        // Stash the event so it can be triggered later.
-        deferredPrompt = e;
-        // Update UI to notify the user they can add to home screen
-        if (btnInstall) btnInstall.classList.remove('d-none');
-    });
+    // PWA Install Banner
+    initPWAInstall();
 
     if (btnRefresh) {
         btnRefresh.addEventListener('click', async () => {
             if (techDbId_Global) {
                 await loadWorkOrders(techDbId_Global);
-            }
-        });
-    }
-
-    if (btnInstall) {
-        btnInstall.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    btnInstall.classList.add('d-none');
-                }
-                deferredPrompt = null;
             }
         });
     }
@@ -92,10 +72,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 1. Get employeeID from URL parameter 'code'
-    // URL pattern is ?code={employecode}
+    // 1. Get employeeID from URL parameter 'eid'
+    // URL pattern is ?eid={employeecode}
+    // NOTE: 'code' is reserved by Supabase PKCE auth flow and gets stripped from
+    // the URL automatically before JS can read it. Use 'eid' instead.
     const urlParams = new URLSearchParams(window.location.search);
-    const employeeId = urlParams.get('code');
+    const employeeId = urlParams.get('eid');
 
     if (!employeeId) {
         showError('Akses ditolak. Format URL tidak valid atau kode teknisi tidak ditemukan. Mengalihkan ke halaman login...');
