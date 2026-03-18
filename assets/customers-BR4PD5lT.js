@@ -19,7 +19,7 @@ import{s as T,A as N}from"./config-CON8XM2G.js";import{g as _,a as A}from"./regi
                             <tr>
                                 <td>
                                     <div class="fw-bold">
-                                        <a href="${N}/enduser/dashboard.html?code=${e.customer_code||e.id}&customer=true" class="text-info text-decoration-none" target="_blank">
+                                        <a href="${N}/enduser/dashboard.html?cid=${e.customer_code||e.id}&customer=true" class="text-info text-decoration-none" target="_blank">
                                             <i class="bi bi-box-arrow-in-right me-1 small"></i>${e.name}
                                         </a>
                                     </div>

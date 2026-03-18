@@ -1,5 +1,5 @@
 const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-CbE94ypO.js","assets/config-CON8XM2G.js","assets/toast-D3E5iWRc.js","assets/ui-common-hIOATXsD.js","assets/utils-CJqnORQj.js"])))=>i.map(i=>d[i]);
-import{_ as i}from"./admin-B9yH62-T.js";import"./auth-service-PfjuabZR.js";import"./config-CON8XM2G.js";import"./toast-D3E5iWRc.js";async function k(){const e=document.getElementById("role-feature");e&&(e.innerHTML=`
+import{_ as i}from"./admin-BMQzeMRj.js";import"./auth-service-PfjuabZR.js";import"./config-CON8XM2G.js";import"./toast-D3E5iWRc.js";async function k(){const e=document.getElementById("role-feature");e&&(e.innerHTML=`
         <div class="container-fluid py-4">
             <div class="row g-4">
                 <div class="col-12">

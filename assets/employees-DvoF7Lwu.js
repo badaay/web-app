@@ -19,7 +19,7 @@ import{s as d,A as y}from"./config-CON8XM2G.js";import{s as n}from"./toast-D3E5i
                             <tr>
                                 <td>
                                     <div class="fw-bold">
-                                        <a href="${y}/activity.html?code=${a.employee_id}" class="text-info text-decoration-none" target="_blank">
+                                        <a href="${y}/activity.html?eid=${a.employee_id}" class="text-info text-decoration-none" target="_blank">
                                             <i class="bi bi-person-badge me-1 small"></i>${a.name}
                                         </a>
                                     </div>
