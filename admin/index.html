@@ -17,9 +17,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <script type="module" crossorigin src="/web-app/assets/config-CON8XM2G.js"></script>
-  <script type="module" crossorigin src="/web-app/assets/auth-service-PfjuabZR.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/config-Dipwna8v.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/auth-service-CtC7mI0P.js"></script>
   <script type="module" crossorigin src="/web-app/assets/toast-D3E5iWRc.js"></script>
-  <script type="module" crossorigin src="/web-app/assets/admin-BMQzeMRj.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/admin-LaNO8hp3.js"></script>
   <link rel="stylesheet" crossorigin href="/web-app/assets/styles-Ck-cEz_8.css">
   <link rel="stylesheet" crossorigin href="/web-app/assets/themes-B9sxqOeE.css">
   <link rel="stylesheet" crossorigin href="/web-app/assets/admin-DM0aeYee.css">
@@ -291,6 +292,12 @@
                 <div class="modal-body">
                     <p>Konfirmasi work order <strong id="assign-wo-code"></strong>?</p>
                     <p class="text-muted small">Status akan diubah menjadi "Confirmed" dan akan muncul di papan teknisi untuk di-klaim.</p>
+                    <div class="mb-3">
+                        <label class="form-label small text-white-50">Tugaskan ke Teknisi</label>
+                        <select class="form-select form-select-sm" id="assign-employee-select">
+                            <option value="">-- Pilih Teknisi (opsional) --</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>

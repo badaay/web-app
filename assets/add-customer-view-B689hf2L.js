@@ -1,4 +1,4 @@
-import{s as D}from"./config-CON8XM2G.js";import{g as C,b as F,c as M}from"./registration-service-BCvO0A0I.js";import{p as H,a as S}from"./ui-common-hIOATXsD.js";import{s as u}from"./toast-D3E5iWRc.js";import"./auth-service-PfjuabZR.js";async function G(){const x=document.getElementById("add-customer-view-container"),v=document.getElementById("back-to-customers-btn");v&&(v.onclick=()=>{document.dispatchEvent(new CustomEvent("navigate",{detail:"customers-content"}))}),x.innerHTML=`
+import{s as D}from"./config-CON8XM2G.js";import{g as C,b as F,c as M}from"./registration-service-BgbwRURY.js";import{p as H,a as S}from"./ui-common-hIOATXsD.js";import{s as u}from"./toast-D3E5iWRc.js";import"./config-Dipwna8v.js";async function G(){const x=document.getElementById("add-customer-view-container"),v=document.getElementById("back-to-customers-btn");v&&(v.onclick=()=>{document.dispatchEvent(new CustomEvent("navigate",{detail:"customers-content"}))}),x.innerHTML=`
         <div class="row">
             <div class="col-lg-8 mx-auto">
                 <form id="add-customer-view-form" class="row g-4">
