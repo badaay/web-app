@@ -1,0 +1,78 @@
+/* Dashboard specific styles for modern-slate theme */
+
+:root {
+    --vscode-accent: #3b5bdb;
+    --vscode-accent-hover: #2f4ac5;
+    --vscode-bg: #f1f5f9;
+    --vscode-border: #cbd5e1;
+    --vscode-text: #475569;
+    --vscode-text-bright: #1e293b;
+    --vscode-danger: #dc2626;
+    --vscode-success: #16a34a;
+    --vscode-warning: #d97706;
+}
+
+body {
+    background-color: var(--vscode-bg) !important;
+}
+
+.chat-bubble {
+    background: #ffffff !important;
+    color: var(--vscode-text-bright) !important;
+    border: 1px solid rgba(203, 213, 225, 0.5) !important;
+}
+
+.chat-bubble h6 {
+    color: var(--vscode-accent);
+}
+
+.chat-menu {
+    background: rgba(248, 250, 252, 0.85) !important;
+}
+
+.text-accent {
+    color: var(--vscode-accent) !important;
+}
+
+.bg-light {
+    background-color: #f8fafc !important;
+}
+
+/* Glassmorphism subtle */
+.chat-bubble {
+    backdrop-filter: blur(5px);
+}
+
+/* Desktop optimization - center card-like layout */
+@media (min-width: 992px) {
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%) !important;
+    }
+
+    .chat-container {
+        width: 450px;
+        height: 90vh;
+        margin: 0;
+        background: var(--vscode-bg);
+        border-radius: 40px;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        position: relative;
+    }
+
+    .chat-menu {
+        position: absolute;
+        width: 100%;
+        border-radius: 0 0 40px 40px;
+    }
+
+    .chat-header-banner {
+        position: sticky;
+        top: 0;
+        z-index: 1010;
+    }
+}
