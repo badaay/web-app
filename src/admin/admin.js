@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { initInventory } = await import('./modules/inventory.js');
             initInventory();
         } else if (targetId === 'work-orders-content') {
-            const { initWorkOrders } = await import('./modules/work-orders.js');
+            const { initWorkOrders } = await import('./modules/work-orders/index.js');
             initWorkOrders();
         } else if (targetId === 'customer-map-view-content') {
             const { initCustomerMapView } = await import('./modules/customer-map-view.js');

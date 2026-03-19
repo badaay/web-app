@@ -215,19 +215,6 @@ html[data-theme="soft-forest"] .form-control::placeholder {
     color: #90a890 !important;
 }
 
-html[data-theme="soft-forest"] .table {
-    color: var(--vscode-text-bright) !important;
-}
-
-html[data-theme="soft-forest"] .table tbody tr:hover {
-    background-color: var(--vscode-list-hover) !important;
-}
-
-html[data-theme="soft-forest"] .modal-content {
-    background-color: #ffffff !important;
-    color: var(--vscode-text-bright) !important;
-}
-
 html[data-theme="soft-forest"] .nav-tabs .nav-link {
     color: var(--vscode-text) !important;
 }
@@ -330,19 +317,6 @@ html[data-theme="modern-slate"] .form-select {
 
 html[data-theme="modern-slate"] .form-control::placeholder {
     color: #94a3b8 !important;
-}
-
-html[data-theme="modern-slate"] .table {
-    color: var(--vscode-text-bright) !important;
-}
-
-html[data-theme="modern-slate"] .table tbody tr:hover {
-    background-color: var(--vscode-list-hover) !important;
-}
-
-html[data-theme="modern-slate"] .modal-content {
-    background-color: #ffffff !important;
-    color: var(--vscode-text-bright) !important;
 }
 
 html[data-theme="modern-slate"] .nav-tabs .nav-link {

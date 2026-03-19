@@ -49,6 +49,19 @@ export default defineConfig({
             registerType: 'autoUpdate',
             injectRegister: 'auto',
             workbox: {
+                // This is a Multi-Page App (MPA). Disable the SPA navigation
+                // fallback that vite-plugin-pwa adds by default. That fallback
+                // intercepts every navigation whose URL isn't an exact cache
+                // hit and returns index.html — which is wrong here because
+                // activity.html?eid=X, dashboard.html?cid=X, etc. all get
+                // their query params stripped by precache's exact-match logic
+                // and then fall through to the NavigationRoute catch-all.
+                navigateFallback: null,
+
+                // Ignore custom app query params when looking up precached
+                // HTML files so activity.html?eid=X → serves activity.html.
+                ignoreURLParametersMatching: [/^eid$/, /^cid$/, /^customer$/, /^redirect$/, /^success$/],
+
                 globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
                 runtimeCaching: [
                     {
