@@ -186,7 +186,7 @@ async function loadTodayQueue() {
     const today = new Date().toISOString().split('T')[0];
     const { data, error } = await supabase
         .from('work_orders')
-        .select(`*, customers(name, phone), employees(name), master_queue_types(name, color, icon)`)
+        .select(`*, customers(name, phone), employees!employee_id(name), master_queue_types(name, color, icon)`)
         .or(`registration_date.eq.${today},status.in.(confirmed,open)`)
         .order('created_at', { ascending: false })
         .limit(20);

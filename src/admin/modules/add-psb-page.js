@@ -1,6 +1,7 @@
 import { supabase } from '../../api/supabase.js';
 import { AuthService } from '../../api/auth-service.js';
 import { APP_BASE_URL } from '../../config.js';
+import { APP_CONFIG } from '../../api/config.js';
 import { showToast } from '../utils/toast.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -533,7 +534,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 // 1. Set default role to 'Customer'
-                const { data: roleData } = await supabase.from('roles').select('id').eq('name', 'Customer').single();
+                const { data: roleData } = await supabase.from('roles').select('id').eq('code', 'CUST').single();
                 const role_id = roleData ? roleData.id : null;
 
                 const customerPayload = {
@@ -544,26 +545,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                     install_date: installDate || null,
                     lat: parseFloat(lat),
                     lng: parseFloat(lng),
-                    role_id: role_id
+                    role_id: role_id,
+                    email: email || null  // optional contact email; auth account created later on installation confirm
                 };
 
-                // 2. Register with Auth and Database via AuthService
-                // Generate secure temporary password - user should reset on first login
-                const regEmail = email || `${phone}@fatih.com`; // Fallback email if not provided
-                const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!'; // Secure random password
-                const { data: regResult, error: regErr } = await AuthService.registerCustomer(
-                    regEmail,
-                    tempPassword,
-                    customerPayload
-                );
+                // 2. Insert customer row only — Auth credentials are created later
+                //    when admin confirms the installation is done (pemasangan selesai).
+                const { data: newCust, error: custErr } = await supabase
+                    .from('customers')
+                    .insert([customerPayload])
+                    .select()
+                    .single();
 
-                if (regErr) throw regErr;
-                const newCust = regResult.customer;
+                if (custErr) {
+                    if (custErr.message && custErr.message.toLowerCase().includes('unique')) {
+                        throw new Error('Nomor telepon/email ini sudah terdaftar. Silakan gunakan nomor lain.');
+                    }
+                    throw custErr;
+                }
 
                 // 3. Insert into work_orders (Antrian PSB)
                 if (newCust && newCust.id) {
+                    // Fetch PSB queue type id
+                    const { data: psbType } = await supabase.from('master_queue_types').select('id').eq('name', 'PSB').single();
                     const { error: woErr } = await supabase.from('work_orders').insert([{
-                        customer_id: newCust.id,
+                            customer_id: newCust.id,
+                        type_id: psbType?.id || null,
                         status: 'waiting', // New default status
                         source: 'customer', // Mark source
                         title: 'Pemasangan Baru (PSB)',

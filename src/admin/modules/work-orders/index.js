@@ -133,16 +133,42 @@ async function showAssignConfirmPanel(wo) {
     const woCodeEl = document.getElementById('assign-wo-code');
     const saveBtn = document.getElementById('save-assign-confirm-btn');
 
-    woCodeEl.textContent = wo.work_order_code;
+    woCodeEl.textContent = wo.title || wo.id;
+
+    // Load and populate the employee dropdown
+    const employeeSelect = document.getElementById('assign-employee-select');
+    if (employeeSelect) {
+        employeeSelect.innerHTML = '<option value="">-- Pilih Teknisi (opsional) --</option>';
+        const { data: employees } = await supabase
+            .from('employees')
+            .select('id, name')
+            .eq('status', 'Aktif')
+            .order('name');
+        if (employees) {
+            employees.forEach(emp => {
+                const opt = document.createElement('option');
+                opt.value = emp.id;
+                opt.textContent = emp.name;
+                employeeSelect.appendChild(opt);
+            });
+        }
+        // Pre-select if already assigned
+        if (wo.employee_id) employeeSelect.value = wo.employee_id;
+    }
 
     const saveHandler = async () => {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
 
-        // 1. Update work order status to 'confirmed'
+        const selectedEmployeeId = employeeSelect ? (employeeSelect.value || null) : null;
+
+        // 1. Update work order status to 'confirmed' (+ optional employee assignment)
+        const updatePayload = { status: 'confirmed' };
+        if (selectedEmployeeId) updatePayload.employee_id = selectedEmployeeId;
+
         const { error: updateError } = await supabase
             .from('work_orders')
-            .update({ status: 'confirmed' })
+            .update(updatePayload)
             .eq('id', wo.id);
 
         if (updateError) {
@@ -157,9 +183,8 @@ async function showAssignConfirmPanel(wo) {
             .from('installation_monitorings')
             .insert({
                 work_order_id: wo.id,
-                status: 'confirmed',
-                notes: 'Work order dikonfirmasi oleh admin.',
-                updated_by: (await supabase.auth.getUser()).data.user.email
+                employee_id: selectedEmployeeId,
+                notes: 'Work order dikonfirmasi oleh admin.'
             });
         
         if (monitorError) {

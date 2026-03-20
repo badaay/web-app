@@ -12,7 +12,7 @@ export async function loadWorkOrders(listContainer, onLoaded) {
 
     const { data, error } = await supabase
         .from('work_orders')
-        .select('*, customers(*), employees(name)')
+        .select('*, customers(*), employees!employee_id(name)')
         .order('created_at', { ascending: false });
 
     if (error) {
