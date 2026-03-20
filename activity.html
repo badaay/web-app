@@ -25,7 +25,7 @@
         .chat-container {
             max-width: 600px;
             margin: 0 auto;
-            padding-bottom: 30px;
+            padding-bottom: 90px;
         }
 
         .chat-header-banner {
@@ -145,10 +145,12 @@
             flex-shrink: 0;
         }
     </style>
-  <script type="module" crossorigin src="/web-app/assets/activity-BWW40Exh.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/activity-Y6hgqksS.js"></script>
   <link rel="modulepreload" crossorigin href="/web-app/assets/config-CON8XM2G.js">
   <link rel="modulepreload" crossorigin href="/web-app/assets/config-Dipwna8v.js">
-  <link rel="stylesheet" crossorigin href="/web-app/assets/activity-jW11SGOC.css">
+  <link rel="modulepreload" crossorigin href="/web-app/assets/leaflet-src-CoqOGima.js">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/leaflet-src-CIGW-MKW.css">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/activity-CDDIqr5J.css">
   <link rel="stylesheet" crossorigin href="/web-app/assets/themes-B9sxqOeE.css">
 <link rel="manifest" href="/web-app/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/web-app/registerSW.js"></script></head>
 
@@ -204,12 +206,80 @@
                 <span id="error-message">Terjadi kesalahan</span>
             </div>
 
-            <div id="activity-chat-container">
-                <div class="loading-chat">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+            <!-- VIEW 1: Tiket Baru -->
+            <div id="view-tiket-baru" class="view-section">
+                <h5 class="fw-bold text-white mb-3 border-bottom border-light border-opacity-25 pb-2">
+                    <i class="bi bi-inbox text-primary me-2"></i>Tiket Baru (Tersedia)
+                </h5>
+                <div id="tiket-baru-container">
+                    <div class="loading-chat">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- VIEW 2: Tiket Aktif -->
+            <div id="view-tiket-aktif" class="view-section d-none">
+                <h5 class="fw-bold text-white mb-3 border-bottom border-light border-opacity-25 pb-2">
+                    <i class="bi bi-tools text-warning me-2"></i>Tiket Aktif Saya
+                </h5>
+                <div id="tiket-aktif-container">
+                    <!-- Loaded via JS -->
+                </div>
+            </div>
+
+            <!-- VIEW 3: Registrasi Pelanggan -->
+            <div id="view-registrasi" class="view-section d-none">
+                <h5 class="fw-bold text-white mb-3 border-bottom border-light border-opacity-25 pb-2">
+                    <i class="bi bi-person-plus text-success me-2"></i>Registrasi Pelanggan Baru
+                </h5>
+                <form id="tech-reg-customer-form" class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label text-white-50 small fw-bold">Nama Lengkap</label>
+                        <input type="text" class="form-control bg-dark border-secondary text-white" id="reg-cust-name" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-white-50 small fw-bold">Nomor WhatsApp</label>
+                        <input type="text" class="form-control bg-dark border-secondary text-white" id="reg-cust-phone" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-white-50 small fw-bold">Paket Layanan</label>
+                        <select class="form-select bg-dark border-secondary text-white" id="reg-cust-package" required>
+                            <option value="">Pilih Paket...</option>
+                        </select>
+                    </div>
+                    <!-- Peta -->
+                    <div class="col-12">
+                        <label class="form-label text-white-50 small fw-bold">Titik Lokasi</label>
+                        <div id="reg-location-map" class="rounded border border-secondary" style="height: 250px; background: #1e1e1e;"></div>
+                        <input type="hidden" id="reg-cust-lat">
+                        <input type="hidden" id="reg-cust-lng">
+                    </div>
+                    <!-- Foto -->
+                    <div class="col-6">
+                        <label class="form-label text-white-50 small fw-bold d-block">Foto KTP</label>
+                        <input type="file" id="reg-cust-ktp" class="form-control form-control-sm bg-dark border-secondary text-white" accept="image/*" required>
+                        <img id="preview-reg-ktp" src="" class="img-fluid mt-2 d-none rounded border border-secondary" style="max-height:100px;">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-white-50 small fw-bold d-block">Foto Rumah</label>
+                        <input type="file" id="reg-cust-rumah" class="form-control form-control-sm bg-dark border-secondary text-white" accept="image/*" required>
+                        <img id="preview-reg-rumah" src="" class="img-fluid mt-2 d-none rounded border border-secondary" style="max-height:100px;">
+                    </div>
+                    <!-- Alamat -->
+                    <div class="col-12">
+                        <label class="form-label text-white-50 small fw-bold">Detail Alamat</label>
+                        <textarea class="form-control bg-dark border-secondary text-white" id="reg-cust-address" rows="2" required></textarea>
+                    </div>
+                    
+                    <div class="col-12 mt-4 text-center pb-5">
+                        <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm rounded-pill" id="btn-save-registration">
+                            <i class="bi bi-cloud-arrow-up-fill me-2"></i> Daftarkan Sekarang
+                        </button>
+                    </div>
+                </form>
             </div>
         </main>
     </div>
@@ -325,6 +395,24 @@
             </div>
         </div>
     </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="activity-bottom-nav">
+        <div class="nav-container">
+            <a href="#" class="nav-btn active" data-target="view-tiket-baru">
+                <i class="bi bi-inbox"></i>
+                <span>Tiket Baru</span>
+            </a>
+            <a href="#" class="nav-btn" data-target="view-tiket-aktif">
+                <i class="bi bi-tools"></i>
+                <span>Tiket Aktif</span>
+            </a>
+            <a href="#" class="nav-btn" data-target="view-registrasi">
+                <i class="bi bi-person-plus"></i>
+                <span>Pelanggan Baru</span>
+            </a>
+        </div>
+    </nav>
 
     <!-- Bootstrap Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
