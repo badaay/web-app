@@ -25,11 +25,11 @@
         .chat-container {
             max-width: 600px;
             margin: 0 auto;
-            padding-bottom: 90px;
+            padding-bottom: 100px;
         }
 
         .chat-header-banner {
-            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            background: linear-gradient(135deg, var(--vscode-accent), var(--vscode-accent-hover));
             color: white;
             padding: 30px 20px;
             border-radius: 0 0 30px 30px;
@@ -43,27 +43,19 @@
             padding: 20px;
             margin-bottom: 15px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            border-left: 5px solid #3B82F6;
+            border-left: 5px solid var(--vscode-accent);
             animation: slideUp 0.4s ease-out;
-            color: var(--vscode-text);
         }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .loading-chat {
             text-align: center;
             padding: 2rem;
-            color: #9CA3AF;
+            color: var(--vscode-text);
         }
 
         .btn-eksekusi {
@@ -71,6 +63,13 @@
             margin-top: 0.75rem;
             border-radius: 12px;
             padding: 10px;
+        }
+
+        .badge-status {
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
 
         /* App Controls Floating */
@@ -81,33 +80,16 @@
             z-index: 1001;
         }
 
-        /* Modal Refinement */
-        :root {
-            --vscode-bg-dark: #ffffff;
-        }
-
-        .modal-content {
-            background: rgba(255, 253, 253, 0.95) !important;
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(247, 246, 246, 0.1) !important;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .modal-backdrop.show {
-            opacity: 0.85;
-            backdrop-filter: blur(4px);
-        }
-
         /* ── PWA Install Banner ── */
         .pwa-install-banner {
             position: fixed;
-            bottom: 0;
+            bottom: 64px;
             left: 0;
             right: 0;
             z-index: 2050;
             background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
             box-shadow: 0 -8px 32px rgba(37, 99, 235, 0.45);
-            transform: translateY(105%);
+            transform: translateY(calc(100% + 64px));
             transition: transform 0.42s cubic-bezier(0.34, 1.30, 0.64, 1);
         }
         .pwa-install-banner.pwa-banner--visible {
@@ -145,24 +127,209 @@
             flex-shrink: 0;
         }
     </style>
-  <script type="module" crossorigin src="/web-app/assets/activity-Y6hgqksS.js"></script>
+  <script type="module" crossorigin src="/web-app/assets/activity-BULd91mK.js"></script>
   <link rel="modulepreload" crossorigin href="/web-app/assets/config-CON8XM2G.js">
   <link rel="modulepreload" crossorigin href="/web-app/assets/config-Dipwna8v.js">
   <link rel="modulepreload" crossorigin href="/web-app/assets/leaflet-src-CoqOGima.js">
   <link rel="stylesheet" crossorigin href="/web-app/assets/leaflet-src-CIGW-MKW.css">
-  <link rel="stylesheet" crossorigin href="/web-app/assets/activity-CDDIqr5J.css">
+  <link rel="stylesheet" crossorigin href="/web-app/assets/activity-C2nry_3N.css">
   <link rel="stylesheet" crossorigin href="/web-app/assets/themes-B9sxqOeE.css">
 <link rel="manifest" href="/web-app/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/web-app/registerSW.js"></script></head>
 
-<body class="min-vh-100">
+<body>
+    <div class="chat-container">
+        <!-- Header Section -->
+        <div class="chat-header-banner">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0 fw-bold">Halo, <span id="tech-name">Teknisi</span></h4>
+                <button id="btn-refresh" class="btn btn-sm btn-light rounded-circle shadow-sm" title="Refresh">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+            <p class="mb-0 opacity-75 small">ID Petugas: <span id="tech-id">FATIH-000</span></p>
+        </div>
 
-    <div class="app-controls">
-        <button id="btn-refresh" class="btn btn-sm btn-light rounded-circle shadow-sm" title="Refresh">
-            <i class="bi bi-arrow-clockwise"></i>
-        </button>
+        <!-- Main Content -->
+        <div id="main-content" class="p-3">
+            <!-- Error Notification -->
+            <div id="error-alert" class="alert alert-danger d-none shadow-sm rounded-4 border-danger mb-4 text-center">
+                <i class="bi bi-exclamation-triangle-fill me-2 align-middle"></i>
+                <span id="error-message">Terjadi kesalahan</span>
+            </div>
+
+            <!-- VIEW 1: Tiket Baru -->
+            <div id="view-tiket-baru" class="view-section">
+                <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
+                    <i class="bi bi-inbox text-primary me-2"></i>Tiket Baru (Tersedia)
+                </h5>
+                <div id="tiket-baru-container">
+                    <div class="loading-chat">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 2: Tiket Aktif -->
+            <div id="view-tiket-aktif" class="view-section d-none">
+                <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
+                    <i class="bi bi-tools text-warning me-2"></i>Tiket Aktif Saya
+                </h5>
+                <div id="tiket-aktif-container">
+                    <!-- Loaded via JS -->
+                </div>
+            </div>
+
+            <!-- VIEW 3: Registrasi Pelanggan -->
+            <div id="view-registrasi" class="view-section d-none">
+                <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
+                    <i class="bi bi-person-plus text-success me-2"></i>Registrasi Pelanggan Baru
+                </h5>
+                <form id="tech-reg-customer-form" class="chat-bubble">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Nama Lengkap</label>
+                            <input type="text" class="form-control" id="reg-cust-name" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Nomor WhatsApp</label>
+                            <input type="text" class="form-control" id="reg-cust-phone" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Paket Layanan</label>
+                            <select class="form-select" id="reg-cust-package" required>
+                                <option value="">Pilih Paket...</option>
+                            </select>
+                        </div>
+                        <!-- Peta -->
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Titik Lokasi</label>
+                            <div id="reg-location-map" class="rounded border" style="height: 250px; background: var(--vscode-bg);"></div>
+                            <input type="hidden" id="reg-cust-lat">
+                            <input type="hidden" id="reg-cust-lng">
+                        </div>
+                        <!-- Foto -->
+                        <div class="col-6">
+                            <label class="form-label small fw-bold d-block">Foto KTP</label>
+                            <input type="file" id="reg-cust-ktp" class="form-control form-control-sm" accept="image/*" required>
+                            <img id="preview-reg-ktp" src="" class="img-fluid mt-2 d-none rounded border" style="max-height:100px;">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold d-block">Foto Rumah</label>
+                            <input type="file" id="reg-cust-rumah" class="form-control form-control-sm" accept="image/*" required>
+                            <img id="preview-reg-rumah" src="" class="img-fluid mt-2 d-none rounded border" style="max-height:100px;">
+                        </div>
+                        <!-- Alamat -->
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Detail Alamat</label>
+                            <textarea class="form-control" id="reg-cust-address" rows="2" required></textarea>
+                        </div>
+                        
+                        <div class="col-12 mt-4 text-center">
+                            <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm rounded-pill" id="btn-save-registration">
+                                <i class="bi bi-cloud-arrow-up-fill me-2"></i> Daftarkan Sekarang
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
-    <!-- PWA Install Banner (slides up from bottom) -->
+    <!-- Execution Modal -->
+    <div class="modal fade" id="executionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-lightning-fill text-warning me-2"></i>Eksekusi Pekerjaan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="execution-form">
+                    <!-- Claim / Team Selection Section -->
+                    <div id="claim-section" class="mb-4 d-none">
+                        <label class="form-label small fw-bold">Penugasan Tim</label>
+                        <div class="p-3 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-20 text-center">
+                            <p class="small text-muted mb-3">Anda sedang mengambil tiket ini. Tambahkan anggota tim jika diperlukan.</p>
+                            <div id="team-selection-container" class="d-flex flex-wrap gap-2 justify-content-center">
+                                <!-- Dynamic selection -->
+                            </div>
+                            <button type="button" class="btn btn-sm btn-success mt-3 px-3 rounded-pill" id="btn-confirm-claim">
+                                Konfirmasi & Mulai Pengerjaan
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="execution-details-section">
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold">Rincian Informasi</label>
+                            <div class="p-3 rounded-4 border">
+                                <div class="mb-3">
+                                    <label class="form-label small d-block mb-1">Status Pekerjaan</label>
+                                    <select class="form-select rounded-3 mt-1" id="exec-status">
+                                        <option value="closed">Selesai (Aktifkan)</option>
+                                        <option value="open">Proses / Update</option>
+                                        <option value="pending">Pending (Tunda)</option>
+                                        <option value="incident">Terdapat Kendala</option>
+                                    </select>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small d-block mb-1">Keterangan / Catatan</label>
+                                    <textarea class="form-control rounded-3" id="exec-notes" rows="2" placeholder="Detail hasil pengerjaan..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold">Dokumentasi & Teknis</label>
+                            <div class="p-3 rounded-4 border">
+                                <div class="mb-3">
+                                    <label class="form-label small">Foto Bukti Pemasangan</label>
+                                    <input type="file" id="exec-photo" class="form-control rounded-3" accept="image/*">
+                                    <div id="photo-preview-container" class="mt-2 text-center d-none">
+                                        <img id="exec-photo-preview" src="" class="img-fluid rounded-3 border shadow-sm" style="max-height: 180px;">
+                                    </div>
+                                </div>
+
+                                <div class="row g-2">
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label small">MAC Address</label>
+                                        <input type="text" id="exec-mac" class="form-control rounded-3" placeholder="XX:XX:XX:XX:XX:XX">
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label small">SN Modem</label>
+                                        <input type="text" id="exec-sn" class="form-control rounded-3" placeholder="Serial Number">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small">Label / Barcode Kabel (QR)</label>
+                                    <input type="text" id="exec-cable-label" class="form-control rounded-3" placeholder="Scan atau ketik kode label kabel">
+                                </div>
+
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label small">Tgl Pasang</label>
+                                        <input type="date" id="exec-actual-date" class="form-control rounded-3">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small">Tgl Aktivasi</label>
+                                        <input type="date" id="exec-activation-date" class="form-control rounded-3">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold" id="btn-save-exec">Simpan Hasil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Banner (slides up above bottom nav) -->
     <div id="pwa-install-banner" class="pwa-install-banner d-none" role="complementary" aria-label="Install Aplikasi">
         <div class="pwa-banner-inner">
             <div class="pwa-banner-icon">
@@ -186,232 +353,20 @@
         </div>
     </div>
 
-    <div class="chat-container">
-        <!-- Header Banner (Dashboard Style) -->
-        <div class="chat-header-banner" id="technician-info">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h4 class="mb-0 fw-bold">Halo, <span id="tech-name">Teknisi</span></h4>
-                <!-- <div class="bg-white bg-opacity-20 rounded-pill px-3 py-1 small">
-                    <i class="bi bi-tools me-1"></i> Area Kerja
-                </div> -->
-            </div>
-            <p class="mb-0 opacity-75 small">ID Petugas: <span id="tech-id">FATIH-000</span></p>
-        </div>
-
-        <!-- Main Content (Chat List) -->
-        <main class="p-3">
-            <!-- Error Notification -->
-            <div id="error-alert" class="alert alert-danger d-none shadow-sm rounded-4 border-danger mb-4 text-center">
-                <i class="bi bi-exclamation-triangle-fill me-2 align-middle"></i>
-                <span id="error-message">Terjadi kesalahan</span>
-            </div>
-
-            <!-- VIEW 1: Tiket Baru -->
-            <div id="view-tiket-baru" class="view-section">
-                <h5 class="fw-bold text-white mb-3 border-bottom border-light border-opacity-25 pb-2">
-                    <i class="bi bi-inbox text-primary me-2"></i>Tiket Baru (Tersedia)
-                </h5>
-                <div id="tiket-baru-container">
-                    <div class="loading-chat">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW 2: Tiket Aktif -->
-            <div id="view-tiket-aktif" class="view-section d-none">
-                <h5 class="fw-bold text-white mb-3 border-bottom border-light border-opacity-25 pb-2">
-                    <i class="bi bi-tools text-warning me-2"></i>Tiket Aktif Saya
-                </h5>
-                <div id="tiket-aktif-container">
-                    <!-- Loaded via JS -->
-                </div>
-            </div>
-
-            <!-- VIEW 3: Registrasi Pelanggan -->
-            <div id="view-registrasi" class="view-section d-none">
-                <h5 class="fw-bold text-white mb-3 border-bottom border-light border-opacity-25 pb-2">
-                    <i class="bi bi-person-plus text-success me-2"></i>Registrasi Pelanggan Baru
-                </h5>
-                <form id="tech-reg-customer-form" class="row g-3">
-                    <div class="col-12">
-                        <label class="form-label text-white-50 small fw-bold">Nama Lengkap</label>
-                        <input type="text" class="form-control bg-dark border-secondary text-white" id="reg-cust-name" required>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label text-white-50 small fw-bold">Nomor WhatsApp</label>
-                        <input type="text" class="form-control bg-dark border-secondary text-white" id="reg-cust-phone" required>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label text-white-50 small fw-bold">Paket Layanan</label>
-                        <select class="form-select bg-dark border-secondary text-white" id="reg-cust-package" required>
-                            <option value="">Pilih Paket...</option>
-                        </select>
-                    </div>
-                    <!-- Peta -->
-                    <div class="col-12">
-                        <label class="form-label text-white-50 small fw-bold">Titik Lokasi</label>
-                        <div id="reg-location-map" class="rounded border border-secondary" style="height: 250px; background: #1e1e1e;"></div>
-                        <input type="hidden" id="reg-cust-lat">
-                        <input type="hidden" id="reg-cust-lng">
-                    </div>
-                    <!-- Foto -->
-                    <div class="col-6">
-                        <label class="form-label text-white-50 small fw-bold d-block">Foto KTP</label>
-                        <input type="file" id="reg-cust-ktp" class="form-control form-control-sm bg-dark border-secondary text-white" accept="image/*" required>
-                        <img id="preview-reg-ktp" src="" class="img-fluid mt-2 d-none rounded border border-secondary" style="max-height:100px;">
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label text-white-50 small fw-bold d-block">Foto Rumah</label>
-                        <input type="file" id="reg-cust-rumah" class="form-control form-control-sm bg-dark border-secondary text-white" accept="image/*" required>
-                        <img id="preview-reg-rumah" src="" class="img-fluid mt-2 d-none rounded border border-secondary" style="max-height:100px;">
-                    </div>
-                    <!-- Alamat -->
-                    <div class="col-12">
-                        <label class="form-label text-white-50 small fw-bold">Detail Alamat</label>
-                        <textarea class="form-control bg-dark border-secondary text-white" id="reg-cust-address" rows="2" required></textarea>
-                    </div>
-                    
-                    <div class="col-12 mt-4 text-center pb-5">
-                        <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm rounded-pill" id="btn-save-registration">
-                            <i class="bi bi-cloud-arrow-up-fill me-2"></i> Daftarkan Sekarang
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </main>
-    </div>
-
-    <!-- Execution Modal -->
-    <div class="modal fade" id="executionModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4 border-0 shadow-lg" style="background: var(--vscode-bg-dark);">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold text-white"><i
-                            class="bi bi-lightning-fill text-warning me-2"></i>Eksekusi Pekerjaan</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="execution-form">
-                        <!-- Claim / Team Selection Section -->
-                        <div id="claim-section" class="mb-4 d-none">
-                            <label class="form-label text-white-50 small">Penugasan Tim</label>
-                            <div class="p-3 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-20 text-center">
-                                <p class="small text-white-50 mb-3">Anda sedang mengambil tiket ini. Tambahkan anggota tim jika diperlukan.</p>
-                                <div id="team-selection-container" class="d-flex flex-wrap gap-2 justify-content-center">
-                                    <!-- Dynamic selection -->
-                                </div>
-                                <button type="button" class="btn btn-sm btn-success mt-3 px-3 rounded-pill" id="btn-confirm-claim">
-                                    Konfirmasi & Mulai Pengerjaan
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="execution-details-section">
-                            <div class="mb-4">
-                            <label class="form-label text-white-50 small">Rincian Informasi</label>
-                            <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-light border-opacity-10">
-                                <div class="mb-3">
-                                    <label class="form-label text-white-50 small d-block mb-1">Status Pekerjaan</label>
-                                    <select class="form-select bg-dark border-secondary text-white rounded-3 mt-1"
-                                        id="exec-status">
-                                        <option value="closed">Selesai (Aktifkan)</option>
-                                        <option value="open">Proses / Update</option>
-                                        <option value="pending">Pending (Tunda)</option>
-                                        <option value="incident">Terdapat Kendala</option>
-                                    </select>
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label text-white-50 small d-block mb-1">Keterangan /
-                                        Catatan</label>
-                                    <textarea class="form-control bg-dark border-secondary text-white rounded-3"
-                                        id="exec-notes" rows="2" placeholder="Detail hasil pengerjaan..."></textarea>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label text-white-50 small">Dokumentasi & Teknis</label>
-                            <div class="p-3 bg-white bg-opacity-5 rounded-4 border border-light border-opacity-10">
-                                <div class="mb-3">
-                                    <label class="form-label text-white-50 small">Foto Bukti Pemasangan</label>
-                                    <input type="file" id="exec-photo"
-                                        class="form-control bg-dark border-secondary text-white rounded-3"
-                                        accept="image/*">
-                                    <div id="photo-preview-container" class="mt-2 text-center d-none">
-                                        <img id="exec-photo-preview" src=""
-                                            class="img-fluid rounded-3 border border-secondary shadow-sm"
-                                            style="max-height: 180px;">
-                                    </div>
-                                </div>
-
-                                <div class="row g-2">
-                                    <div class="col-6 mb-3">
-                                        <label class="form-label text-white-50 small">MAC Address</label>
-                                        <input type="text" id="exec-mac"
-                                            class="form-control bg-dark border-secondary text-white rounded-3"
-                                            placeholder="XX:XX:XX:XX:XX:XX">
-                                    </div>
-                                    <div class="col-6 mb-3">
-                                        <label class="form-label text-white-50 small">SN Modem</label>
-                                        <input type="text" id="exec-sn"
-                                            class="form-control bg-dark border-secondary text-white rounded-3"
-                                            placeholder="Serial Number">
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label text-white-50 small">Label / Barcode Kabel (QR)</label>
-                                    <input type="text" id="exec-cable-label"
-                                        class="form-control bg-dark border-secondary text-white rounded-3"
-                                        placeholder="Scan atau ketik kode label kabel">
-                                </div>
-
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <label class="form-label text-white-50 small">Tgl Pasang</label>
-                                        <input type="date" id="exec-actual-date"
-                                            class="form-control bg-dark border-secondary text-white rounded-3">
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label text-white-50 small">Tgl Aktivasi</label>
-                                        <input type="date" id="exec-activation-date"
-                                            class="form-control bg-dark border-secondary text-white rounded-3">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-light rounded-pill px-4"
-                        data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold" id="btn-save-exec">Simpan
-                        Hasil</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Bottom Navigation Bar -->
-    <nav class="activity-bottom-nav">
-        <div class="nav-container">
-            <a href="#" class="nav-btn active" data-target="view-tiket-baru">
-                <i class="bi bi-inbox"></i>
-                <span>Tiket Baru</span>
-            </a>
-            <a href="#" class="nav-btn" data-target="view-tiket-aktif">
-                <i class="bi bi-tools"></i>
-                <span>Tiket Aktif</span>
-            </a>
-            <a href="#" class="nav-btn" data-target="view-registrasi">
-                <i class="bi bi-person-plus"></i>
-                <span>Pelanggan Baru</span>
-            </a>
-        </div>
+    <nav class="chat-menu">
+        <a href="#" class="menu-item active" data-target="view-tiket-baru">
+            <i class="bi bi-inbox"></i>
+            <span>Tiket Baru</span>
+        </a>
+        <a href="#" class="menu-item" data-target="view-tiket-aktif">
+            <i class="bi bi-tools"></i>
+            <span>Tiket Aktif</span>
+        </a>
+        <a href="#" class="menu-item" data-target="view-registrasi">
+            <i class="bi bi-person-plus"></i>
+            <span>Pelanggan Baru</span>
+        </a>
     </nav>
 
     <!-- Bootstrap Bundle JS -->
