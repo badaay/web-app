@@ -1,19 +1,21 @@
 {
   "name": "web-app",
   "version": "1.0.0",
-  "description": "",
+  "description": "Lightweight Multi-Role Web App",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "vite build && gh-pages -d dist"
+    "vercel-dev": "vercel dev",
+    "seed:data": "node src/api/seed_data.js",
+    "seed:auth": "node src/api/seed_auth.js",
+    "seed:all": "node src/api/seed_data.js && node src/api/seed_auth.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "gh-pages": "^6.3.0",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0"
   },

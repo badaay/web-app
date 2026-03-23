@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from './supabase.js';
+import { apiCall } from './supabase.js';
 import { APP_CONFIG } from './config.js';
 
 /**
@@ -11,7 +11,7 @@ export const generatePassword = () => {
 };
 
 /**
- * Generate a Customer Code in the format YYMM + 7 random digits
+ * Generate a Customer Code in the format YYMM + 4 random digits
  * @returns {string}
  */
 export const generateCustomerCode = () => {
@@ -23,73 +23,47 @@ export const generateCustomerCode = () => {
 };
 
 /**
- * Register a new customer in Supabase Auth and the customers table
+ * Register a new customer via server-side API (secure)
  * @param {string} id - The Employee ID or Customer ID used as login
  * @param {string} password 
  * @param {string} customerCode 
  * @param {string} contactEmail - Optional contact email
- * @returns {Promise<{user: any, error: any}>}
+ * @returns {Promise<{user: any, customerCode: string}>}
  */
 export async function adminCreateCustomer(id, password, customerCode, contactEmail = null) {
-    if (!supabaseAdmin) {
-        throw new Error("Supabase Admin client is not initialized. Check your Service Role Key.");
-    }
-
-    // Create a ghost email for Supabase Auth since it requires an email
     const ghostEmail = `${id}${APP_CONFIG.AUTH_DOMAIN_SUFFIX}`;
 
-    // 1. Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: ghostEmail,
-        password: password,
-        email_confirm: true,
-        user_metadata: { 
-            role: 'customer', 
-            customer_code: customerCode,
-            employee_id: id
-        }
+    const result = await apiCall('/admin/create-user', {
+        method: 'POST',
+        body: JSON.stringify({
+            email: ghostEmail,
+            password,
+            metadata: { 
+                role: 'customer', 
+                customer_code: customerCode,
+                employee_id: id
+            },
+            customerData: {
+                name: id,
+                address: 'Alamat belum diatur',
+                customer_code: customerCode,
+                email: contactEmail || ghostEmail
+            }
+        })
     });
 
-    if (authError) throw authError;
-
-    // 2. Insert into the customers table
-    const { error: dbError } = await supabaseAdmin
-        .from('customers')
-        .insert([
-            {
-                id: authData.user.id,
-                name: id, // Default name from ID
-                address: 'Alamat belum diatur', // Default address
-                customer_code: customerCode,
-                email: contactEmail || ghostEmail // Store contact email if provided, fallback to ghost
-            }
-        ]);
-
-    if (dbError) {
-        // Rollback: try to delete the auth user if DB insert fails
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-        throw dbError;
-    }
-
-    return { user: authData.user, customerCode };
+    return { user: result.user, customerCode };
 }
 
 /**
- * Reset a user's password using Supabase Admin API
+ * Reset a user's password via server-side API (secure)
  * @param {string} userId 
  * @param {string} newPassword 
  * @returns {Promise<any>}
  */
 export async function adminResetPassword(userId, newPassword) {
-    if (!supabaseAdmin) {
-        throw new Error("Supabase Admin client is not initialized.");
-    }
-
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
-        userId,
-        { password: newPassword }
-    );
-
-    if (error) throw error;
-    return data;
+    return await apiCall('/admin/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ userId, newPassword })
+    });
 }

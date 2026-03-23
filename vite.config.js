@@ -2,7 +2,8 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
 
-const BASE_URL = '/web-app/';
+// Vercel deployment uses root path
+const BASE_URL = '/';
 
 function activityRewritePlugin() {
     return {
