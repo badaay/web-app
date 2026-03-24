@@ -1,7 +1,6 @@
 import { AuthService } from './api/auth-service.js';
+import { supabase } from './api/supabase.js';
 import { APP_BASE_URL } from './config.js';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
 console.log('Customer App Initialized');
 
@@ -26,43 +25,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         const password = document.getElementById('password').value;
         const { data, error } = await AuthService.login(email, password);
         if (error) {
-            alert('Login failed: ' + error.message);
+            alert('Login gagal: ' + error.message);
             console.error('Error logging in:', error.message);
         } else {
             console.log('Login successful:', data);
 
             const user = data.user;
-            const role = user.app_metadata.role || 'customer';
+            // Role is stored in user_metadata (set at signUp) or app_metadata (set server-side)
+            const role = user.user_metadata?.role || user.app_metadata?.role || 'customer';
 
-            if (role === 'admin' || role === 'owner') {
+            if (role === 'admin' || role === 'owner' || role === 'ADMIN' || role === 'SUPERADMIN') {
                 window.location.href = APP_BASE_URL + '/admin/';
-            } else if (role === 'teknisi') {
-                // Fetch employee code to redirect to activity.js
-                const { data: emp, error: empErr } = await supabase
+            } else if (role === 'teknisi' || role === 'TEKNISI') {
+                // Lookup employee_id from employees table
+                const { data: emp } = await supabase
                     .from('employees')
                     .select('employee_id')
-                    .eq('employee_id', user.email.split('@')[0]) // Assuming email prefix is employee_id for now, or match by email if added later
-                    .single();
+                    .eq('id', user.id)
+                    .maybeSingle();
 
-                // Fallback attempt: match by name or context if employee_id isn't directly the email prefix
-                // For now, let's try to match by email if we can't find by prefix
-                let finalCode = emp?.employee_id;
-                if (!finalCode) {
-                    const { data: empByEmail } = await supabase
-                        .from('employees')
-                        .select('employee_id')
-                        .ilike('name', user.user_metadata.full_name || '') // Loose match
-                        .single();
-                    finalCode = empByEmail?.employee_id;
-                }
-
+                const finalCode = emp?.employee_id;
                 if (finalCode) {
                     window.location.href = APP_BASE_URL + `/activity.html?eid=${finalCode}`;
                 } else {
                     alert('Data teknisi tidak ditemukan dalam database karyawan.');
                 }
             } else {
-                // Default to customer dashboard
+                // Default: customer dashboard
                 window.location.href = APP_BASE_URL + '/enduser/dashboard.html';
             }
         }

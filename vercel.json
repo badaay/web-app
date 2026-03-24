@@ -20,6 +20,14 @@
     {
       "source": "/enduser/dashboard",
       "destination": "/enduser/dashboard.html"
+    },
+    {
+      "source": "/enduser/login",
+      "destination": "/enduser/login.html"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/admin/login.html"
     }
   ],
   "headers": [
