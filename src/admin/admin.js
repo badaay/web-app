@@ -20,7 +20,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (isLoginPage) {
         if (session) {
-            window.location.href = APP_BASE_URL + '/admin/';
+            // Redirect based on role if already logged in
+            const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('roles(code)')
+                .eq('id', session.user.id)
+                .single();
+            const existingRole = existingProfile?.roles?.code;
+            if (existingRole === 'TECH' || existingRole === 'SPV_TECH') {
+                window.location.href = APP_BASE_URL + '/activity.html';
+            } else if (existingRole === 'CUST') {
+                window.location.href = APP_BASE_URL + '/enduser/dashboard.html';
+            } else {
+                window.location.href = APP_BASE_URL + '/admin/';
+            }
             return;
         }
         initLoginLogic();
@@ -37,16 +50,43 @@ document.addEventListener('DOMContentLoaded', async () => {
             const password = document.getElementById('admin-password').value;
             const { data, error } = await AuthService.login(email, password);
             if (error) {
-                showToast('error', 'Login admin gagal: ' + error.message);
+                showToast('error', 'Login gagal: ' + error.message);
             } else {
-                console.log('Admin login successful:', data);
-                window.location.href = APP_BASE_URL + '/admin/';
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('roles(code)')
+                    .eq('id', data.user.id)
+                    .single();
+
+                const roleCode = profile?.roles?.code;
+                if (roleCode === 'TECH' || roleCode === 'SPV_TECH') {
+                    window.location.href = APP_BASE_URL + '/activity.html';
+                } else if (roleCode === 'CUST') {
+                    window.location.href = APP_BASE_URL + '/enduser/dashboard.html';
+                } else {
+                    window.location.href = APP_BASE_URL + '/admin/';
+                }
             }
         });
     }
 
     async function initDashboardLogic(user) {
         if (!user) return;
+
+        // Guard: redirect TECH/SPV_TECH and CUST away from admin dashboard
+        const { data: guardProfile } = await supabase
+            .from('profiles')
+            .select('roles(code)')
+            .eq('id', user.id)
+            .single();
+        const guardRole = guardProfile?.roles?.code;
+        if (guardRole === 'TECH' || guardRole === 'SPV_TECH') {
+            window.location.href = APP_BASE_URL + '/activity.html';
+            return;
+        } else if (guardRole === 'CUST') {
+            window.location.href = APP_BASE_URL + '/enduser/dashboard.html';
+            return;
+        }
 
         const dashboardSection = document.getElementById('dashboard-section');
         const roleFeature = document.getElementById('role-feature');

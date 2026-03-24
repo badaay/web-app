@@ -7,6 +7,24 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Auth & role guard — only TECH and SPV_TECH may access this page
+    const { data: { session: activitySession } } = await supabase.auth.getSession();
+    if (!activitySession) {
+        window.location.href = APP_BASE_URL + '/admin/login';
+        return;
+    }
+    const { data: activityProfile } = await supabase
+        .from('profiles')
+        .select('roles(code)')
+        .eq('id', activitySession.user.id)
+        .single();
+    const activityRole = activityProfile?.roles?.code;
+    if (activityRole !== 'TECH' && activityRole !== 'SPV_TECH') {
+        await supabase.auth.signOut();
+        window.location.href = APP_BASE_URL + '/admin/login';
+        return;
+    }
+
     // Nav Elements
     const navBtns = document.querySelectorAll('.menu-item');
     const views = {
@@ -106,12 +124,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 1. Get employeeID from URL parameter 'eid'
+    // 1. Get employeeID from URL parameter 'eid', or fall back to session email prefix
     // URL pattern is ?eid={employeecode}
     // NOTE: 'code' is reserved by Supabase PKCE auth flow and gets stripped from
     // the URL automatically before JS can read it. Use 'eid' instead.
     const urlParams = new URLSearchParams(window.location.search);
-    const employeeId = urlParams.get('eid');
+    const eidFromUrl = urlParams.get('eid');
+    const eidFromSession = activitySession.user?.email
+        ? activitySession.user.email.split('@')[0]
+        : null;
+    const employeeId = eidFromUrl || eidFromSession;
 
     if (!employeeId) {
         showError('Akses ditolak. Format URL tidak valid atau kode teknisi tidak ditemukan. Mengalihkan ke halaman login...');
