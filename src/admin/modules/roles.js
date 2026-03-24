@@ -26,7 +26,7 @@ export async function initRoles() {
         }
 
         listContainer.innerHTML = `
-            <div class="table-container shadow-sm">
+            <div class="table-responsive shadow-sm">
                 <table class="table table-dark table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
