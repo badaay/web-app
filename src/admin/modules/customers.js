@@ -6,6 +6,7 @@ import { APP_BASE_URL } from '../../config.js';
 
 export async function initCustomers() {
     const listContainer = document.getElementById('customers-list');
+    const queuedListContainer = document.getElementById('customers-queued-list');
     const addBtn = document.getElementById('add-customer-view-btn');
 
     let customersData = [];
@@ -19,76 +20,109 @@ export async function initCustomers() {
 
     async function loadCustomers() {
         listContainer.innerHTML = getSpinner('Memuat pelanggan...');
+        if (queuedListContainer) queuedListContainer.innerHTML = getSpinner('Memuat pelanggan...');
 
         const { data, error } = await supabase
             .from('customers')
-            .select('*, roles(name)')
+            .select(`
+                *,
+                roles(name),
+                work_orders(status)
+            `)
             .order('created_at', { ascending: false });
 
         if (error) {
             listContainer.innerHTML = `<div class="text-danger">Kesalahan: ${error.message}</div>`;
+            if (queuedListContainer) queuedListContainer.innerHTML = `<div class="text-danger">Kesalahan: ${error.message}</div>`;
             return;
         }
 
-        customersData = data;
+        customersData = data || [];
 
-        if (data.length === 0) {
-            listContainer.innerHTML = `
-                <div class="text-white-50 text-center py-5">
-                    <i class="bi bi-people-fill fs-1 d-block mb-3"></i>
-                    Tidak ada pelanggan ditemukan.
-                </div>`;
-            return;
-        }
+        const installedCustomers = [];
+        const queuedCustomers = [];
 
-        listContainer.innerHTML = `
-            <div class="table-container shadow-sm">
-                <table class="table table-dark table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Kode / Nama</th>
-                            <th>Paket</th>
-                            <th>Alamat / Lokasi</th>
-                            <th>MAC / Redaman</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(cust => `
+        customersData.forEach(cust => {
+            const wos = cust.work_orders || [];
+            const isConfirmedOrOpen = wos.some(wo => wo.status === 'confirmed' || wo.status === 'open');
+            const isWaiting = wos.some(wo => wo.status === 'waiting');
+            const isInstalled = !!cust.install_date || !!cust.mac_address || wos.some(wo => wo.status === 'closed');
+
+            if (isInstalled) {
+                installedCustomers.push(cust);
+            } else if (isConfirmedOrOpen) {
+                queuedCustomers.push(cust);
+            } else if (isWaiting) {
+                // Hidden, do not display
+            } else {
+                // Fallback
+                installedCustomers.push(cust);
+            }
+        });
+
+        function renderTable(container, listData, emptyMessage) {
+            if (!container) return;
+            if (!listData || listData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-white-50 text-center py-5">
+                        <i class="bi bi-people-fill fs-1 d-block mb-3"></i>
+                        ${emptyMessage}
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="table-container shadow-sm">
+                    <table class="table table-dark table-hover align-middle">
+                        <thead class="table-light">
                             <tr>
-                                <td>
-                                    <div class="fw-bold">
-                                        <a href="${APP_BASE_URL}/enduser/dashboard.html?cid=${cust.customer_code || cust.id}&customer=true" class="text-info text-decoration-none" target="_blank">
-                                            <i class="bi bi-box-arrow-in-right me-1 small"></i>${cust.name}
-                                        </a>
-                                    </div>
-                                    <div class="small text-white-50 text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">${cust.customer_code || 'Belum Ada Kode'}</div>
-                                    ${cust.email && !cust.email.includes('@sifatih.id') ? `<div class="smaller text-info opacity-75 mt-1" style="font-size: 0.65rem;"><i class="bi bi-envelope me-1"></i>${cust.email}</div>` : ''}
-                                </td>
-                                <td>
-                                    <span class="badge bg-vscode-header border border-secondary text-white fw-normal">${cust.packet || '-'}</span>
-                                </td>
-                                <td>
-                                    <div class="small text-wrap" style="max-width: 250px;">${cust.address}</div>
-                                </td>
-                                <td>
-                                    <div class="small font-monospace">${cust.mac_address || '-'}</div>
-                                    <div class="small fw-bold ${cust.damping < -28 ? 'text-danger' : 'text-success'}">${cust.damping || '-'} dBm</div>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary edit-cust" data-id="${cust.id}" title="Edit"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-outline-warning reset-pass" data-id="${cust.id}" data-name="${cust.name}" title="Reset Password"><i class="bi bi-shield-lock"></i></button>
-                                        <button class="btn btn-outline-success quick-repair" data-id="${cust.id}" title="Buat Tiket Perbaikan"><i class="bi bi-tools"></i></button>
-                                        ${cust.lat ? `<button class="btn btn-outline-info view-map" data-id="${cust.id}" data-lat="${cust.lat}" data-lng="${cust.lng}" title="Lihat Peta"><i class="bi bi-geo-alt"></i></button>` : ''}
-                                    </div>
-                                </td>
+                                <th>Kode / Nama</th>
+                                <th>Paket</th>
+                                <th>Alamat / Lokasi</th>
+                                <th>MAC / Redaman</th>
+                                <th>Aksi</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
+                        </thead>
+                        <tbody>
+                            ${listData.map(cust => `
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">
+                                            <a href="${APP_BASE_URL}/enduser/dashboard.html?cid=${cust.customer_code || cust.id}&customer=true" class="text-info text-decoration-none" target="_blank">
+                                                <i class="bi bi-box-arrow-in-right me-1 small"></i>${cust.name}
+                                            </a>
+                                        </div>
+                                        <div class="small text-white-50 text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">${cust.customer_code || 'Belum Ada Kode'}</div>
+                                        ${cust.email && !cust.email.includes('@sifatih.id') ? `<div class="smaller text-info opacity-75 mt-1" style="font-size: 0.65rem;"><i class="bi bi-envelope me-1"></i>${cust.email}</div>` : ''}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-vscode-header border border-secondary text-white fw-normal">${cust.packet || '-'}</span>
+                                    </td>
+                                    <td>
+                                        <div class="small text-wrap" style="max-width: 250px;">${cust.address}</div>
+                                    </td>
+                                    <td>
+                                        <div class="small font-monospace">${cust.mac_address || '-'}</div>
+                                        <div class="small fw-bold ${cust.damping < -28 ? 'text-danger' : 'text-success'}">${cust.damping || '-'} dBm</div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary edit-cust" data-id="${cust.id}" title="Edit"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-outline-warning reset-pass" data-id="${cust.id}" data-name="${cust.name}" title="Reset Password"><i class="bi bi-shield-lock"></i></button>
+                                            <button class="btn btn-outline-success quick-repair" data-id="${cust.id}" title="Buat Tiket Perbaikan"><i class="bi bi-tools"></i></button>
+                                            ${cust.lat ? `<button class="btn btn-outline-info view-map" data-id="${cust.id}" data-lat="${cust.lat}" data-lng="${cust.lng}" title="Lihat Peta"><i class="bi bi-geo-alt"></i></button>` : ''}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        renderTable(listContainer, installedCustomers, 'Tidak ada pelanggan (Terpasang) ditemukan.');
+        renderTable(queuedListContainer, queuedCustomers, 'Tidak ada pelanggan (Dalam Antrian) ditemukan.');
 
         document.querySelectorAll('.view-map').forEach(btn => {
             btn.onclick = (e) => {
