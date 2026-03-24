@@ -68,7 +68,7 @@
   ],
   "functions": {
     "api/**/*.js": {
-      "runtime": "edge"
+      "runtime": "edge@latest"
     }
   }
 }
