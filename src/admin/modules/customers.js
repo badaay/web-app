@@ -17,6 +17,8 @@ export async function initCustomers() {
         };
     }
 
+    initImportActions(loadCustomers);
+
 
     async function loadCustomers() {
         listContainer.innerHTML = getSpinner('Memuat pelanggan...');
@@ -508,4 +510,179 @@ export async function initCustomers() {
     }
 
     loadCustomers();
+}
+
+function initImportActions(onRefresh) {
+    const downloadBtn = document.getElementById('download-customer-template-btn');
+    const importBtn = document.getElementById('import-customer-btn');
+    const fileInput = document.getElementById('customer-import-input');
+
+    if (downloadBtn) {
+        downloadBtn.onclick = (e) => {
+            e.preventDefault();
+            downloadCustomerTemplate();
+        };
+    }
+
+    if (importBtn && fileInput) {
+        importBtn.onclick = (e) => {
+            e.preventDefault();
+            fileInput.click();
+        };
+
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (confirm(`Apakah Anda yakin ingin mengimpor data dari "${file.name}"?`)) {
+                await handleCustomerImport(file, onRefresh);
+            }
+            fileInput.value = ''; // Reset
+        };
+    }
+}
+
+function downloadCustomerTemplate() {
+    const headers = ['Nama', 'NIK', 'No HP', 'No HP Alt', 'Alamat', 'Paket', 'Email', 'Username PPPoE', 'MAC Address', 'Latitude', 'Longitude'];
+    const example = ['John Doe', '1234567890123456', '08123456789', '', 'Jl. Merdeka No. 1', 'HOME-10MB', 'john@example.com', 'john_doe', 'AA:BB:CC:DD:EE:FF', '-6.2000', '106.8166'];
+    
+    const csvContent = [
+        headers.join(','),
+        example.join(',')
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'template_pelanggan.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('success', 'Template berhasil diunduh!');
+}
+
+async function handleCustomerImport(file, onRefresh) {
+    const reader = new FileReader();
+    
+    showToast('info', 'Sedang memproses file...');
+
+    reader.onload = async (event) => {
+        const text = event.target.result;
+        
+        // Robust CSV Parser
+        const parseCSV = (text) => {
+            const result = [];
+            const lines = text.split(/\r?\n/);
+            for (let line of lines) {
+                if (!line.trim()) continue;
+                const row = [];
+                let col = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    let char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(col.trim());
+                        col = '';
+                    } else {
+                        col += char;
+                    }
+                }
+                row.push(col.trim());
+                result.push(row);
+            }
+            return result;
+        };
+
+        const rows = parseCSV(text);
+        
+        if (rows.length < 2) {
+            showToast('error', 'File kosong atau tidak valid.');
+            return;
+        }
+
+        const headers = rows[0].map(h => h.trim().toLowerCase());
+        const dataRows = rows.slice(1).filter(row => row.length > 1 && row[0].trim() !== '');
+
+        let successCount = 0;
+        let failCount = 0;
+        let errors = [];
+
+        for (const row of dataRows) {
+            try {
+                // Map based on expected headers
+                const rowData = {
+                    name: row[0]?.trim(),
+                    ktp: row[1]?.trim(),
+                    phone: row[2]?.trim(),
+                    alt_phone: row[3]?.trim(),
+                    address: row[4]?.trim(),
+                    packet: row[5]?.trim(),
+                    email: row[6]?.trim() || null,
+                    username: row[7]?.trim(),
+                    mac_address: row[8]?.trim(),
+                    lat: parseFloat(row[9]) || null,
+                    lng: parseFloat(row[10]) || null
+                };
+
+                if (!rowData.name || !rowData.phone || !rowData.address) {
+                    failCount++;
+                    errors.push(`Baris "${rowData.name || 'N/A'}": Nama, No HP, dan Alamat wajib diisi.`);
+                    continue;
+                }
+
+                // Call API for creating user/customer
+                // We use /api/admin/create-user because it handles both Auth and DB entry
+                await apiCall('/admin/create-user', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: rowData.email || `${rowData.phone}@sifatih.id`,
+                        password: 'User123!', // Default password
+                        metadata: { 
+                            role: 'customer',
+                            name: rowData.name
+                        },
+                        customerData: {
+                            name: rowData.name,
+                            phone: rowData.phone,
+                            address: rowData.address,
+                            packet: rowData.packet,
+                            ktp: rowData.ktp,
+                            alt_phone: rowData.alt_phone,
+                            username: rowData.username,
+                            mac_address: rowData.mac_address,
+                            lat: rowData.lat,
+                            lng: rowData.lng,
+                            email: rowData.email || `${rowData.phone}@sifatih.id`
+                        }
+                    })
+                });
+
+                successCount++;
+            } catch (err) {
+                console.error("Import row error:", err);
+                failCount++;
+                errors.push(`Gagal mengimpor "${row[0]}": ${err.message}`);
+            }
+        }
+
+        if (successCount > 0) {
+            showToast('success', `${successCount} pelanggan berhasil diimpor!`);
+            if (onRefresh) onRefresh();
+        }
+
+        if (failCount > 0) {
+            showToast('warning', `${failCount} baris gagal diimpor. Periksa konsol untuk detail.`);
+            console.warn("Import errors:", errors);
+        }
+    };
+
+    reader.onerror = () => {
+        showToast('error', 'Gagal membaca file.');
+    };
+
+    reader.readAsText(file);
 }
