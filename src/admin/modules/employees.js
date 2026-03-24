@@ -1,4 +1,4 @@
-import { supabase } from '../../api/supabase.js';
+import { supabase, apiCall } from '../../api/supabase.js';
 import { showToast } from '../utils/toast.js';
 import { getSpinner } from '../utils/ui-common.js';
 import { APP_BASE_URL } from '../../config.js';
@@ -177,19 +177,33 @@ export async function initEmployees() {
             let result;
             if (emp) {
                 result = await supabase.from('employees').update(formData).eq('id', emp.id);
+                if (result.error) {
+                    showToast('error', 'Gagal menyimpan: ' + result.error.message);
+                } else {
+                    showToast('success', 'Data karyawan diperbarui.');
+                    modal.hide();
+                    loadEmployees();
+                }
             } else {
-                // Generate secure temporary password for new employee
+                // Create employee via secure server-side API (uses Service Role Key)
                 const empEmail = `${formData.employee_id.toLowerCase()}@fatih.com`;
-                const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!'; // Secure random password
-                result = await AuthService.registerEmployee(empEmail, tempPassword, formData);
-            }
-
-            if (result.error) {
-                showToast('error', 'Gagal menyimpan: ' + result.error.message);
-            } else {
-                showToast('success', emp ? 'Data karyawan diperbarui.' : 'Karyawan baru berhasil didaftarkan.');
-                modal.hide();
-                loadEmployees();
+                const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
+                try {
+                    await apiCall('/admin/create-user', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            email: empEmail,
+                            password: tempPassword,
+                            metadata: { role: 'teknisi', employee_id: formData.employee_id },
+                            employeeData: { ...formData, email: empEmail }
+                        })
+                    });
+                    showToast('success', 'Karyawan baru berhasil didaftarkan.');
+                    modal.hide();
+                    loadEmployees();
+                } catch (err) {
+                    showToast('error', 'Gagal mendaftarkan: ' + err.message);
+                }
             }
         };
 

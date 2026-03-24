@@ -1,5 +1,5 @@
 // Main orchestrator for work-orders module
-import { supabase } from '../../../api/supabase.js';
+import { supabase, apiCall } from '../../../api/supabase.js';
 import { showToast } from '../../utils/toast.js';
 import { loadWorkOrders, renderStatusSummary, renderSearchBar, getFilteredOrders, renderWorkOrders } from './list.js';
 import { showWorkOrderModal } from './form.js';
@@ -269,19 +269,17 @@ async function showWorkOrderActions(wo) {
     };
 
     document.getElementById('action-close-wo').onclick = async () => {
-        // Mark as closed and record close time
-        const { error } = await supabase.from('work_orders')
-            .update({ status: 'closed', closed_at: new Date().toISOString() })
-            .eq('id', wo.id);
-
-        if (error) {
-            showToast(`Error: ${error.message}`, 'error');
-            return;
+        try {
+            await apiCall('/work-orders/close', {
+                method: 'POST',
+                body: JSON.stringify({ workOrderId: wo.id })
+            });
+            showToast('Antrian berhasil ditutup', 'success');
+            modal.hide();
+            location.reload();
+        } catch (err) {
+            showToast(`Error: ${err.message}`, 'error');
         }
-
-        showToast('Antrian berhasil ditutup', 'success');
-        modal.hide();
-        location.reload();
     };
 
     document.getElementById('action-delete-wo').onclick = async () => {
