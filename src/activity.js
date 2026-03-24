@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         techName.innerText = tech.name;
         techId.innerText = tech.employee_id;
         techDbId_Global = tech.id; // Initialize global ID
-        techInfo.classList.remove('d-none');
+        if (techInfo) techInfo.classList.remove('d-none');
 
         // 3. Load Work Orders assigned to this technician
         await loadWorkOrders(tech.id);
