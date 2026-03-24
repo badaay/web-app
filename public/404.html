@@ -2,16 +2,12 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Redirecting...</title>
+  <title>Page Not Found</title>
   <script>
-    // GitHub Pages SPA fallback:
-    // Path-based URLs (e.g. /web-app/EMP001/activity) 404 on GitHub Pages
-    // because it's a static server. This page redirects them to index.html
-    // with the path encoded in a ?redirect= param so routing can be handled client-side.
-    var base = '/web-app';
-    var l = window.location;
-    var path = l.pathname.replace(base, '') + l.search + l.hash;
-    l.replace(base + '/?redirect=' + encodeURIComponent(path));
+    // Vercel handles routing natively via vercel.json rewrites.
+    // This 404 page is only shown for truly non-existent routes.
+    // Redirect to homepage.
+    window.location.replace('/');
   </script>
 </head>
 <body></body>
