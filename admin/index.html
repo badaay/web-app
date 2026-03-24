@@ -58,11 +58,14 @@
                 <button class="nav-item-custom nav-module-link" data-module="packages-content">
                     <i class="bi bi-tags"></i> Paket Layanan
                 </button>
+                <button class="nav-item-custom nav-module-link" data-module="queue-types-content">
+                    <i class="bi bi-ticket-detailed"></i> Tipe & Point Antrian
+                </button>
 
                 <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
                     style="font-size: 0.65rem; letter-spacing: 1.5px;">Sistem</div>
                 <button class="nav-item-custom nav-module-link" data-module="settings-module">
-                    <i class="bi bi-gear"></i> Settings / Roles
+                    <i class="bi bi-gear"></i> Settings
                 </button>
                 <button class="nav-item-custom mt-auto" id="nav-logout-btn-sidebar">
                     <i class="bi bi-box-arrow-right text-danger"></i> Keluar
@@ -122,15 +125,112 @@
                 </div>
 
                 <div id="settings-container" class="d-none">
-                    <div id="roles-module-section" class="mt-5">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="mb-0 text-white">Master Data Role / Jabatan</h4>
-                            <button class="btn btn-primary btn-sm" id="add-role-btn">
-                                <i class="bi bi-plus-lg me-1"></i> Tambah Role
-                            </button>
+                    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+                        <h4 class="mb-0 text-white"><i
+                                class="bi bi-gear-wide-connected me-2 text-primary"></i>Pengaturan Sistem</h4>
+                    </div>
+
+                    <!-- Tabs for Settings -->
+                    <ul class="nav nav-tabs admin-tabs-custom mb-3" id="settingsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="app-settings-tab" data-bs-toggle="tab"
+                                data-bs-target="#app-settings-pane" type="button" role="tab"
+                                aria-controls="app-settings-pane" aria-selected="true"><i
+                                    class="bi bi-sliders me-1"></i> Konfigurasi</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles-pane"
+                                type="button" role="tab" aria-controls="roles-pane" aria-selected="false"><i
+                                    class="bi bi-shield-lock me-1"></i> Role & Akses</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="theme-tab" data-bs-toggle="tab" data-bs-target="#theme-pane"
+                                type="button" role="tab" aria-controls="theme-pane" aria-selected="false"><i
+                                    class="bi bi-palette me-1"></i> Tema & Tampilan</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="whatsapp-tab" data-bs-toggle="tab"
+                                data-bs-target="#whatsapp-pane" type="button" role="tab" aria-controls="whatsapp-pane"
+                                aria-selected="false"><i class="bi bi-whatsapp me-1"></i> WhatsApp</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="notifications-tab" data-bs-toggle="tab"
+                                data-bs-target="#notifications-pane" type="button" role="tab"
+                                aria-controls="notifications-pane" aria-selected="false"><i class="bi bi-bell me-1"></i>
+                                Notifikasi</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="schedule-tab" data-bs-toggle="tab"
+                                data-bs-target="#schedule-pane" type="button" role="tab" aria-controls="schedule-pane"
+                                aria-selected="false"><i class="bi bi-calendar-event me-1"></i> Jadwal &
+                                Otomatisasi</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="settingsTabsContent">
+                        <!-- App Settings -->
+                        <div class="tab-pane fade show active" id="app-settings-pane" role="tabpanel"
+                            aria-labelledby="app-settings-tab">
+                            <div class="card bg-vscode border-secondary shadow-sm">
+                                <div class="card-body" id="settings-content">
+                                    <div class="text-center py-5 text-white-50">Memuat konfigurasi aplikasi...</div>
+                                </div>
+                            </div>
                         </div>
-                        <div id="roles-content" class="card bg-vscode">
-                            <div id="roles-list" class="card-body text-center py-5">Memuat data role...</div>
+
+                        <!-- Roles Section -->
+                        <div class="tab-pane fade" id="roles-pane" role="tabpanel" aria-labelledby="roles-tab">
+                            <div id="roles-module-section">
+                                <div id="roles-content" class="card bg-vscode border-secondary shadow-sm">
+                                    <div id="roles-list" class="card-body text-center">Memuat data role...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Empty Placeholder Tabs -->
+                        <div class="tab-pane fade" id="theme-pane" role="tabpanel" aria-labelledby="theme-tab">
+                            <div class="card bg-vscode border-secondary shadow-sm">
+                                <div class="card-body text-center py-5">
+                                    <i class="bi bi-palette fs-1 text-white-50 d-block mb-3"></i>
+                                    <h5 class="text-white">Pengaturan Tema</h5>
+                                    <p class="text-white-50 mb-0">Konfigurasi tampilan (Dark/Light mode, warna kustom)
+                                        akan segera hadir.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="whatsapp-pane" role="tabpanel" aria-labelledby="whatsapp-tab">
+                            <div class="card bg-vscode border-secondary shadow-sm">
+                                <div class="card-body text-center py-5">
+                                    <i class="bi bi-whatsapp fs-1 text-success d-block mb-3"></i>
+                                    <h5 class="text-white">Integrasi WhatsApp API</h5>
+                                    <p class="text-white-50 mb-0">Konfigurasi Gateway WA untuk pesan otomatis ke
+                                        pelanggan.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="notifications-pane" role="tabpanel"
+                            aria-labelledby="notifications-tab">
+                            <div class="card bg-vscode border-secondary shadow-sm">
+                                <div class="card-body text-center py-5">
+                                    <i class="bi bi-bell fs-1 text-warning d-block mb-3"></i>
+                                    <h5 class="text-white">Pengaturan Notifikasi</h5>
+                                    <p class="text-white-50 mb-0">Atur notifikasi push dan event system yang memicu
+                                        alert.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="schedule-pane" role="tabpanel" aria-labelledby="schedule-tab">
+                            <div class="card bg-vscode border-secondary shadow-sm">
+                                <div class="card-body text-center py-5">
+                                    <i class="bi bi-calendar-check fs-1 text-info d-block mb-3"></i>
+                                    <h5 class="text-white">Jadwal & Otomatisasi (Cron)</h5>
+                                    <p class="text-white-50 mb-0">Konfigurasi jadwal otomatisasi seperti auto-isolir dan
+                                        reminder tagihan.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -140,7 +240,7 @@
                         <!-- Navigation tabs removed, controlled via sidebar -->
                         <div class="tab-pane fade show active" id="employees-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="mb-0 text-white">Master Data Karyawan</h4>
+                                <h4 class="mb-0 text-white" hidden>Master Data Karyawan</h4>
                                 <button class="btn btn-primary btn-sm" id="add-employee-btn">
                                     <i class="bi bi-plus-lg me-1"></i> Tambah Karyawan
                                 </button>
@@ -151,7 +251,7 @@
                         </div>
                         <div class="tab-pane fade" id="customers-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="mb-0 text-white">Daftar Pelanggan</h4>
+                                <h4 class="mb-0 text-white" hidden>Daftar Pelanggan</h4>
                                 <div>
                                     <button class="btn btn-primary btn-sm" id="add-customer-view-btn">
                                         <i class="bi bi-plus-lg me-1"></i> Pelanggan Baru
@@ -162,31 +262,39 @@
                             <!-- Tabs for Terpasang and Dalam Antrian -->
                             <ul class="nav nav-tabs admin-tabs-custom mb-3" id="customerTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="installed-tab" data-bs-toggle="tab" data-bs-target="#installed-list-pane" type="button" role="tab" aria-controls="installed-list-pane" aria-selected="true">Terpasang</button>
+                                    <button class="nav-link active" id="installed-tab" data-bs-toggle="tab"
+                                        data-bs-target="#installed-list-pane" type="button" role="tab"
+                                        aria-controls="installed-list-pane" aria-selected="true">Terpasang</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="queued-tab" data-bs-toggle="tab" data-bs-target="#queued-list-pane" type="button" role="tab" aria-controls="queued-list-pane" aria-selected="false">Dalam Antrian</button>
+                                    <button class="nav-link" id="queued-tab" data-bs-toggle="tab"
+                                        data-bs-target="#queued-list-pane" type="button" role="tab"
+                                        aria-controls="queued-list-pane" aria-selected="false">Dalam Antrian</button>
                                 </li>
                             </ul>
 
                             <div class="tab-content" id="customerTabsContent">
-                                <div class="tab-pane fade show active" id="installed-list-pane" role="tabpanel" aria-labelledby="installed-tab">
+                                <div class="tab-pane fade show active" id="installed-list-pane" role="tabpanel"
+                                    aria-labelledby="installed-tab">
                                     <div id="customers-list" class="card">
-                                        <div class="card-body text-center py-5">Memuat data pelanggan (Terpasang)...</div>
+                                        <div class="card-body text-center py-5">Memuat data pelanggan (Terpasang)...
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane fade" id="queued-list-pane" role="tabpanel" aria-labelledby="queued-tab">
+                                <div class="tab-pane fade" id="queued-list-pane" role="tabpanel"
+                                    aria-labelledby="queued-tab">
                                     <div id="customers-queued-list" class="card">
-                                        <div class="card-body text-center py-5">Memuat data pelanggan (Dalam Antrian)...</div>
+                                        <div class="card-body text-center py-5">Memuat data pelanggan (Dalam Antrian)...
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="tab-pane fade" id="customer-map-view-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h4 class="mb-0 text-white"><i class="bi bi-pin-map-fill me-2 text-accent"></i>MAP View
+                                <h4 class="mb-0 text-white" hidden><i
+                                        class="bi bi-pin-map-fill me-2 text-accent"></i>MAP View
                                     Pelanggan</h4>
-                                <span class="badge bg-info text-dark small">Peta Interaktif</span>
                             </div>
                             <div id="customer-map-view-container">
                                 <!-- Map view will be injected here -->
@@ -194,7 +302,7 @@
                         </div>
                         <div class="tab-pane fade" id="add-customer-view-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="mb-0 text-white">Tambah Pelanggan Baru</h4>
+                                <h4 class="mb-0 text-white" hidden>Tambah Pelanggan Baru</h4>
                                 <button class="btn btn-outline-light btn-sm" id="back-to-customers-btn">
                                     <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
                                 </button>
@@ -205,7 +313,7 @@
                         </div>
                         <div class="tab-pane fade" id="inventory-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="mb-0 text-white">Manajemen Inventaris</h4>
+                                <h4 class="mb-0 text-white" hidden>Manajemen Inventaris</h4>
                                 <button class="btn btn-primary btn-sm" id="add-inventory-btn">
                                     <i class="bi bi-plus-lg me-1"></i> Tambah Barang
                                 </button>
@@ -216,7 +324,7 @@
                         </div>
                         <div class="tab-pane fade" id="packages-content" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="mb-0 text-white">Paket Layanan Internet</h4>
+                                <h4 class="mb-0 text-white" hidden>Paket Layanan Internet</h4>
                                 <button class="btn btn-primary btn-sm" id="add-package-btn">
                                     <i class="bi bi-plus-lg me-1"></i> Tambah Paket
                                 </button>
@@ -225,12 +333,21 @@
                                 <div class="card-body text-center py-5">Memuat data paket...</div>
                             </div>
                         </div>
+                        <div class="tab-pane fade" id="queue-types-content" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="mb-0 text-white" hidden>Master Data Tipe Point</h4>
+                                <button class="btn btn-primary btn-sm" id="add-queue-type-btn">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah Tipe Point
+                                </button>
+                            </div>
+                            <div id="queue-types-list" class="card">
+                                <div class="card-body text-center py-5">Memuat data tipe point...</div>
+                            </div>
+                        </div>
                         <!-- Roles content moved to settings -->
                         <div class="tab-pane fade" id="work-orders-content" role="tabpanel">
                             <div class="admin-header mb-3 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h3 class="m-0"><i class="bi bi-list-task"></i> Manajemen Antrian PSB</h3>
-                                </div>
+                                <h4 class="m-0" hidden><i class="bi bi-list-task"></i> Manajemen Antrian PSB</h4>
                                 <div>
                                     <button class="btn btn-success btn-sm me-2" id="add-wo-btn">
                                         <i class="bi bi-plus-circle"></i> Tambah Antrian
@@ -306,7 +423,8 @@
                 </div>
                 <div class="modal-body">
                     <p>Konfirmasi work order <strong id="assign-wo-code"></strong>?</p>
-                    <p class="text-muted small">Status akan diubah menjadi "Confirmed" dan akan muncul di papan teknisi untuk di-klaim.</p>
+                    <p class="text-muted small">Status akan diubah menjadi "Confirmed" dan akan muncul di papan teknisi
+                        untuk di-klaim.</p>
                     <div class="mb-3">
                         <label class="form-label small text-white-50">Tugaskan ke Teknisi</label>
                         <select class="form-select form-select-sm" id="assign-employee-select">

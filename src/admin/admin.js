@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .select('roles(name)')
                 .eq('email', user.email)
                 .maybeSingle();
-            
+
             if (roleError) console.warn('Role lookup error (likely missing email column):', roleError);
             if (roleData?.roles?.name) {
                 role = roleData.roles.name;
@@ -185,8 +185,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pageTitle = 'Beranda';
             } else if (target === 'settings-module') {
                 settingsContainer.classList.remove('d-none');
+                initModule('settings-content');
                 initModule('roles-content');
-                pageTitle = 'Settings / Roles';
+                pageTitle = 'Settings';
             } else {
                 // Check if it's a master data pane
                 masterDataContainer.classList.remove('d-none');
@@ -258,6 +259,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (targetId === 'add-customer-view-content') {
             const { initAddCustomerView } = await import('./modules/add-customer-view.js');
             initAddCustomerView();
+        } else if (targetId === 'settings-content') {
+            const { initSettings } = await import('./modules/settings.js');
+            initSettings();
         } else if (targetId === 'roles-content') {
             const { initRoles } = await import('./modules/roles.js');
             initRoles();
@@ -267,6 +271,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (targetId === 'inventory-content') {
             const { initInventory } = await import('./modules/inventory.js');
             initInventory();
+        } else if (targetId === 'queue-types-content') {
+            const { initQueueTypes } = await import('./modules/queue-types.js');
+            initQueueTypes();
         } else if (targetId === 'work-orders-content') {
             const { initWorkOrders } = await import('./modules/work-orders/index.js');
             initWorkOrders();
