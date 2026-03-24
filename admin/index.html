@@ -63,6 +63,15 @@
                 </button>
 
                 <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Analitik & Performa</div>
+                <button class="nav-item-custom nav-module-link" data-module="reports-content">
+                    <i class="bi bi-bar-chart-line"></i> Laporan & Statistik
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="performance-content">
+                    <i class="bi bi-lightning-charge"></i> Performa Teknisi
+                </button>
+
+                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
                     style="font-size: 0.65rem; letter-spacing: 1.5px;">Sistem</div>
                 <button class="nav-item-custom nav-module-link" data-module="settings-module">
                     <i class="bi bi-gear"></i> Settings
@@ -165,6 +174,11 @@
                                 aria-selected="false"><i class="bi bi-calendar-event me-1"></i> Jadwal &
                                 Otomatisasi</button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="payments-tab" data-bs-toggle="tab"
+                                data-bs-target="#payments-pane" type="button" role="tab" aria-controls="payments-pane"
+                                aria-selected="false"><i class="bi bi-credit-card me-1"></i> Metode Pembayaran</button>
+                        </li>
                     </ul>
 
                     <div class="tab-content" id="settingsTabsContent">
@@ -225,10 +239,17 @@
                         <div class="tab-pane fade" id="schedule-pane" role="tabpanel" aria-labelledby="schedule-tab">
                             <div class="card bg-vscode border-secondary shadow-sm">
                                 <div class="card-body text-center py-5">
-                                    <i class="bi bi-calendar-check fs-1 text-info d-block mb-3"></i>
-                                    <h5 class="text-white">Jadwal & Otomatisasi (Cron)</h5>
-                                    <p class="text-white-50 mb-0">Konfigurasi jadwal otomatisasi seperti auto-isolir dan
-                                        reminder tagihan.</p>
+                                    <i class="bi bi-calendar-event fs-1 text-info d-block mb-3"></i>
+                                    <h5 class="text-white">Jadwal & Otomatisasi</h5>
+                                    <p class="text-white-50 mb-0">Fitur untuk penjadwalan report dan otomasi sistem.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="payments-pane" role="tabpanel" aria-labelledby="payments-tab">
+                            <div class="card bg-vscode border-secondary shadow-sm">
+                                <div class="card-body" id="payments-settings-content">
+                                    <div class="text-center py-5 text-white-50">Memuat pengaturan pembayaran...</div>
                                 </div>
                             </div>
                         </div>
@@ -344,6 +365,45 @@
                                 <div class="card-body text-center py-5">Memuat data tipe point...</div>
                             </div>
                         </div>
+
+                        <div class="tab-pane fade" id="reports-content" role="tabpanel">
+                            <div id="reports-grid" class="row row-cols-1 row-cols-lg-2 g-4">
+                                <!-- Charts will be injected here as 2-column grid -->
+                                <div class="col-12 text-center py-5 text-white-50">Menginisialisasi laporan...</div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="performance-content" role="tabpanel">
+                            <div class="row g-4">
+                                <!-- Current Month Column -->
+                                <div class="col-lg-6">
+                                    <div class="card bg-vscode border-secondary shadow-sm h-100">
+                                        <div class="card-header border-secondary bg-transparent py-3 d-flex justify-content-between align-items-center">
+                                            <h6 class="m-0 text-white"><i class="bi bi-star-fill text-warning me-2"></i>Leaderboard: Bulan Ini</h6>
+                                            <span class="badge bg-primary px-2 py-1" style="font-size: 0.65rem">LIVE</span>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div id="performance-list-current">
+                                                <div class="text-center py-4 text-white-50">Memuat performa...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Previous Month Column -->
+                                <div class="col-lg-6">
+                                    <div class="card bg-vscode border-secondary shadow-sm h-100 opacity-75">
+                                        <div class="card-header border-secondary bg-transparent py-3">
+                                            <h6 class="m-0 text-white-50"><i class="bi bi-clock-history me-2"></i>Rekap: Bulan Lalu</h6>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div id="performance-list-previous">
+                                                <div class="text-center py-4 text-white-50">Memuat rekap...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <!-- Roles content moved to settings -->
                         <div class="tab-pane fade" id="work-orders-content" role="tabpanel">
                             <div class="admin-header mb-3 d-flex justify-content-between align-items-center">
@@ -440,6 +500,27 @@
         </div>
     </div>
 
+    <!-- Chart Expansion Modal -->
+    <div class="modal fade" id="chartExpandModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-vscode border-secondary shadow-lg">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-white" id="chartExpandTitle">Detail Laporan</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="height: 500px;">
+                    <canvas id="expandedChartCanvas"></canvas>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="download-expanded-btn">
+                        <i class="bi bi-download me-1"></i> Unduh Laporan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile Bottom Navigation -->
     <nav class="admin-mobile-nav">
         <a href="#" class="menu-item active" data-module="dashboard">
@@ -463,7 +544,8 @@
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
 
-    <!-- Leaflet & JS -->
+    <!-- Leaflet & Chart.js & JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/src/admin/admin.js"></script>

@@ -235,6 +235,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Set Dashboard as active by default on load
         navigate('dashboard');
+
+        // Global listener for sub-tabs (e.g. Settings tabs)
+        document.addEventListener('shown.bs.tab', (e) => {
+            const targetId = e.target.getAttribute('data-bs-target')?.replace('#', '');
+            if (targetId) {
+                initModule(targetId);
+            }
+        });
     }
 
     function updateUIText(title) {
@@ -274,12 +282,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (targetId === 'queue-types-content') {
             const { initQueueTypes } = await import('./modules/queue-types.js');
             initQueueTypes();
+        } else if (targetId === 'reports-content') {
+            const { initReports } = await import('./modules/reports.js');
+            initReports();
+        } else if (targetId === 'performance-content') {
+            const { initPerformance } = await import('./modules/performance.js');
+            initPerformance();
         } else if (targetId === 'work-orders-content') {
             const { initWorkOrders } = await import('./modules/work-orders/index.js');
             initWorkOrders();
         } else if (targetId === 'customer-map-view-content') {
             const { initCustomerMapView } = await import('./modules/customer-map-view.js');
             initCustomerMapView();
+        } else if (targetId === 'theme-pane') {
+            const { initTheme } = await import('./modules/theme.js');
+            initTheme();
+        } else if (targetId === 'whatsapp-pane') {
+            const { initWhatsApp } = await import('./modules/whatsapp.js');
+            initWhatsApp();
+        } else if (targetId === 'notifications-pane') {
+            const { initNotifications } = await import('./modules/notifications.js');
+            initNotifications();
+        } else if (targetId === 'scheduling-pane') {
+            const { initScheduling } = await import('./modules/scheduling.js');
+            initScheduling();
+        } else if (targetId === 'payments-pane') {
+            const { initPayments } = await import('./modules/payments.js');
+            initPayments();
         }
     }
 });
