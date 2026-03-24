@@ -104,6 +104,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Auto-refresh when bringing the app to the foreground
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && techDbId_Global) {
+            loadWorkOrders(techDbId_Global);
+        }
+    });
+
     // Handle Photo Upload Preview
     if (execPhoto) {
         execPhoto.addEventListener('change', function (e) {

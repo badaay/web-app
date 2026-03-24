@@ -85,48 +85,59 @@
         /* ── PWA Install Banner ── */
         .pwa-install-banner {
             position: fixed;
-            bottom: 64px;
+            top: 0;
             left: 0;
             right: 0;
-            z-index: 2050;
+            bottom: 0;
+            z-index: 9999;
             background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-            box-shadow: 0 -8px 32px rgba(37, 99, 235, 0.45);
-            transform: translateY(calc(100% + 64px));
-            transition: transform 0.42s cubic-bezier(0.34, 1.30, 0.64, 1);
-        }
-        .pwa-install-banner.pwa-banner--visible {
-            transform: translateY(0);
-        }
-        .pwa-banner-inner {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .pwa-banner-icon {
-            width: 46px;
-            height: 46px;
-            background: rgba(255,255,255,0.18);
-            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .pwa-install-banner.pwa-banner--visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .pwa-banner-inner {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 40px 30px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .pwa-banner-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
         }
         .pwa-banner-copy {
+            margin-bottom: 30px;
             flex: 1;
             color: #fff;
             line-height: 1.35;
         }
-        .pwa-banner-copy .title { font-weight: 700; font-size: 0.95rem; }
-        .pwa-banner-copy .sub   { font-size: 0.78rem; opacity: 0.75; }
-        .pwa-banner-btns {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
+        .pwa-banner-copy .title { font-weight: 700; font-size: 1.5rem; margin-bottom: 10px; }
+        .pwa-banner-copy .sub   { font-size: 1rem; opacity: 0.9; }
+        .pwa-banner-btns button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -324,25 +335,22 @@
         </div>
     </div>
 
-    <!-- PWA Install Banner (slides up above bottom nav) -->
-    <div id="pwa-install-banner" class="pwa-install-banner d-none" role="complementary" aria-label="Install Aplikasi">
+    <!-- PWA Force Install Overlay -->
+    <div id="pwa-install-banner" class="pwa-install-banner d-none" role="dialog" aria-modal="true" aria-label="Install Aplikasi Required">
         <div class="pwa-banner-inner">
             <div class="pwa-banner-icon">
-                <i class="bi bi-wifi fs-4 text-white"></i>
+                <i class="bi bi-app-indicator fs-1 text-white"></i>
             </div>
             <div class="pwa-banner-copy">
-                <div class="title">Install Aplikasi SiFatih</div>
-                <div class="sub" data-pwa-android>Akses lebih cepat &amp; bisa offline</div>
+                <div class="title">Wajib Install Aplikasi</div>
+                <div class="sub" data-pwa-android>Silakan install aplikasi SiFatih untuk melanjutkan dan mendapatkan pengalaman terbaik.</div>
                 <div class="sub d-none" data-pwa-ios>
-                    Tap <i class="bi bi-box-arrow-up"></i> &rarr; <strong>"Add to Home Screen"</strong>
+                    Tap ikon <i class="bi bi-box-arrow-up mx-1"></i> di browser Anda, lalu pilih <br><strong>"Add to Home Screen"</strong> untuk menginstall.
                 </div>
             </div>
             <div class="pwa-banner-btns">
-                <button class="btn btn-light btn-sm fw-bold rounded-pill px-3" data-pwa-install>
-                    <i class="bi bi-download me-1"></i>Install
-                </button>
-                <button class="btn btn-link btn-sm text-white opacity-60 p-1 lh-1" data-pwa-dismiss aria-label="Tutup">
-                    <i class="bi bi-x-lg"></i>
+                <button class="btn btn-light fw-bold rounded-pill shadow-sm" data-pwa-install>
+                    <i class="bi bi-download me-2"></i>Install Sekarang
                 </button>
             </div>
         </div>
