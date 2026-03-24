@@ -18,10 +18,10 @@ export function getStatusColor(status) {
  */
 export function getStatusDisplayText(status) {
     const labels = {
-        'waiting': '⏳ Menunggu',
-        'confirmed': '✓ Divalidasi',
-        'open': '▶ Pengerjaan',
-        'closed': '✓✓ Selesai'
+        'waiting': 'Menunggu',
+        'confirmed': 'Divalidasi',
+        'open': 'Pengerjaan',
+        'closed': 'Selesai'
     };
     return labels[status] || status;
 }
