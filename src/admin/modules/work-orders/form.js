@@ -1,5 +1,5 @@
 // Modal forms for creating and editing work orders
-import { supabase } from '../../../api/supabase.js';
+import { supabase, apiCall } from '../../../api/supabase.js';
 import { showToast } from '../../utils/toast.js';
 import { getSpinner } from '../../utils/ui-common.js';
 
@@ -179,25 +179,24 @@ async function saveTypeSpecificWorkOrder(modal) {
     const newWO = {
         type_id: formData.get('type_id'),
         title: formData.get('type_name'),
-        status: 'waiting',
         customer_id: formData.get('customer_id') || null,
         employee_id: formData.get('employee_id') || null,
         package_id: formData.get('package_id') || null,
         ket: formData.get('ket'),
         payment_status: formData.get('payment_status'),
-        created_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from('work_orders').insert(newWO);
-
-    if (error) {
-        showToast(`Error: ${error.message}`, 'error');
-        return;
+    try {
+        await apiCall('/work-orders', {
+            method: 'POST',
+            body: JSON.stringify(newWO),
+        });
+        showToast('Antrian berhasil ditambahkan', 'success');
+        modal.hide();
+        window.location.reload();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
     }
-
-    showToast('Antrian berhasil ditambahkan', 'success');
-    modal.hide();
-    window.location.reload();
 }
 
 /**
@@ -292,17 +291,17 @@ async function saveFullWorkOrder(woId, modal) {
         package_id: formData.get('package_id') || null,
         ket: formData.get('ket'),
         payment_status: formData.get('payment_status'),
-        updated_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from('work_orders').update(updates).eq('id', woId);
-
-    if (error) {
-        showToast(`Error: ${error.message}`, 'error');
-        return;
+    try {
+        await apiCall(`/work-orders/${woId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(updates),
+        });
+        showToast('Antrian berhasil diperbarui', 'success');
+        modal.hide();
+        window.location.reload();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
     }
-
-    showToast('Antrian berhasil diperbarui', 'success');
-    modal.hide();
-    window.location.reload();
 }

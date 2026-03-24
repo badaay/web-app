@@ -162,35 +162,21 @@ async function showAssignConfirmPanel(wo) {
 
         const selectedEmployeeId = employeeSelect ? (employeeSelect.value || null) : null;
 
-        // 1. Update work order status to 'confirmed' (+ optional employee assignment)
-        const updatePayload = { status: 'confirmed' };
-        if (selectedEmployeeId) updatePayload.employee_id = selectedEmployeeId;
-
-        const { error: updateError } = await supabase
-            .from('work_orders')
-            .update(updatePayload)
-            .eq('id', wo.id);
-
-        if (updateError) {
-            showToast(`Error: ${updateError.message}`, 'error');
+        // Confirm via server-side API (admin only, creates monitoring record atomically)
+        try {
+            await apiCall('/work-orders/confirm', {
+                method: 'POST',
+                body: JSON.stringify({
+                    workOrderId: wo.id,
+                    employeeId: selectedEmployeeId
+                })
+            });
+            showToast('Work order berhasil dikonfirmasi.', 'success');
+        } catch (err) {
+            showToast(`Error: ${err.message}`, 'error');
             saveBtn.disabled = false;
             saveBtn.innerHTML = 'Simpan';
             return;
-        }
-
-        // 2. Create initial installation monitoring record
-        const { error: monitorError } = await supabase
-            .from('installation_monitorings')
-            .insert({
-                work_order_id: wo.id,
-                employee_id: selectedEmployeeId,
-                notes: 'Work order dikonfirmasi oleh admin.'
-            });
-        
-        if (monitorError) {
-            showToast(`Work order dikonfirmasi, tapi gagal membuat log monitoring: ${monitorError.message}`, 'warning');
-        } else {
-            showToast('Work order berhasil dikonfirmasi.', 'success');
         }
         
         modal.hide();
@@ -285,16 +271,14 @@ async function showWorkOrderActions(wo) {
     document.getElementById('action-delete-wo').onclick = async () => {
         if (!confirm('Yakin ingin menghapus antrian ini?')) return;
 
-        const { error } = await supabase.from('work_orders').delete().eq('id', wo.id);
-
-        if (error) {
-            showToast(`Error: ${error.message}`, 'error');
-            return;
+        try {
+            await apiCall(`/work-orders/${wo.id}`, { method: 'DELETE' });
+            showToast('Antrian berhasil dihapus', 'success');
+            modal.hide();
+            location.reload();
+        } catch (err) {
+            showToast(`Error: ${err.message}`, 'error');
         }
-
-        showToast('Antrian berhasil dihapus', 'success');
-        modal.hide();
-        location.reload();
     };
 
     modal.show();

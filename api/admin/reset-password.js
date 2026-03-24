@@ -11,19 +11,11 @@
  * }
  */
 
-import { supabaseAdmin, verifyAuth, isAdmin, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { supabaseAdmin, verifyAuth, isAdmin, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
 
-export const config = {
-  runtime: 'edge',
-};
+export const config = { runtime: 'edge' };
 
-export default async function handler(req) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204 });
-  }
-
-  // Only allow POST
+export default withCors(async function handler(req) {
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405);
   }
@@ -73,4 +65,4 @@ export default async function handler(req) {
     console.error('Reset password error:', error);
     return errorResponse(error.message || 'Internal server error', 500);
   }
-}
+});

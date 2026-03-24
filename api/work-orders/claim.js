@@ -11,19 +11,11 @@
  * }
  */
 
-import { supabaseAdmin, verifyAuth, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { supabaseAdmin, verifyAuth, hasRole, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
 
-export const config = {
-  runtime: 'edge',
-};
+export const config = { runtime: 'edge' };
 
-export default async function handler(req) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204 });
-  }
-
-  // Only allow POST
+export default withCors(async function handler(req) {
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405);
   }
@@ -45,16 +37,8 @@ export default async function handler(req) {
 
     // Verify the technician is claiming for themselves (or is admin)
     if (technicianId !== user.id) {
-      // Check if user is admin
-      const { data: empData } = await supabaseAdmin
-        .from('employees')
-        .select('roles(code)')
-        .eq('id', user.id)
-        .single();
-
-      const isAdmin = empData?.roles?.code === 'ADMIN' || empData?.roles?.code === 'SUPERADMIN';
-      
-      if (!isAdmin) {
+      const admin = await hasRole(user.id, ['S_ADM', 'OWNER', 'ADM']);
+      if (!admin) {
         return errorResponse('You can only claim work orders for yourself', 403);
       }
     }
@@ -99,4 +83,4 @@ export default async function handler(req) {
     console.error('Claim work order error:', error);
     return errorResponse(error.message || 'Internal server error', 500);
   }
-}
+});

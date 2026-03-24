@@ -126,19 +126,13 @@ export async function initDashboard() {
 
 async function loadDashboardStats() {
     try {
-        const { supabase } = await import('../../api/supabase.js');
-        
-        const [customers, wo, employees, packages] = await Promise.all([
-            supabase.from('customers').select('*', { count: 'exact', head: true }),
-            supabase.from('work_orders').select('*', { count: 'exact', head: true }).neq('status', 'closed'),
-            supabase.from('employees').select('*', { count: 'exact', head: true }).eq('status', 'Aktif'),
-            supabase.from('internet_packages').select('*', { count: 'exact', head: true })
-        ]);
+        const { apiCall } = await import('../../api/supabase.js');
+        const stats = await apiCall('/dashboard/stats');
 
-        document.getElementById('stat-total-customers').innerText = customers.count || 0;
-        document.getElementById('stat-active-wo').innerText = wo.count || 0;
-        document.getElementById('stat-total-employees').innerText = employees.count || 0;
-        document.getElementById('stat-total-packages').innerText = packages.count || 0;
+        document.getElementById('stat-total-customers').innerText = stats.totalCustomers ?? 0;
+        document.getElementById('stat-active-wo').innerText = stats.activeWorkOrders ?? 0;
+        document.getElementById('stat-total-employees').innerText = stats.activeEmployees ?? 0;
+        document.getElementById('stat-total-packages').innerText = stats.totalPackages ?? 0;
     } catch (err) {
         console.error("Dashboard stats error:", err);
     }

@@ -1,4 +1,4 @@
-import { supabase } from '../../api/supabase.js';
+import { supabase, apiCall } from '../../api/supabase.js';
 import { adminResetPassword, generatePassword } from '../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink, showSharedMap, createStandardMarker, getSpinner } from '../utils/ui-common.js';
 import { showToast } from '../utils/toast.js';
@@ -452,9 +452,11 @@ export async function initCustomers() {
                     console.log("Password updated successfully");
                 }
 
-                // 2. Update Customer Data
-                const { error } = await supabase.from('customers').update(formData).eq('id', cust.id);
-                if (error) throw error;
+                // 2. Update Customer Data via server-side API
+                await apiCall(`/customers/${cust.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(formData),
+                });
 
                 showToast('success', 'Data pelanggan berhasil diperbarui!');
                 modal.hide();
