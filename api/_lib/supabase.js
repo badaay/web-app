@@ -60,14 +60,14 @@ export async function verifyAuth(req) {
 }
 
 /**
- * Fetch the role code for a user from the employees table.
- * Returns null if the user is not an employee.
+ * Fetch the role code for a user from the profiles table.
+ * Profiles is the bridge between auth.users and roles.
  * @param {string} userId
  * @returns {Promise<string|null>}
  */
 export async function getEmployeeRole(userId) {
   const { data } = await supabaseAdmin
-    .from('employees')
+    .from('profiles')
     .select('roles(code)')
     .eq('id', userId)
     .single();

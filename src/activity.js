@@ -1,4 +1,4 @@
-import { supabase } from './api/supabase.js';
+import { supabase, apiCall } from './api/supabase.js';
 import { APP_BASE_URL } from './config.js';
 import { APP_CONFIG } from './api/config.js';
 import { createGoogleMapsLink } from './utils/map.js';
@@ -311,10 +311,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (wo.status === 'confirmed' && !wo.claimed_by) {
                 tiketBaruContainer.appendChild(bubble);
                 hasBaru = true;
-            } else {
+            } else if (wo.status === 'open') {
                 tiketAktifContainer.appendChild(bubble);
                 hasAktif = true;
             }
+            // Closed tickets are filtered out as requested
         });
 
         if (!hasBaru) tiketBaruContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Belum ada tiket baru yang tersedia.</p>';
@@ -346,26 +347,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const selectedTeam = Array.from(document.querySelectorAll('.team-member-check:checked')).map(c => c.value);
-                const { error } = await supabase.from('work_orders').update({
-                    status: 'open',
-                    claimed_by: techDbId_Global,
-                    claimed_at: new Date().toISOString(),
-                    ket: 'Team Lead: ' + techName.innerText + (selectedTeam.length > 0 ? ' | Anggota: ' + selectedTeam.length : '')
-                }).eq('id', wo.id);
+                const ket = 'Team Lead: ' + techName.innerText + (selectedTeam.length > 0 ? ' | Anggota: ' + selectedTeam.length : '');
 
-                if (error) throw error;
+                await apiCall('/work-orders/claim', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        workOrderId: wo.id,
+                        technicianId: techDbId_Global,
+                        teamMembers: selectedTeam,
+                        ket: ket
+                    })
+                });
 
-                // Write lead + members to work_order_assignments
-                const assignmentRows = [
-                    { work_order_id: wo.id, employee_id: techDbId_Global, assignment_role: 'lead', assigned_at: new Date().toISOString() },
-                    ...selectedTeam.map(memberId => ({
-                        work_order_id: wo.id, employee_id: memberId, assignment_role: 'member', assigned_at: new Date().toISOString()
-                    }))
-                ];
-                const { error: assignErr } = await supabase
-                    .from('work_order_assignments')
-                    .upsert(assignmentRows, { onConflict: 'work_order_id,employee_id' });
-                if (assignErr) console.warn('Gagal menyimpan assignment tim:', assignErr.message);
                 executionModal.hide();
                 await loadWorkOrders(techDbId_Global);
             } catch (err) {

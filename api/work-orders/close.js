@@ -41,7 +41,7 @@ export default withCors(async function handler(req) {
     // Get the work order first
     const { data: wo, error: fetchError } = await supabaseAdmin
       .from('work_orders')
-      .select('*, customers(*), master_queue_types(base_point)')
+      .select('*, master_queue_types(base_point)')
       .eq('id', workOrderId)
       .single();
 
@@ -49,12 +49,28 @@ export default withCors(async function handler(req) {
       return errorResponse('Work order not found', 404);
     }
 
-    // Verify the user is the assigned technician or an admin
-    if (wo.technician_id !== user.id) {
-      const admin = await hasRole(user.id, ['S_ADM', 'OWNER', 'ADM']);
-      if (!admin) {
-        return errorResponse('You can only close work orders assigned to you', 403);
+    // Verify the user is the assigned technician or an admin/supervisor
+    let isAuthorized = (wo.claimed_by === user.id);
+    
+    if (!isAuthorized) {
+      const canCloseForOthers = await hasRole(user.id, ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH']);
+      if (canCloseForOthers) {
+        isAuthorized = true;
+      } else {
+        // Fallback: Check if the user's email matches the employee who claimed it
+        const { data: techRow } = await supabaseAdmin
+            .from('employees')
+            .select('id')
+            .eq('id', wo.claimed_by)
+            .eq('email', user.email)
+            .single();
+        
+        if (techRow) isAuthorized = true;
       }
+    }
+
+    if (!isAuthorized) {
+      return errorResponse('You can only close work orders assigned to you', 403);
     }
 
     // Check if already closed
@@ -93,14 +109,14 @@ export default withCors(async function handler(req) {
     }
 
     // Calculate and add points to technician
-    if (wo.technician_id && wo.master_queue_types?.base_point) {
+    if (wo.claimed_by && wo.master_queue_types?.base_point) {
       const pointsToAdd = wo.master_queue_types.base_point;
       
       // Get current points
       const { data: tech } = await supabaseAdmin
         .from('employees')
         .select('total_points')
-        .eq('id', wo.technician_id)
+        .eq('id', wo.claimed_by)
         .single();
 
       // Update points
@@ -109,7 +125,7 @@ export default withCors(async function handler(req) {
         .update({
           total_points: (tech?.total_points || 0) + pointsToAdd
         })
-        .eq('id', wo.technician_id);
+        .eq('id', wo.claimed_by);
     }
 
     return jsonResponse({
