@@ -13,6 +13,7 @@
  */
 
 import { supabaseAdmin, verifyAuth, hasRole, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { notifyWorkOrderEvent } from '../_lib/fonnte.js';
 
 export const config = { runtime: 'edge' };
 
@@ -111,6 +112,9 @@ export default withCors(async function handler(req) {
       // We don't fail the whole request since the WO is already claimed, 
       // but it's good to log or handle it.
     }
+
+    // ── [FONNTE] Notify customer — Centralized, non-blocking ──────────────
+    notifyWorkOrderEvent(workOrderId, 'wo_open');
 
     return jsonResponse({
       success: true,

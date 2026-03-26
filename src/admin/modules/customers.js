@@ -356,13 +356,13 @@ export async function initCustomers() {
             const latInput = document.getElementById('cust-lat');
             const lngInput = document.getElementById('cust-lng');
             const gLink = document.getElementById('edit-google-maps-link');
-            
+
             const initialLat = parseFloat(latInput.value) || -6.2000;
             const initialLng = parseFloat(lngInput.value) || 106.8166;
-            
+
             const editMap = L.map('edit-location-picker-map').setView([initialLat, initialLng], 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(editMap);
-            
+
             let editMarker;
             if (parseFloat(latInput.value) && parseFloat(lngInput.value)) {
                 editMarker = L.marker([initialLat, initialLng]).addTo(editMap);
@@ -372,7 +372,7 @@ export async function initCustomers() {
                 if (editMarker) editMarker.setLatLng([lat, lng]);
                 else editMarker = L.marker([lat, lng]).addTo(editMap);
                 editMap.panTo([lat, lng]);
-                
+
                 const url = getGoogleMapsLink(lat, lng);
                 if (url) {
                     gLink.href = url;
@@ -394,7 +394,7 @@ export async function initCustomers() {
                     if (!isNaN(l) && !isNaN(n)) updateMap(l, n);
                 };
             });
-            
+
             // Re-invalidate size to fix grey tiles in modal
             setTimeout(() => editMap.invalidateSize(), 300);
         }, 500);
@@ -545,7 +545,7 @@ function initImportActions(onRefresh) {
 function downloadCustomerTemplate() {
     const headers = ['Nama', 'NIK', 'No HP', 'No HP Alt', 'Alamat', 'Paket', 'Email', 'Username PPPoE', 'MAC Address', 'Latitude', 'Longitude'];
     const example = ['John Doe', '1234567890123456', '08123456789', '', 'Jl. Merdeka No. 1', 'HOME-10MB', 'john@example.com', 'john_doe', 'AA:BB:CC:DD:EE:FF', '-6.2000', '106.8166'];
-    
+
     const csvContent = [
         headers.join(','),
         example.join(',')
@@ -565,12 +565,12 @@ function downloadCustomerTemplate() {
 
 async function handleCustomerImport(file, onRefresh) {
     const reader = new FileReader();
-    
+
     showToast('info', 'Sedang memproses file...');
 
     reader.onload = async (event) => {
         const text = event.target.result;
-        
+
         // Robust CSV Parser
         const parseCSV = (text) => {
             const result = [];
@@ -598,7 +598,7 @@ async function handleCustomerImport(file, onRefresh) {
         };
 
         const rows = parseCSV(text);
-        
+
         if (rows.length < 2) {
             showToast('error', 'File kosong atau tidak valid.');
             return;
@@ -641,7 +641,7 @@ async function handleCustomerImport(file, onRefresh) {
                     body: JSON.stringify({
                         email: rowData.email || `${rowData.phone}@sifatih.id`,
                         password: 'User123!', // Default password
-                        metadata: { 
+                        metadata: {
                             role: 'customer',
                             name: rowData.name
                         },
