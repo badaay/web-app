@@ -110,6 +110,7 @@ export async function initCustomers() {
                                     <td>
                                         <div class="btn-group btn-group-sm">
                                             <button class="btn btn-outline-primary edit-cust" data-id="${cust.id}" title="Edit"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-outline-success whatsapp-remind" data-id="${cust.id}" title="Kirim WA Reminder"><i class="bi bi-whatsapp"></i></button>
                                             <button class="btn btn-outline-warning reset-pass" data-id="${cust.id}" data-name="${cust.name}" title="Reset Password"><i class="bi bi-shield-lock"></i></button>
                                             <button class="btn btn-outline-success quick-repair" data-id="${cust.id}" title="Buat Tiket Perbaikan"><i class="bi bi-tools"></i></button>
                                             ${cust.lat ? `<button class="btn btn-outline-info view-map" data-id="${cust.id}" data-lat="${cust.lat}" data-lng="${cust.lng}" title="Lihat Peta"><i class="bi bi-geo-alt"></i></button>` : ''}
@@ -140,6 +141,14 @@ export async function initCustomers() {
                 e.preventDefault();
                 e.stopPropagation();
                 showCustomerModal(customersData.find(c => String(c.id) === btn.dataset.id));
+            };
+        });
+
+        document.querySelectorAll('.whatsapp-remind').forEach(btn => {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showWhatsAppModal(customersData.find(c => String(c.id) === btn.dataset.id));
             };
         });
 
@@ -503,6 +512,91 @@ export async function initCustomers() {
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = originalText;
+            }
+        };
+
+        modal.show();
+    }
+
+    // --------- WhatsApp Reminder Modal ---------
+    async function showWhatsAppModal(cust) {
+        if (!cust.phone) return showToast('warning', 'Pelanggan tidak memiliki nomor HP (WhatsApp).');
+
+        const modal = new bootstrap.Modal(document.getElementById('crudModal'));
+        const modalTitle = document.getElementById('crudModalTitle');
+        const modalBody = document.getElementById('crudModalBody');
+        const sendBtn = document.getElementById('save-crud-btn');
+
+        modalTitle.innerHTML = `<i class="bi bi-whatsapp text-success me-2"></i>Kirim Pengingat: ${cust.name}`;
+        sendBtn.innerText = 'Kirim Sekarang';
+
+        const templates = {
+            'due_soon': `📅 *PENGINGAT TAGIHAN*\n\nHalo *${cust.name}*,\n\nKami mengingatkan bahwa tagihan internet Anda akan jatuh tempo segera. Mohon lakukan pembayaran tepat waktu agar layanan tetap lancar.\n\nTerima kasih! 🙏`,
+            'overdue': `⚠️ *PERINGATAN JATUH TEMPO*\n\nHalo *${cust.name}*,\n\nLayanan internet Anda telah melewati batas jatuh tempo pembayaran. Mohon segera lakukan pelunasan untuk menghindari pemutusan layanan.\n\nTerima kasih.`,
+            'custom': ''
+        };
+
+        modalBody.innerHTML = `
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label small text-white-50 fw-bold">Pilih Template</label>
+                    <select id="wa-template-select" class="form-select bg-dark text-white border-secondary">
+                        <option value="due_soon">Pengingat Menjelang Jatuh Tempo</option>
+                        <option value="overdue">Peringatan Melewati Jatuh Tempo</option>
+                        <option value="custom">Pesan Kustom...</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small text-white-50 fw-bold">Nomor WhatsApp</label>
+                    <input type="text" id="wa-target" class="form-control bg-dark text-info fw-bold" value="${cust.phone}" readonly>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small text-white-50 fw-bold">Isi Pesan</label>
+                    <textarea id="wa-message-text" class="form-control bg-dark text-white" rows="6">${templates.due_soon}</textarea>
+                    <div class="smaller text-white-50 mt-2">
+                        <i class="bi bi-info-circle me-1"></i> Gunakan tanda bintang (*) untuk teks tebal.
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const templateSelect = document.getElementById('wa-template-select');
+        const messageArea = document.getElementById('wa-message-text');
+
+        templateSelect.onchange = () => {
+            messageArea.value = templates[templateSelect.value];
+            if (templateSelect.value === 'custom') messageArea.focus();
+        };
+
+        sendBtn.onclick = async () => {
+            const message = messageArea.value.trim();
+            if (!message) return showToast('warning', 'Pesan tidak boleh kosong.');
+
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Mengirim...';
+
+            try {
+                const res = await apiCall('/notifications/send', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        target: cust.phone,
+                        message: message,
+                        customer_id: cust.id
+                    })
+                });
+
+                if (res.success) {
+                    showToast('success', 'Pesan WhatsApp berhasil dikirim!');
+                    modal.hide();
+                } else {
+                    throw new Error(res.error || 'Gagal mengirim pesan');
+                }
+            } catch (err) {
+                console.error("WA Send Error:", err);
+                showToast('error', 'Gagal: ' + err.message);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerText = 'Kirim Sekarang';
             }
         };
 
