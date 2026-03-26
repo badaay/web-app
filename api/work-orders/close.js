@@ -129,8 +129,8 @@ export default withCors(async function handler(req) {
         .eq('id', wo.claimed_by);
     }
 
-    // ── [FONNTE] Notify customer — Centralized, non-blocking ──────────────
-    notifyWorkOrderEvent(workOrderId, 'wo_closed');
+    // ── [FONNTE] Notify customer — Centralized, reliable ─────────────────
+    await notifyWorkOrderEvent(workOrderId, 'wo_closed');
 
     return jsonResponse({
       success: true,

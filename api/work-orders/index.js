@@ -94,8 +94,8 @@ export default withCors(async function handler(req) {
 
       if (error) return errorResponse(`Database error: ${error.message}`, 500);
 
-      // ── [FONNTE] Notify customer — Centralized, non-blocking ──────────────
-      notifyWorkOrderEvent(data.id, 'wo_created');
+      // ── [FONNTE] Notify customer — Centralized, reliable ─────────────────
+      await notifyWorkOrderEvent(data.id, 'wo_created');
 
       return jsonResponse({ success: true, data }, 201);
     } catch (err) {

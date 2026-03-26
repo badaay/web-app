@@ -59,7 +59,8 @@ export default withCors(async function handler(req) {
                 message_type: 'direct_admin',
                 payload: { message },
                 status: 'sent',
-                sent_at: new Date().toISOString()
+                sent_at: new Date().toISOString(),
+                ref_id: customer_id
             });
         }
 

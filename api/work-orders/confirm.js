@@ -69,8 +69,8 @@ export default withCors(async function handler(req) {
       console.warn('Monitor record error (non-fatal):', monitorError.message);
     }
 
-    // ── [FONNTE] Notify customer — Centralized, non-blocking ──────────────
-    notifyWorkOrderEvent(workOrderId, 'wo_confirmed');
+    // ── [FONNTE] Notify customer — Centralized, reliable ─────────────────
+    await notifyWorkOrderEvent(workOrderId, 'wo_confirmed');
 
     return jsonResponse({
       success: true,

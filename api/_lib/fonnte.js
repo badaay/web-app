@@ -175,9 +175,10 @@ export async function notifyWorkOrderEvent(workOrderId, eventType) {
         if (!cfg?.token) return;
 
         // Fetch WO details including associations
+        // Note: claimed_by might not have a formal FK, so we might need to fetch the name separately if needed.
         const { data: wo, error } = await supabaseAdmin
             .from('work_orders')
-            .select('*, customers(*), employees!employee_id(name), internet_packages(name)')
+            .select('*, customers(*), assigned:employees!employee_id(name), internet_packages(name)')
             .eq('id', workOrderId)
             .single();
 
@@ -186,38 +187,79 @@ export async function notifyWorkOrderEvent(workOrderId, eventType) {
             return;
         }
 
+        // Try to get technician name from claimed_by if null in employee_id
+        let technicianName = wo.assigned?.name;
+        if (!technicianName && wo.claimed_by) {
+            const { data: tech } = await supabaseAdmin
+                .from('employees')
+                .select('name')
+                .eq('id', wo.claimed_by)
+                .single();
+            if (tech) technicianName = tech.name;
+        }
+
         const customer = wo.customers;
         const variables = {
             name: customer.name,
             queue_number: wo.id.slice(0, 8).toUpperCase(),
-            technician_name: wo.employees?.name ?? 'Tim Teknisi',
+            technician_name: technicianName ?? 'Tim Teknisi',
             package_name: wo.internet_packages?.name ?? 'Internet'
         };
 
         if (eventType === 'wo_closed') {
-            // Special case: send two messages sequentially
+            const msg1 = formatMessage('wo_closed', variables);
             await sendWhatsApp({
                 token: cfg.token,
                 target: customer.phone,
-                message: formatMessage('wo_closed', variables),
+                message: msg1,
                 delay: '3-8',
                 typingDuration: 3,
             });
+            // Log to queue as sent
+            await supabaseAdmin.from('notification_queue').insert({
+                recipient: customer.phone,
+                message_type: 'wo_closed',
+                payload: { ...variables, message: msg1 },
+                status: 'sent',
+                sent_at: new Date().toISOString(),
+                ref_id: workOrderId
+            });
+
+            const msg2 = formatMessage('welcome_installed', variables);
             await sendWhatsApp({
                 token: cfg.token,
                 target: customer.phone,
-                message: formatMessage('welcome_installed', variables),
+                message: msg2,
                 delay: '10-20',
                 typingDuration: 4,
             });
+            // Log to queue as sent
+            await supabaseAdmin.from('notification_queue').insert({
+                recipient: customer.phone,
+                message_type: 'welcome_installed',
+                payload: { ...variables, message: msg2 },
+                status: 'sent',
+                sent_at: new Date().toISOString(),
+                ref_id: workOrderId
+            });
         } else {
             // Standard single message
+            const msg = formatMessage(eventType, variables);
             await sendWhatsApp({
                 token: cfg.token,
                 target: customer.phone,
-                message: formatMessage(eventType, variables),
+                message: msg,
                 delay: '5-15',
                 typingDuration: 3,
+            });
+            // Log to queue as sent
+            await supabaseAdmin.from('notification_queue').insert({
+                recipient: customer.phone,
+                message_type: eventType,
+                payload: { ...variables, message: msg },
+                status: 'sent',
+                sent_at: new Date().toISOString(),
+                ref_id: workOrderId
             });
         }
     } catch (err) {

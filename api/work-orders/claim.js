@@ -113,8 +113,8 @@ export default withCors(async function handler(req) {
       // but it's good to log or handle it.
     }
 
-    // ── [FONNTE] Notify customer — Centralized, non-blocking ──────────────
-    notifyWorkOrderEvent(workOrderId, 'wo_open');
+    // ── [FONNTE] Notify customer — Centralized, reliable ─────────────────
+    await notifyWorkOrderEvent(workOrderId, 'wo_open');
 
     return jsonResponse({
       success: true,
