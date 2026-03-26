@@ -131,7 +131,9 @@ export function formatMessage(templateKey, data) {
  * Enqueues a notification into the queue table.
  * Handles duplicate hash violations silently.
  */
-export async function enqueueNotification({ recipient, messageType, payload = {}, priority = 2, scheduledAt, refId }) {
+export async function enqueueNotification({ recipient, messageType, payload = {}, priority = 2, scheduledAt, refId, sourceId }) {
+    // refId  → arbitrary string used only as the dedup hash seed
+    // sourceId → valid UUID stored in the ref_id column (e.g. workOrderId, customerId)
     try {
         const dedup_hash = buildDedupHash(recipient, messageType, refId);
 
@@ -144,7 +146,8 @@ export async function enqueueNotification({ recipient, messageType, payload = {}
                 priority,
                 status: 'pending',
                 dedup_hash,
-                scheduled_at: scheduledAt || new Date().toISOString()
+                scheduled_at: scheduledAt || new Date().toISOString(),
+                ref_id: sourceId || null  // must be a UUID or null
             })
             .select()
             .single();
@@ -166,28 +169,63 @@ export async function enqueueNotification({ recipient, messageType, payload = {}
 
 /**
  * High-level helper to notify a customer about a Work Order event.
- * Fetches required data (customer, technician, package) and sends WA.
- * Non-blocking: failures are logged but don't throw.
+ * Fetches required data (customer, technician) and sends WA directly.
+ * All outcomes — success, send failure, fetch failure — are logged to notification_queue.
+ *
+ * On send failure: queued as 'pending' so the dispatcher can retry automatically.
+ * On WO/phone fetch failure: queued as 'failed' for admin visibility.
+ * Non-blocking: outer catch swallows any unexpected exception.
  */
 export async function notifyWorkOrderEvent(workOrderId, eventType) {
     try {
         const cfg = await getTokenConfig();
         if (!cfg?.token) return;
 
-        // Fetch WO details including associations
-        // Note: claimed_by might not have a formal FK, so we might need to fetch the name separately if needed.
-        const { data: wo, error } = await supabaseAdmin
+        // ── Fetch WO data ──────────────────────────────────────────────────────
+        // NOTE: internet_packages is NOT joined here — work_orders.package_id has no
+        // FK defined in the schema so PostgREST cannot resolve the relationship.
+        // Package name fetched separately below if needed.
+        const { data: wo, error: woError } = await supabaseAdmin
             .from('work_orders')
-            .select('*, customers(*), assigned:employees!employee_id(name), internet_packages(name)')
+            .select('*, customers(*), assigned:employees!employee_id(name)')
             .eq('id', workOrderId)
             .single();
 
-        if (error || !wo || !wo.customers?.phone) {
-            console.warn(`[notifyWorkOrderEvent] Skip: WO not found or no phone. ID: ${workOrderId}`);
+        // ── Guard: WO fetch failed ─────────────────────────────────────────────
+        if (woError || !wo) {
+            const errMsg = woError?.message ?? 'Work order not found';
+            console.error(`[notifyWorkOrderEvent] WO fetch error (${eventType}) ID:${workOrderId} — ${errMsg}`);
+            // Log as failed so admin can see it in the queue panel
+            await supabaseAdmin.from('notification_queue').insert({
+                recipient: 'unknown',
+                message_type: eventType,
+                payload: { workOrderId, eventType },
+                priority: 1,
+                status: 'failed',
+                error_msg: `WO fetch failed: ${errMsg}`,
+                dedup_hash: buildDedupHash('unknown', eventType, workOrderId + '-fetch-fail'),
+                ref_id: workOrderId,
+            }); // ignore insert error (e.g. duplicate hash)
             return;
         }
 
-        // Try to get technician name from claimed_by if null in employee_id
+        // ── Guard: customer has no phone ───────────────────────────────────────
+        if (!wo.customers?.phone) {
+            console.warn(`[notifyWorkOrderEvent] No phone on customer for WO ${workOrderId}`);
+            await supabaseAdmin.from('notification_queue').insert({
+                recipient: wo.customer_id ?? workOrderId,
+                message_type: eventType,
+                payload: { workOrderId, customer_id: wo.customer_id, name: wo.customers?.name },
+                priority: 1,
+                status: 'failed',
+                error_msg: 'Customer has no phone number configured',
+                dedup_hash: buildDedupHash(wo.customer_id ?? workOrderId, eventType, workOrderId + '-no-phone'),
+                ref_id: workOrderId,
+            }); // ignore insert error (e.g. duplicate hash)
+            return;
+        }
+
+        // ── Resolve technician name (employee_id join, fall back to claimed_by) ─
         let technicianName = wo.assigned?.name;
         if (!technicianName && wo.claimed_by) {
             const { data: tech } = await supabaseAdmin
@@ -198,71 +236,65 @@ export async function notifyWorkOrderEvent(workOrderId, eventType) {
             if (tech) technicianName = tech.name;
         }
 
+        // ── Resolve package name separately (no FK → can't join) ──────────────
+        let packageName = 'Internet';
+        if (wo.package_id) {
+            const { data: pkg } = await supabaseAdmin
+                .from('internet_packages')
+                .select('name')
+                .eq('id', wo.package_id)
+                .single();
+            if (pkg?.name) packageName = pkg.name;
+        }
+
         const customer = wo.customers;
         const variables = {
             name: customer.name,
             queue_number: wo.id.slice(0, 8).toUpperCase(),
             technician_name: technicianName ?? 'Tim Teknisi',
-            package_name: wo.internet_packages?.name ?? 'Internet'
+            package_name: packageName,
         };
 
-        if (eventType === 'wo_closed') {
-            const msg1 = formatMessage('wo_closed', variables);
-            await sendWhatsApp({
-                token: cfg.token,
-                target: customer.phone,
-                message: msg1,
-                delay: '3-8',
-                typingDuration: 3,
-            });
-            // Log to queue as sent
-            await supabaseAdmin.from('notification_queue').insert({
-                recipient: customer.phone,
-                message_type: 'wo_closed',
-                payload: { ...variables, message: msg1 },
-                status: 'sent',
-                sent_at: new Date().toISOString(),
-                ref_id: workOrderId
-            });
+        // ── Send helper: logs result to queue, queues as pending on failure ────
+        async function sendAndLog(msgType, waOptions) {
+            const message = formatMessage(msgType, variables);
+            const result = await sendWhatsApp({ ...waOptions, token: cfg.token, target: customer.phone, message });
 
-            const msg2 = formatMessage('welcome_installed', variables);
-            await sendWhatsApp({
-                token: cfg.token,
-                target: customer.phone,
-                message: msg2,
-                delay: '10-20',
-                typingDuration: 4,
-            });
-            // Log to queue as sent
-            await supabaseAdmin.from('notification_queue').insert({
-                recipient: customer.phone,
-                message_type: 'welcome_installed',
-                payload: { ...variables, message: msg2 },
-                status: 'sent',
-                sent_at: new Date().toISOString(),
-                ref_id: workOrderId
-            });
-        } else {
-            // Standard single message
-            const msg = formatMessage(eventType, variables);
-            await sendWhatsApp({
-                token: cfg.token,
-                target: customer.phone,
-                message: msg,
-                delay: '5-15',
-                typingDuration: 3,
-            });
-            // Log to queue as sent
-            await supabaseAdmin.from('notification_queue').insert({
-                recipient: customer.phone,
-                message_type: eventType,
-                payload: { ...variables, message: msg },
-                status: 'sent',
-                sent_at: new Date().toISOString(),
-                ref_id: workOrderId
-            });
+            if (result.success) {
+                // Log as sent (dedup on workOrderId+eventType prevents duplicate log entries on retries)
+                await supabaseAdmin.from('notification_queue').insert({
+                    recipient: customer.phone,
+                    message_type: msgType,
+                    payload: variables,
+                    priority: 1,
+                    status: 'sent',
+                    sent_at: new Date().toISOString(),
+                    dedup_hash: buildDedupHash(customer.phone, msgType, workOrderId + '-sent'),
+                    ref_id: workOrderId,
+                }); // ignore insert error (e.g. duplicate hash on retry)
+            } else {
+                // Send failed → queue as pending so dispatcher retries automatically
+                console.error(`[Fonnte] Direct send failed for ${msgType} (WO: ${workOrderId}). Queuing for retry.`);
+                await enqueueNotification({
+                    recipient: customer.phone,
+                    messageType: msgType,
+                    payload: variables,
+                    priority: 1,
+                    refId: workOrderId + '-retry-' + msgType, // dedup seed (string)
+                    sourceId: workOrderId,                    // UUID stored in ref_id column
+                });
+            }
         }
+
+        // ── Dispatch by event type ─────────────────────────────────────────────
+        if (eventType === 'wo_closed') {
+            await sendAndLog('wo_closed',       { delay: '3-8',   typingDuration: 3 });
+            await sendAndLog('welcome_installed', { delay: '10-20', typingDuration: 4 });
+        } else {
+            await sendAndLog(eventType, { delay: '5-15', typingDuration: 3 });
+        }
+
     } catch (err) {
-        console.error(`[Fonnte Notify Error] ${eventType}:`, err.message);
+        console.error(`[Fonnte Notify Error] ${eventType} (WO: ${workOrderId}):`, err.message);
     }
 }
