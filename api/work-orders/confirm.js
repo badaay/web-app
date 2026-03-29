@@ -12,6 +12,7 @@
  */
 
 import { supabaseAdmin, verifyAuth, isAdmin, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { notifyWorkOrderEvent } from '../_lib/fonnte.js';
 
 export const config = { runtime: 'edge' };
 
@@ -67,6 +68,9 @@ export default withCors(async function handler(req) {
     if (monitorError && !monitorError.message.includes('duplicate')) {
       console.warn('Monitor record error (non-fatal):', monitorError.message);
     }
+
+    // ── [FONNTE] Notify customer — Centralized, reliable ─────────────────
+    await notifyWorkOrderEvent(workOrderId, 'wo_confirmed');
 
     return jsonResponse({
       success: true,

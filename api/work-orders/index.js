@@ -21,6 +21,7 @@
  */
 
 import { supabaseAdmin, verifyAuth, isAdmin, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { notifyWorkOrderEvent } from '../_lib/fonnte.js';
 
 export const config = { runtime: 'edge' };
 
@@ -92,6 +93,9 @@ export default withCors(async function handler(req) {
         .single();
 
       if (error) return errorResponse(`Database error: ${error.message}`, 500);
+
+      // ── [FONNTE] Notify customer — Centralized, reliable ─────────────────
+      await notifyWorkOrderEvent(data.id, 'wo_created');
 
       return jsonResponse({ success: true, data }, 201);
     } catch (err) {
