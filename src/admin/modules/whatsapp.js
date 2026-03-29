@@ -177,7 +177,12 @@ async function initSectionA() {
     }
 }
 
-// ─── Section B: Gauge ─────────────────────────────────────────────────────────
+// ─── Section B: Gauge + Stats + Analysis ─────────────────────────────────────
+
+// Current WIB hour (UTC+7)
+function getWIBHour() {
+    return new Date(Date.now() + 7 * 3_600_000).getUTCHours();
+}
 
 async function loadGauge() {
     const gaugeEl = document.getElementById('wa-gauge-bar-wrap');
@@ -189,22 +194,180 @@ async function loadGauge() {
         const cfg = {};
         (settings || []).forEach(r => { cfg[r.setting_key] = r.setting_value; });
 
-        const sentToday = parseInt(cfg.FONNTE_SENT_TODAY) || 0;
+        const sentToday  = parseInt(cfg.FONNTE_SENT_TODAY)  || 0;
         const dailyLimit = parseInt(cfg.FONNTE_DAILY_LIMIT) || 500;
         const ratio = sentToday / dailyLimit;
-        const pct = Math.min(ratio * 100, 100).toFixed(1);
-        const color = ratio < 0.6 ? 'bg-success' : ratio < 0.9 ? 'bg-warning' : 'bg-danger';
-        const badge = ratio >= 0.95 ? '<span class="badge bg-danger ms-2">KRITIS</span>'
+        const pct   = Math.min(ratio * 100, 100).toFixed(1);
+        const barColor = ratio < 0.6 ? 'bg-success' : ratio < 0.9 ? 'bg-warning' : 'bg-danger';
+        const badge = ratio >= 0.95
+            ? '<span class="badge bg-danger ms-2">KRITIS</span>'
             : ratio >= 0.8 ? '<span class="badge bg-warning text-dark ms-2">PERINGATAN</span>' : '';
 
         gaugeEl.innerHTML = `
             <div class="progress mb-2" style="height:26px;">
-                <div class="progress-bar ${color} progress-bar-striped progress-bar-animated"
-                    role="progressbar" style="width:${pct}%" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar ${barColor} progress-bar-striped progress-bar-animated"
+                    role="progressbar" style="width:${pct}%">
                     <span class="fw-bold">${pct}%</span>
                 </div>
             </div>`;
-        if (labelEl) labelEl.innerHTML = `<strong class="text-white">${sentToday.toLocaleString('id-ID')}</strong> / ${dailyLimit.toLocaleString('id-ID')} pesan terkirim hari ini ${badge}`;
+        if (labelEl) labelEl.innerHTML =
+            `<strong class="text-white">${sentToday.toLocaleString('id-ID')}</strong>
+             / ${dailyLimit.toLocaleString('id-ID')} pesan terkirim hari ini ${badge}`;
+
+        // ── 4-period stat cards ───────────────────────────────────────────────
+        const statsEl = document.getElementById('wa-stats-cards');
+        if (statsEl) {
+            const wibHour = getWIBHour();
+            // Hours active today: from 07:00 WIB or at least 1
+            const hoursActive  = Math.max(1, wibHour >= 7 ? wibHour - 7 : 0);
+            const estPerHour   = hoursActive > 0 ? Math.round(sentToday / hoursActive) : 0;
+            const HOURLY_SAFE  = 20; // Fonnte personal WA safe limit
+
+            const weeklyProj   = sentToday * 7;
+            const weeklyLimit  = dailyLimit * 7;
+            const monthlyProj  = sentToday * 30;
+            const monthlyLimit = dailyLimit * 30;
+
+            function miniBar(val, lim) {
+                const p = Math.min((val / lim) * 100, 100).toFixed(1);
+                const c = (val / lim) < 0.6 ? '#10b981' : (val / lim) < 0.9 ? '#f59e0b' : '#ef4444';
+                return `<div class="mt-2" style="height:4px;border-radius:2px;background:rgba(255,255,255,.1)">
+                    <div style="width:${p}%;height:4px;border-radius:2px;background:${c};transition:width .4s"></div></div>
+                    <div class="text-end mt-1" style="font-size:10px;color:${c}">${p}%</div>`;
+            }
+
+            function statCard(icon, label, val, lim, subLabel) {
+                const hexC = (val / lim) < 0.6 ? '#10b981' : (val / lim) < 0.9 ? '#f59e0b' : '#ef4444';
+                return `
+                <div class="col">
+                    <div class="rounded p-3 h-100" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
+                        <div class="d-flex align-items-center gap-1 mb-1">
+                            <i class="bi ${icon} small" style="color:${hexC}"></i>
+                            <span class="small text-white-50">${label}</span>
+                        </div>
+                        <div class="fw-bold text-white">${val.toLocaleString('id-ID')}
+                            <span class="text-white-50 fw-normal small"> / ${lim.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="text-white-50" style="font-size:10px">${subLabel}</div>
+                        ${miniBar(val, lim)}
+                    </div>
+                </div>`;
+            }
+
+            statsEl.innerHTML = `
+            <div class="row row-cols-2 row-cols-md-4 g-2">
+                ${statCard('bi-clock', 'Per Jam (est.)', estPerHour, HOURLY_SAFE, 'pesan/jam vs batas aman')}
+                ${statCard('bi-calendar-day', 'Hari Ini', sentToday, dailyLimit, 'pesan terkirim hari ini')}
+                ${statCard('bi-calendar-week', 'Proyeksi 7 Hari', weeklyProj, weeklyLimit, 'jika pace berlanjut')}
+                ${statCard('bi-calendar-month', 'Proyeksi 30 Hari', monthlyProj, monthlyLimit, 'jika pace berlanjut')}
+            </div>`;
+        }
+
+        // ── Dynamic analysis & suggestions ───────────────────────────────────
+        const analysisEl = document.getElementById('wa-analysis-section');
+        if (analysisEl) {
+            const wibHour2     = getWIBHour();
+            const hoursActive2 = Math.max(1, wibHour2 >= 7 ? wibHour2 - 7 : 0);
+            const pace         = hoursActive2 > 0 ? Math.round(sentToday / hoursActive2) : 0;
+            const paceOver     = pace > 20;
+            const remaining    = dailyLimit - sentToday;
+            const isNight      = wibHour2 >= 21 || wibHour2 < 7;
+
+            let riskIcon, riskColor, riskBg, riskTitle, dynamicTips;
+
+            if (ratio >= 0.95) {
+                riskIcon = 'bi-x-octagon-fill'; riskColor = '#ef4444'; riskBg = 'rgba(239,68,68,.1)';
+                riskTitle = 'KRITIS — Dispatcher Dihentikan Otomatis';
+                dynamicTips = [
+                    'Dispatcher <strong>berhenti</strong> sampai counter direset atau hari berganti.',
+                    'Tunda semua kampanye bulk. Kirim direct hanya untuk kasus urgent.',
+                    paceOver ? `Kecepatan <strong>${pace} pesan/jam</strong> jauh di atas batas aman 20/jam — penyebab utama.` : null,
+                    'Pertimbangkan menaikkan <code>FONNTE_DAILY_LIMIT</code> jika paket Fonnte mendukung.',
+                ].filter(Boolean);
+            } else if (ratio >= 0.8) {
+                riskIcon = 'bi-exclamation-triangle-fill'; riskColor = '#f97316'; riskBg = 'rgba(249,115,22,.1)';
+                riskTitle = 'Penggunaan Tinggi — Zona Bahaya';
+                dynamicTips = [
+                    `Tersisa <strong>${remaining.toLocaleString('id-ID')} pesan</strong> sebelum dispatcher berhenti.`,
+                    paceOver ? `Kecepatan <strong>${pace}/jam</strong> melebihi batas aman 20/jam — perlambat dispatch.` : `Kecepatan <strong>${pace}/jam</strong> masih aman, tapi stok harian hampir habis.`,
+                    'Tunda pesan prioritas rendah (P3) hingga besok untuk menghemat kuota.',
+                ].filter(Boolean);
+            } else if (ratio >= 0.6) {
+                riskIcon = 'bi-exclamation-circle-fill'; riskColor = '#f59e0b'; riskBg = 'rgba(245,158,11,.1)';
+                riskTitle = 'Penggunaan Moderat — Pantau Terus';
+                dynamicTips = [
+                    paceOver
+                        ? `Kecepatan <strong>${pace}/jam</strong> mendekati batas — pertimbangkan memperlambat dispatch.`
+                        : `Kecepatan <strong>${pace}/jam</strong> dalam batas aman.`,
+                    `Masih ada kapasitas <strong>${remaining.toLocaleString('id-ID')} pesan</strong> hari ini.`,
+                    isNight ? 'Night window aktif — pesan P3 ditahan hingga 07:00 WIB.' : null,
+                ].filter(Boolean);
+            } else {
+                riskIcon = 'bi-check-circle-fill'; riskColor = '#10b981'; riskBg = 'rgba(16,185,129,.1)';
+                riskTitle = 'Sistem Sehat — Penggunaan Normal';
+                dynamicTips = [
+                    `Kecepatan <strong>${pace}/jam</strong> · Penggunaan harian <strong>${(ratio * 100).toFixed(0)}%</strong>.`,
+                    `Kapasitas tersisa hari ini: <strong>${remaining.toLocaleString('id-ID')} pesan</strong>.`,
+                    isNight ? '⚠️ Night window aktif (21:00–07:00 WIB) — pesan P3 ditahan.' : 'Semua window kirim aktif.',
+                ].filter(Boolean);
+            }
+
+            const tipsHTML = dynamicTips.map(t =>
+                `<li class="mb-1 small" style="color:rgba(255,255,255,.8)">${t}</li>`).join('');
+
+            analysisEl.innerHTML = `
+            <!-- Dynamic risk banner -->
+            <div class="rounded p-3 mb-3" style="background:${riskBg};border:1px solid ${riskColor}40">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi ${riskIcon} fs-5" style="color:${riskColor}"></i>
+                    <span class="fw-semibold" style="color:${riskColor}">${riskTitle}</span>
+                </div>
+                <ul class="list-unstyled mb-0 ps-1">${tipsHTML}</ul>
+            </div>
+
+            <!-- Static best practices -->
+            <div class="rounded border border-secondary p-3" style="background:rgba(255,255,255,.02)">
+                <p class="text-white fw-semibold mb-3 small">
+                    <i class="bi bi-shield-check text-info me-2"></i>Saran — Hindari Pemblokiran Fonnte
+                </p>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2 mb-2">
+                            <span class="badge flex-shrink-0 align-self-start mt-1 px-2" style="background:#6366f1;font-size:10px">KECEPATAN</span>
+                            <span class="small text-white-50">Jaga kecepatan <strong class="text-white">≤ 20 pesan/jam</strong>.
+                                Akun personal yang lebih cepat dari itu rentan ditandai spam oleh WhatsApp.</span>
+                        </div>
+                        <div class="d-flex gap-2 mb-2">
+                            <span class="badge flex-shrink-0 align-self-start mt-1 px-2" style="background:#0ea5e9;font-size:10px">DELAY</span>
+                            <span class="small text-white-50">Delay acak <strong class="text-white">30–120 dtk</strong> + simulasi
+                                <em>typing</em> sudah aktif di dispatcher — jangan kurangi nilai ini.</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge flex-shrink-0 align-self-start mt-1 px-2" style="background:#f97316;font-size:10px">JAM KIRIM</span>
+                            <span class="small text-white-50">Kirim hanya pukul <strong class="text-white">07:00–21:00 WIB</strong>.
+                                Pesan luar jam ini lebih sering dilaporkan spam oleh penerima.</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2 mb-2">
+                            <span class="badge flex-shrink-0 align-self-start mt-1 px-2" style="background:#10b981;font-size:10px">KONTEN</span>
+                            <span class="small text-white-50">Variasikan teks dengan <strong class="text-white">Spintax {A|B|C}</strong>
+                                di template agar setiap pesan terlihat unik untuk anti-spam filter.</span>
+                        </div>
+                        <div class="d-flex gap-2 mb-2">
+                            <span class="badge flex-shrink-0 align-self-start mt-1 px-2" style="background:#8b5cf6;font-size:10px">ANTRIAN</span>
+                            <span class="small text-white-50">Gunakan <strong class="text-white">dispatcher antrian</strong> (batch 10/run)
+                                daripada kirim langsung massal untuk menjaga interval alami.</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge flex-shrink-0 align-self-start mt-1 px-2" style="background:#ef4444;font-size:10px">SKALABILITAS</span>
+                            <span class="small text-white-50">Jika penggunaan rutin ≥ 80%/hari, pertimbangkan
+                                <strong class="text-white">upgrade paket Fonnte</strong> atau pisahkan device untuk kategori Keuangan & CS.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
     } catch (_) {}
 }
 
@@ -216,46 +379,42 @@ async function initSectionB() {
             <div class="card-header d-flex align-items-center justify-content-between border-secondary">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-speedometer2 text-info"></i>
-                    <h6 class="mb-0 text-white">Penggunaan & Limitasi Harian</h6>
+                    <h6 class="mb-0 text-white">Penggunaan & Limitasi</h6>
                 </div>
-                <button class="btn btn-sm btn-outline-secondary" id="wa-refresh-gauge-btn" title="Refresh">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <small class="text-white-50 d-none d-md-inline">Auto-refresh 30 dtk</small>
+                    <button class="btn btn-sm btn-outline-secondary" id="wa-refresh-gauge-btn" title="Refresh">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
             </div>
             <div class="card-body">
-                <div id="wa-gauge-bar-wrap"><div class="text-center py-2 text-white-50 small">Memuat…</div></div>
-                <p class="text-white-50 small mb-3" id="wa-gauge-label">—</p>
-                <div class="d-flex align-items-center gap-3 mb-4">
-                    <button class="btn btn-sm btn-outline-danger" id="wa-reset-counter-btn"
+
+                <!-- 4-period stat cards -->
+                <div id="wa-stats-cards" class="mb-4">
+                    <div class="text-center py-2 text-white-50 small">Memuat statistik…</div>
+                </div>
+
+                <!-- Main daily gauge -->
+                <div id="wa-gauge-bar-wrap" class="mb-1">
+                    <div class="text-center py-2 text-white-50 small">Memuat…</div>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <p class="text-white-50 small mb-0" id="wa-gauge-label">—</p>
+                    <button class="btn btn-sm btn-outline-danger"
                         data-bs-toggle="modal" data-bs-target="#wa-reset-modal">
                         <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Counter
                     </button>
-                    <small class="text-white-50">Auto-refresh tiap 30 detik</small>
                 </div>
-                <div class="rounded border border-secondary p-3" style="background:rgba(255,255,255,.03)">
-                    <p class="text-white fw-semibold mb-2 small">
-                        <i class="bi bi-info-circle-fill text-info me-2"></i>Informasi Batas Kecepatan Fonnte
-                    </p>
-                    <ul class="list-unstyled mb-0 small text-white-50">
-                        <li class="mb-1"><i class="bi bi-dot text-warning"></i>
-                            <strong class="text-white">~20 pesan/jam</strong> — batas aman pengiriman via nomor WhatsApp personal (Fonnte). Melebihi angka ini meningkatkan risiko nomor diblokir.
-                        </li>
-                        <li class="mb-1"><i class="bi bi-dot text-warning"></i>
-                            <strong class="text-white">Delay antar pesan: 30–120 detik</strong> (acak) + simulasi "mengetik" agar terlihat natural.
-                        </li>
-                        <li class="mb-1"><i class="bi bi-dot text-warning"></i>
-                            <strong class="text-white">Batch per dispatch: 10 pesan</strong> — setiap klik "Kirim Sekarang" memproses maks 10 item antrian.
-                        </li>
-                        <li class="mb-1"><i class="bi bi-dot text-secondary"></i>
-                            <strong class="text-white">Night window:</strong> Pesan prioritas 3 (bulk) ditahan otomatis pukul 21:00–06:59 WIB.
-                        </li>
-                        <li><i class="bi bi-dot text-secondary"></i>
-                            <strong class="text-white">Hard stop:</strong> Dispatcher berhenti jika penggunaan harian ≥95% dari batas konfigurasi.
-                        </li>
-                    </ul>
+
+                <!-- Dynamic analysis & suggestions -->
+                <div id="wa-analysis-section">
+                    <div class="text-center py-2 text-white-50 small">Memuat analisis…</div>
                 </div>
+
             </div>
         </div>
+
         <!-- Reset Confirmation Modal -->
         <div class="modal fade" id="wa-reset-modal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-sm">

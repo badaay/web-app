@@ -4,6 +4,23 @@ import { supabaseAdmin } from './supabase.js';
 const FONNTE_API_URL = 'https://api.fonnte.com/send';
 
 /**
+ * Default task-to-device routing.
+ * Keys = message_type values. Value = routing label (matches device label in future multi-device setup).
+ * All default to 'main' (single device). Admin can override via WHATSAPP_ROUTING in app_settings.
+ */
+export const ROUTING_DEFAULTS = {
+    wo_created:        'main',
+    wo_confirmed:      'main',
+    wo_open:           'main',
+    wo_closed:         'main',
+    welcome_installed: 'main',
+    payment_due_soon:  'main',
+    payment_overdue:   'main',
+    direct_admin:      'main',
+    _default:          'main',
+};
+
+/**
  * Message templates in Bahasa Indonesia with Spintax support.
  */
 export const TEMPLATES = {
@@ -32,6 +49,7 @@ export const TEMPLATES = {
 /**
  * Reads FONNTE_* config from app_settings.
  * Returns null if token is not configured.
+ * Also parses WHATSAPP_ROUTING if present.
  */
 export async function getTokenConfig() {
     try {
@@ -49,17 +67,36 @@ export async function getTokenConfig() {
 
         if (!config.FONNTE_TOKEN) return null;
 
+        // Parse routing config — falls back to ROUTING_DEFAULTS for any missing key
+        let routing = { ...ROUTING_DEFAULTS };
+        if (config.WHATSAPP_ROUTING) {
+            try {
+                const parsed = JSON.parse(config.WHATSAPP_ROUTING);
+                routing = { ...ROUTING_DEFAULTS, ...parsed };
+            } catch (_) {}
+        }
+
         return {
             token: config.FONNTE_TOKEN,
             dailyLimit: parseInt(config.FONNTE_DAILY_LIMIT) || 500,
             warnThreshold: parseFloat(config.FONNTE_WARN_THRESHOLD) || 0.8,
             sentToday: parseInt(config.FONNTE_SENT_TODAY) || 0,
-            lastReset: config.FONNTE_LAST_RESET
+            lastReset: config.FONNTE_LAST_RESET,
+            routing,
         };
     } catch (err) {
         console.error('[Fonnte Config Error]:', err);
         return null;
     }
+}
+
+/**
+ * Returns the routing label ('main' | future labels) for a given message type.
+ * Reads from WHATSAPP_ROUTING in app_settings; falls back to ROUTING_DEFAULTS.
+ * Lightweight: accepts a pre-fetched routing map to avoid extra DB reads.
+ */
+export function getRoutingForMessageType(messageType, routingMap = ROUTING_DEFAULTS) {
+    return routingMap[messageType] ?? routingMap['_default'] ?? 'main';
 }
 
 /**
@@ -130,19 +167,24 @@ export function formatMessage(templateKey, data) {
 /**
  * Enqueues a notification into the queue table.
  * Handles duplicate hash violations silently.
+ * Optionally tags the payload with routing_label for queue monitor visibility.
  */
-export async function enqueueNotification({ recipient, messageType, payload = {}, priority = 2, scheduledAt, refId, sourceId }) {
+export async function enqueueNotification({ recipient, messageType, payload = {}, priority = 2, scheduledAt, refId, sourceId, routingMap }) {
     // refId  → arbitrary string used only as the dedup hash seed
     // sourceId → valid UUID stored in the ref_id column (e.g. workOrderId, customerId)
     try {
         const dedup_hash = buildDedupHash(recipient, messageType, refId);
+
+        // Tag the payload with routing label (metadata only — single device uses 'main')
+        const routingLabel = getRoutingForMessageType(messageType, routingMap);
+        const enrichedPayload = { ...payload, _routing: routingLabel };
 
         const { data, error } = await supabaseAdmin
             .from('notification_queue')
             .insert({
                 recipient,
                 message_type: messageType,
-                payload,
+                payload: enrichedPayload,
                 priority,
                 status: 'pending',
                 dedup_hash,
@@ -260,12 +302,14 @@ export async function notifyWorkOrderEvent(workOrderId, eventType) {
             const message = formatMessage(msgType, variables);
             const result = await sendWhatsApp({ ...waOptions, token: cfg.token, target: customer.phone, message });
 
+            const routingLabel = getRoutingForMessageType(msgType, cfg.routing);
+
             if (result.success) {
                 // Log as sent (dedup on workOrderId+eventType prevents duplicate log entries on retries)
                 await supabaseAdmin.from('notification_queue').insert({
                     recipient: customer.phone,
                     message_type: msgType,
-                    payload: variables,
+                    payload: { ...variables, _routing: routingLabel },
                     priority: 1,
                     status: 'sent',
                     sent_at: new Date().toISOString(),
@@ -282,6 +326,7 @@ export async function notifyWorkOrderEvent(workOrderId, eventType) {
                     priority: 1,
                     refId: workOrderId + '-retry-' + msgType, // dedup seed (string)
                     sourceId: workOrderId,                    // UUID stored in ref_id column
+                    routingMap: cfg.routing,
                 });
             }
         }
