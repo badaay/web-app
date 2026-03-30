@@ -1,0 +1,38 @@
+-- Migration: 026_salary_functions.sql
+-- Task 1.7: Create calculation helper functions
+-- Ref: pre-planning/03-data-model-proposal.md#3-database-functions
+
+-- TODO: Implement
+
+-- Function 1: Calculate late deduction
+-- CREATE OR REPLACE FUNCTION public.calculate_late_deduction(
+--     p_check_in_time TIME,
+--     p_is_absent BOOLEAN DEFAULT false
+-- ) RETURNS INTEGER AS $$
+-- DECLARE
+--     v_work_start TIME;
+--     v_rate_per_hour INTEGER;
+--     v_max_daily INTEGER;
+--     v_late_minutes INTEGER;
+--     v_deduction INTEGER;
+-- BEGIN
+--     -- Get settings from app_settings
+--     -- Calculate deduction based on late minutes
+--     -- Return MIN(calculated, max_daily)
+--     RETURN 0;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- Function 2: Get active salary config for employee
+-- CREATE OR REPLACE FUNCTION public.get_active_salary_config(
+--     p_employee_id UUID,
+--     p_as_of_date DATE DEFAULT CURRENT_DATE
+-- ) RETURNS public.employee_salary_configs AS $$
+--     SELECT *
+--     FROM public.employee_salary_configs
+--     WHERE employee_id = p_employee_id
+--     AND effective_from <= p_as_of_date
+--     AND (effective_to IS NULL OR effective_to >= p_as_of_date)
+--     ORDER BY effective_from DESC
+--     LIMIT 1;
+-- $$ LANGUAGE sql STABLE;

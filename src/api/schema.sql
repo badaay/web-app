@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
     photo_ktp TEXT,
     photo_rumah TEXT,
     role_id UUID REFERENCES public.roles(id),
+    billing_due_day INTEGER CHECK (billing_due_day >= 1 AND billing_due_day <= 28),
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -163,6 +164,22 @@ CREATE TABLE IF NOT EXISTS public.work_order_assignments (
     points_earned INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE (work_order_id, employee_id)
+);
+
+-- 12. Notification Queue Table
+CREATE TABLE IF NOT EXISTS public.notification_queue (
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    recipient    TEXT        NOT NULL,
+    message_type TEXT        NOT NULL,
+    payload      JSONB       DEFAULT '{}',
+    priority     INTEGER     NOT NULL DEFAULT 2,
+    status       TEXT        NOT NULL DEFAULT 'pending',
+    dedup_hash   TEXT        UNIQUE,
+    scheduled_at TIMESTAMPTZ DEFAULT now(),
+    sent_at      TIMESTAMPTZ,
+    error_msg    TEXT,
+    ref_id       UUID,
+    created_at   TIMESTAMPTZ DEFAULT now()
 );
 
 -- IV. FUNCTIONS & TRIGGERS
@@ -263,6 +280,7 @@ ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.installation_monitorings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notification_queue ENABLE ROW LEVEL SECURITY;
 
 -- 2. Policies
 -- Roles: Public Select
@@ -310,13 +328,23 @@ CREATE POLICY "assignments_update" ON public.work_order_assignments
 CREATE POLICY "assignments_delete" ON public.work_order_assignments
   FOR DELETE USING (has_any_role(ARRAY['S_ADM', 'OWNER']));
 
+-- Notification Queue: Admin only
+CREATE POLICY "notif_queue_admin_all" ON public.notification_queue
+    FOR ALL
+    USING (is_admin_class())
+    WITH CHECK (is_admin_class());
+
 
 -- VI. OPTIMIZATION (INDEXES)
 CREATE INDEX IF NOT EXISTS idx_work_orders_status ON public.work_orders(status);
 CREATE INDEX IF NOT EXISTS idx_work_orders_customer_id ON public.work_orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_work_orders_employee_id ON public.work_orders(employee_id);
-CREATE INDEX IF NOT EXISTS idx_wo_assignments_work_order_id ON public.work_order_assignments(work_order_id);
-CREATE INDEX IF NOT EXISTS idx_wo_assignments_employee_id ON public.work_order_assignments(employee_id);
+        CREATE INDEX IF NOT EXISTS idx_wo_assignments_work_order_id ON public.work_order_assignments(work_order_id);
+        CREATE INDEX IF NOT EXISTS idx_wo_assignments_employee_id ON public.work_order_assignments(employee_id);
+
+CREATE INDEX IF NOT EXISTS idx_notif_queue_dispatch
+    ON public.notification_queue (status, priority, scheduled_at)
+    WHERE status = 'pending';
 
 
 -- VII. SEED DATA
@@ -343,5 +371,19 @@ ON CONFLICT (name) DO UPDATE SET
   base_point = EXCLUDED.base_point,
   color = EXCLUDED.color,
   icon = EXCLUDED.icon;
+
+-- App Settings: Fonnte Configuration
+INSERT INTO public.app_settings (setting_key, setting_value, setting_group, description)
+VALUES
+    ('FONNTE_TOKEN',          '',          'whatsapp', 'API token from fonnte.com dashboard'),
+    ('FONNTE_DAILY_LIMIT',    '500',       'whatsapp', 'Max WhatsApp messages allowed per day'),
+    ('FONNTE_WARN_THRESHOLD', '0.80',      'whatsapp', 'Fraction of daily limit that triggers admin warning (0.0–1.0)'),
+    ('FONNTE_SENT_TODAY',     '0',         'whatsapp', 'Rolling daily message counter, reset each day'),
+    ('FONNTE_LAST_RESET',     NOW()::TEXT, 'whatsapp', 'ISO timestamp of last daily counter reset'),
+    ('WHATSAPP_ROUTING',
+        '{"wo_created":"main","wo_confirmed":"main","wo_open":"main","wo_closed":"main","welcome_installed":"main","payment_due_soon":"main","payment_overdue":"main","direct_admin":"main","_default":"main"}',
+        'whatsapp',
+        'JSON map of message_type → device label. All default to "main" (single device). Edit in Settings to reassign when additional devices are added.')
+ON CONFLICT (setting_key) DO NOTHING;
   
   
