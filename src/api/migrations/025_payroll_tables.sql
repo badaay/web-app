@@ -1,0 +1,78 @@
+-- Migration: 025_payroll_tables.sql
+-- Task 1.6: Create payroll tables (periods, line_items, summaries)
+-- Ref: pre-planning/03-data-model-proposal.md#25-payroll-periods
+
+-- TODO: Implement
+
+-- Table 1: Payroll Periods
+-- CREATE TABLE IF NOT EXISTS public.payroll_periods (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     
+--     year INTEGER NOT NULL,
+--     month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
+--     period_start DATE NOT NULL,
+--     period_end DATE NOT NULL,
+--     
+--     status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'calculating', 'calculated', 'approved', 'paid')),
+--     
+--     calculated_at TIMESTAMPTZ,
+--     approved_at TIMESTAMPTZ,
+--     paid_at TIMESTAMPTZ,
+--     approved_by UUID REFERENCES public.employees(id),
+--     
+--     notes TEXT,
+--     
+--     created_at TIMESTAMPTZ DEFAULT now(),
+--     created_by UUID REFERENCES public.employees(id),
+--     updated_at TIMESTAMPTZ DEFAULT now(),
+--     
+--     UNIQUE (year, month)
+-- );
+
+-- Table 2: Payroll Line Items
+-- CREATE TABLE IF NOT EXISTS public.payroll_line_items (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     payroll_period_id UUID NOT NULL REFERENCES public.payroll_periods(id) ON DELETE CASCADE,
+--     employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+--     
+--     component_type TEXT NOT NULL CHECK (component_type IN ('earning', 'deduction')),
+--     component_code TEXT NOT NULL,
+--     component_name TEXT NOT NULL,
+--     amount INTEGER NOT NULL,
+--     
+--     calculation_details JSONB,
+--     is_manual_override BOOLEAN DEFAULT false,
+--     
+--     created_at TIMESTAMPTZ DEFAULT now(),
+--     
+--     UNIQUE (payroll_period_id, employee_id, component_code)
+-- );
+
+-- Table 3: Payroll Summaries
+-- CREATE TABLE IF NOT EXISTS public.payroll_summaries (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     payroll_period_id UUID NOT NULL REFERENCES public.payroll_periods(id) ON DELETE CASCADE,
+--     employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+--     
+--     gross_earnings INTEGER NOT NULL DEFAULT 0,
+--     total_deductions INTEGER NOT NULL DEFAULT 0,
+--     take_home_pay INTEGER NOT NULL DEFAULT 0,
+--     
+--     target_points INTEGER DEFAULT 0,
+--     actual_points INTEGER DEFAULT 0,
+--     point_shortage INTEGER DEFAULT 0,
+--     
+--     days_present INTEGER DEFAULT 0,
+--     days_late INTEGER DEFAULT 0,
+--     days_absent INTEGER DEFAULT 0,
+--     
+--     overtime_hours DECIMAL(5,2) DEFAULT 0,
+--     overtime_amount INTEGER DEFAULT 0,
+--     
+--     created_at TIMESTAMPTZ DEFAULT now(),
+--     updated_at TIMESTAMPTZ DEFAULT now(),
+--     
+--     UNIQUE (payroll_period_id, employee_id)
+-- );
+
+-- Indexes and RLS Policies
