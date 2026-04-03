@@ -1,0 +1,36 @@
+-- Migration: 023_attendance_records.sql
+-- Task 1.4: Create attendance records table
+-- Ref: pre-planning/03-data-model-proposal.md#22-attendance-records
+
+-- TODO: Implement
+-- CREATE TABLE IF NOT EXISTS public.attendance_records (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+--     
+--     -- Date and time
+--     attendance_date DATE NOT NULL,
+--     check_in_time TIME,
+--     check_out_time TIME,
+--     
+--     -- Lateness calculation
+--     late_minutes INTEGER DEFAULT 0,
+--     is_absent BOOLEAN DEFAULT false,
+--     deduction_amount INTEGER DEFAULT 0,
+--     
+--     -- Source tracking
+--     source TEXT DEFAULT 'manual',  -- 'manual' | 'imported' | 'fingerprint'
+--     notes TEXT,
+--     
+--     -- Audit
+--     created_at TIMESTAMPTZ DEFAULT now(),
+--     created_by UUID REFERENCES public.employees(id),
+--     updated_at TIMESTAMPTZ DEFAULT now(),
+--     
+--     UNIQUE (employee_id, attendance_date)
+-- );
+
+-- CREATE INDEX idx_attendance_employee ON public.attendance_records(employee_id);
+-- CREATE INDEX idx_attendance_date ON public.attendance_records(attendance_date);
+
+-- RLS Policies
+-- ALTER TABLE public.attendance_records ENABLE ROW LEVEL SECURITY;

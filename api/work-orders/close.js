@@ -79,54 +79,14 @@ export default withCors(async function handler(req) {
       return errorResponse('Work order is already closed', 400);
     }
 
-    // Update work order to closed
-    const { data: updatedWO, error: updateError } = await supabaseAdmin
-      .from('work_orders')
-      .update({
-        status: 'closed',
-        closed_at: new Date().toISOString(),
-        mac_address: closeData.mac_address || wo.mac_address,
-        damping: closeData.damping || wo.damping,
-        notes: closeData.notes || wo.notes,
-        photo_proof: closeData.photo_proof || wo.photo_proof
-      })
-      .eq('id', workOrderId)
-      .select()
-      .single();
+    // Update status and calculate points via PostgreSQL function (atomic)
+    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('close_work_order_with_points', {
+      p_work_order_id: workOrderId,
+      p_close_data: closeData
+    });
 
-    if (updateError) {
-      return errorResponse(`Failed to close work order: ${updateError.message}`, 500);
-    }
-
-    // Update customer data if work order has customer_id
-    if (wo.customer_id && (closeData.mac_address || closeData.damping)) {
-      await supabaseAdmin
-        .from('customers')
-        .update({
-          mac_address: closeData.mac_address || undefined,
-          damping: closeData.damping || undefined
-        })
-        .eq('id', wo.customer_id);
-    }
-
-    // Calculate and add points to technician
-    if (wo.claimed_by && wo.master_queue_types?.base_point) {
-      const pointsToAdd = wo.master_queue_types.base_point;
-      
-      // Get current points
-      const { data: tech } = await supabaseAdmin
-        .from('employees')
-        .select('total_points')
-        .eq('id', wo.claimed_by)
-        .single();
-
-      // Update points
-      await supabaseAdmin
-        .from('employees')
-        .update({
-          total_points: (tech?.total_points || 0) + pointsToAdd
-        })
-        .eq('id', wo.claimed_by);
+    if (rpcError || !rpcResult.success) {
+      return errorResponse(`Failed to close work order: ${rpcError?.message || rpcResult?.error}`, 500);
     }
 
     // ── [FONNTE] Notify customer — Centralized, reliable ─────────────────
@@ -135,7 +95,7 @@ export default withCors(async function handler(req) {
     return jsonResponse({
       success: true,
       message: 'Work order closed successfully',
-      data: updatedWO
+      data: rpcResult
     });
 
   } catch (error) {
