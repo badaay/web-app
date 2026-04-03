@@ -1,12 +1,10 @@
 -- Migration: 021_app_settings_salary.sql
--- Task 1.2: Add salary-related settings
--- Ref: pre-planning/02-calculation-rules.md#7-configurable-parameters-summary
-
--- TODO: Implement
--- INSERT INTO public.app_settings (setting_key, setting_value, description) VALUES
--- ('work_start_time', '08:00', 'Daily work start time for attendance tracking'),
--- ('late_rate_per_hour', '20000', 'Deduction rate per hour of lateness (IDR)'),
--- ('late_max_daily', '20000', 'Maximum daily late deduction (IDR)'),
--- ('overtime_rate_per_hour', '10000', 'Overtime pay per hour (IDR)'),
--- ('point_deduction_rate', '11600', 'Deduction per point shortage (IDR)')
--- ON CONFLICT (setting_key) DO NOTHING;
+INSERT INTO public.app_settings (setting_key, setting_value, setting_group, description) VALUES
+('work_start_time',        '08:00',   'payroll', 'Daily work start time for attendance tracking'),
+('late_rate_per_hour',     '20000',   'payroll', 'Deduction rate per hour of lateness (IDR)'),
+('late_max_daily',         '20000',   'payroll', 'Maximum daily late deduction (IDR)'),
+('overtime_start_time',    '16:30',   'payroll', 'Overtime starts after this time'),
+('overtime_rate_per_hour', '10000',   'payroll', 'Overtime pay rate per hour (IDR)'),
+('point_deduction_rate',   '11600',   'payroll', 'Deduction per point below monthly target (IDR)'),
+('bpjs_fixed_amount',      '194040',  'payroll', 'Fixed BPJS Ketenagakerjaan deduction amount (IDR)')
+ON CONFLICT (setting_key) DO NOTHING;
