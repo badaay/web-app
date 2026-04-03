@@ -72,6 +72,24 @@
                 </button>
 
                 <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Payroll & HR</div>
+                <button class="nav-item-custom nav-module-link" data-module="attendance-content">
+                    <i class="bi bi-calendar-check"></i> Kehadiran
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="overtime-content">
+                    <i class="bi bi-clock-history"></i> Lembur
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="payroll-content">
+                    <i class="bi bi-cash-stack"></i> Payroll
+                </button>
+
+                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Keuangan</div>
+                <button class="nav-item-custom nav-module-link" data-module="billing-content">
+                    <i class="bi bi-receipt-cutoff"></i> Layanan & Tagihan
+                </button>
+
+                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
                     style="font-size: 0.65rem; letter-spacing: 1.5px;">Sistem</div>
                 <button class="nav-item-custom nav-module-link" data-module="settings-module">
                     <i class="bi bi-gear"></i> Settings
@@ -454,8 +472,34 @@
                                 <div class="card-body text-center py-5">Memuat data Antrian...</div>
                             </div>
                         </div>
-                    </div>
-                </div>
+
+                        <!-- Attendance -->
+                        <div class="tab-pane fade" id="attendance-content" role="tabpanel">
+                            <div id="attendance-module-root"></div>
+                        </div>
+
+                        <!-- Overtime -->
+                        <div class="tab-pane fade" id="overtime-content" role="tabpanel">
+                            <div id="overtime-module-root"></div>
+                        </div>
+
+                        <!-- Payroll -->
+                        <div class="tab-pane fade" id="payroll-content" role="tabpanel">
+                            <div id="payroll-module-root"></div>
+                        </div>
+
+                        <!-- Billing & Payments -->
+                        <div class="tab-pane fade" id="billing-content" role="tabpanel">
+                            <div id="billing-module-root">
+                                <div class="text-center py-5 text-white-50">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>
+                                    Memuat modul tagihan...
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- end masterDataTabsContent -->
+                </div><!-- end master-data-container -->
             </main>
         </div>
     </div>

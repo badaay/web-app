@@ -96,6 +96,16 @@ export async function isAdmin(userId) {
   return hasRole(userId, ['S_ADM', 'OWNER', 'ADM']);
 }
 
+/**
+ * Check if user is an admin-class or treasurer.
+ * Matches the actual role codes defined in schema.sql.
+ * @param {string} userId
+ * @returns {Promise<boolean>}
+ */
+export async function isFinance(userId) {
+  return hasRole(userId, ['S_ADM', 'OWNER', 'ADM', 'TREASURER']);
+}
+
 // ---------------------------------------------------------------------------
 // Response helpers
 // ---------------------------------------------------------------------------

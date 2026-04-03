@@ -309,6 +309,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (targetId === 'payments-pane') {
             const { initPayments } = await import('./modules/payments.js');
             initPayments();
+        } else if (targetId === 'billing-content') {
+            const { initBilling } = await import('./modules/billing.js');
+            initBilling();
         }
     }
 });

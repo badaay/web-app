@@ -40,10 +40,13 @@ export const TEMPLATES = {
         'Selamat, *${name}*! Layanan internet paket *${package_name}* Anda kini *aktif*. Semoga betah dan nikmati koneksinya! 🚀',
 
     payment_due_soon:
-        '📅 Pengingat tagihan untuk *${name}*: tagihan internet Anda sebesar *Rp${amount}* akan jatuh tempo pada *${due_date}*. Mohon segera lakukan pembayaran.',
+        '📅 Pengingat tagihan untuk *${name}*: tagihan internet Anda sebesar *Rp${amount}* akan jatuh tempo pada *${due_date}*. Mohon segera lakukan pembayaran sebelum ada pemutusan layanan.',
 
     payment_overdue:
-        '⚠️ *${name}*, tagihan internet Anda sebesar *Rp${amount}* telah _melewati jatuh tempo_ *${due_date}*. Mohon segera lakukan pembayaran.',
+        '⚠️ *${name}*, Anda sudah lewat pembayaran tagihan sebesar *Rp${amount}*. Mohon segera bayar untuk menikmati kembali layanan internet kami.',
+
+    payment_received:
+        'Halo *${name}*, pembayaran layanan internet Anda untuk periode *${period}* sebesar *Rp${amount}* telah kami terima. Terima kasih! 🙏 Lihat bukti bayar: ${invoice_link}',
 };
 
 /**
