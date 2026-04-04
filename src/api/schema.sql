@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
     training TEXT DEFAULT 'Tidak',
     bpjs TEXT DEFAULT 'Tidak',
     role_id UUID REFERENCES public.roles(id),
+    total_points INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -243,7 +244,84 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. Get Current User's Role Code
+-- 2. Close Work Order and Calculate Points
+CREATE OR REPLACE FUNCTION public.close_work_order_with_points(
+    p_work_order_id UUID,
+    p_close_data JSONB
+)
+RETURNS JSONB AS $$
+DECLARE
+    v_base_point INTEGER;
+    v_type_id UUID;
+    v_customer_id UUID;
+    v_result JSONB;
+BEGIN
+    -- 1. Get work order info
+    SELECT type_id, customer_id INTO v_type_id, v_customer_id
+    FROM public.work_orders
+    WHERE id = p_work_order_id;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
+    END IF;
+
+    -- 2. Get base points for this type
+    SELECT base_point INTO v_base_point
+    FROM public.master_queue_types
+    WHERE id = v_type_id;
+
+    -- 3. Update work order status and metadata
+    UPDATE public.work_orders
+    SET 
+        status = 'closed',
+        completed_at = now(),
+        points = COALESCE(v_base_point, 0),
+        updated_at = now()
+    WHERE id = p_work_order_id;
+
+    -- 4. Update installation_monitorings (where mac and notes actually live)
+    UPDATE public.installation_monitorings
+    SET
+        mac_address = COALESCE((p_close_data->>'mac_address'), mac_address),
+        notes = COALESCE((p_close_data->>'notes'), notes),
+        photo_proof = COALESCE((p_close_data->>'photo_proof'), photo_proof),
+        actual_date = COALESCE((p_close_data->>'actual_date')::DATE, now()::DATE),
+        updated_at = now()
+    WHERE work_order_id = p_work_order_id;
+
+    -- 5. Update customer technical data (damping lives here)
+    IF v_customer_id IS NOT NULL THEN
+        UPDATE public.customers
+        SET 
+            mac_address = COALESCE((p_close_data->>'mac_address'), mac_address),
+            damping = COALESCE((p_close_data->>'damping'), damping)
+        WHERE id = v_customer_id;
+    END IF;
+
+    -- 6. Distribute points to assigned technicians
+    -- Lead and members get full base_point
+    UPDATE public.work_order_assignments
+    SET points_earned = COALESCE(v_base_point, 0)
+    WHERE work_order_id = p_work_order_id;
+
+    -- 7. Aggregate points to employee profile
+    UPDATE public.employees e
+    SET total_points = e.total_points + COALESCE(v_base_point, 0)
+    FROM public.work_order_assignments a
+    WHERE a.work_order_id = p_work_order_id
+      AND a.employee_id = e.id;
+
+    RETURN jsonb_build_object(
+        'success', true, 
+        'points_awarded', v_base_point,
+        'message', 'Work order closed and points distributed'
+    );
+EXCEPTION WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 3. Get Current User's Role Code
 CREATE OR REPLACE FUNCTION public.get_my_role()
 RETURNS TEXT AS $$
     SELECT r.code 
@@ -431,4 +509,235 @@ VALUES
         'JSON map of message_type → device label. All default to "main" (single device). Edit in Settings to reassign when additional devices are added.')
 ON CONFLICT (setting_key) DO NOTHING;
   
-  
+
+-- =============================================================
+-- PHASE 2: Payment & Payroll Schema Extension
+-- =============================================================
+
+-- 1. Employee Table Extensions
+ALTER TABLE public.employees
+ADD COLUMN IF NOT EXISTS base_salary INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS is_bpjs_enrolled BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS target_monthly_points INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS bank_name TEXT,
+ADD COLUMN IF NOT EXISTS bank_account_number TEXT,
+ADD COLUMN IF NOT EXISTS bank_account_name TEXT;
+
+-- 2. App Settings — Salary Config
+INSERT INTO public.app_settings (setting_key, setting_value, setting_group, description) VALUES
+('work_start_time',        '08:00',   'payroll', 'Daily work start time for attendance tracking'),
+('late_rate_per_hour',     '20000',   'payroll', 'Deduction rate per hour of lateness (IDR)'),
+('late_max_daily',         '20000',   'payroll', 'Maximum daily late deduction (IDR)'),
+('overtime_start_time',    '16:30',   'payroll', 'Overtime starts after this time'),
+('overtime_rate_per_hour', '10000',   'payroll', 'Overtime pay rate per hour (IDR)'),
+('point_deduction_rate',   '11600',   'payroll', 'Deduction per point below monthly target (IDR)'),
+('bpjs_fixed_amount',      '194040',  'payroll', 'Fixed BPJS Ketenagakerjaan deduction amount (IDR)')
+ON CONFLICT (setting_key) DO NOTHING;
+
+-- 3. Employee Salary Configs (Historical Tracking)
+CREATE TABLE IF NOT EXISTS public.employee_salary_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    position_allowance       INTEGER DEFAULT 0,
+    additional_allowance     INTEGER DEFAULT 0,
+    quota_allowance          INTEGER DEFAULT 0,
+    education_allowance      INTEGER DEFAULT 0,
+    transport_meal_allowance INTEGER DEFAULT 0,
+    bpjs_company_contribution INTEGER DEFAULT 0,
+    effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+    effective_to   DATE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    created_by UUID REFERENCES public.employees(id),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT valid_effective_period CHECK (effective_to IS NULL OR effective_to >= effective_from)
+);
+
+CREATE INDEX IF NOT EXISTS idx_employee_salary_configs_employee  ON public.employee_salary_configs(employee_id);
+ALTER TABLE public.employee_salary_configs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins can manage salary configs" ON public.employee_salary_configs FOR ALL USING (public.is_admin_class()) WITH CHECK (public.is_admin_class());
+CREATE POLICY "Employees can view own salary config" ON public.employee_salary_configs FOR SELECT USING (employee_id = auth.uid());
+
+-- 4. Attendance Records
+CREATE TABLE IF NOT EXISTS public.attendance_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    attendance_date DATE NOT NULL,
+    check_in_time   TIME,
+    check_out_time  TIME,
+    late_minutes     INTEGER DEFAULT 0,
+    is_absent        BOOLEAN DEFAULT false,
+    deduction_amount INTEGER DEFAULT 0,
+    source      TEXT DEFAULT 'manual',
+    external_id TEXT,
+    notes       TEXT,
+    created_at  TIMESTAMPTZ DEFAULT now(),
+    created_by  UUID REFERENCES public.employees(id),
+    updated_at  TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (employee_id, attendance_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_employee ON public.attendance_records(employee_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date     ON public.attendance_records(attendance_date);
+ALTER TABLE public.attendance_records ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins can manage attendance" ON public.attendance_records FOR ALL USING (public.has_any_role(ARRAY['S_ADM','OWNER','ADM','SPV_TECH'])) WITH CHECK (public.has_any_role(ARRAY['S_ADM','OWNER','ADM','SPV_TECH']));
+CREATE POLICY "Employees can view own attendance" ON public.attendance_records FOR SELECT USING (employee_id = auth.uid());
+
+-- 5. Overtime Records
+CREATE TABLE IF NOT EXISTS public.overtime_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    overtime_date DATE NOT NULL,
+    start_time    TIME NOT NULL,
+    end_time      TIME NOT NULL,
+    description   TEXT NOT NULL,
+    overtime_type TEXT,
+    total_hours  DECIMAL(5,2) NOT NULL,
+    hourly_rate  INTEGER NOT NULL,
+    total_amount INTEGER NOT NULL,
+    work_order_id UUID REFERENCES public.work_orders(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    created_by UUID REFERENCES public.employees(id),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.overtime_records ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated can view overtime" ON public.overtime_records FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Admins can manage overtime" ON public.overtime_records FOR ALL USING (public.has_any_role(ARRAY['S_ADM','OWNER','ADM','SPV_TECH'])) WITH CHECK (public.has_any_role(ARRAY['S_ADM','OWNER','ADM','SPV_TECH']));
+
+-- 6. Overtime Assignments
+CREATE TABLE IF NOT EXISTS public.overtime_assignments (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    overtime_id  UUID NOT NULL REFERENCES public.overtime_records(id) ON DELETE CASCADE,
+    employee_id  UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    amount_earned INTEGER NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (overtime_id, employee_id)
+);
+
+ALTER TABLE public.overtime_assignments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Employees can view own overtime assignments" ON public.overtime_assignments FOR SELECT USING (employee_id = auth.uid());
+CREATE POLICY "Admins can manage overtime assignments" ON public.overtime_assignments FOR ALL USING (public.has_any_role(ARRAY['S_ADM','OWNER','ADM','SPV_TECH'])) WITH CHECK (public.has_any_role(ARRAY['S_ADM','OWNER','ADM','SPV_TECH']));
+
+-- 7. Payroll Periods
+CREATE TABLE IF NOT EXISTS public.payroll_periods (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    year  INTEGER NOT NULL,
+    month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
+    period_start DATE NOT NULL,
+    period_end   DATE NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','calculating','calculated','approved','paid')),
+    calculated_at TIMESTAMPTZ,
+    approved_at   TIMESTAMPTZ,
+    paid_at       TIMESTAMPTZ,
+    approved_by   UUID REFERENCES public.employees(id),
+    notes      TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    created_by UUID REFERENCES public.employees(id),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (year, month),
+    CONSTRAINT valid_period_dates CHECK (period_end >= period_start)
+);
+
+ALTER TABLE public.payroll_periods ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated can view payroll periods" ON public.payroll_periods FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Admins can manage payroll periods" ON public.payroll_periods FOR ALL USING (public.is_admin_class()) WITH CHECK (public.is_admin_class());
+
+-- 8. Payroll Summaries & Items
+CREATE TABLE IF NOT EXISTS public.payroll_line_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_period_id UUID NOT NULL REFERENCES public.payroll_periods(id) ON DELETE CASCADE,
+    employee_id       UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    component_type TEXT NOT NULL CHECK (component_type IN ('earning','deduction')),
+    component_code TEXT NOT NULL,
+    component_name TEXT NOT NULL,
+    amount         INTEGER NOT NULL,
+    calculation_details JSONB,
+    is_manual_override  BOOLEAN DEFAULT false,
+    override_reason     TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    created_by UUID REFERENCES public.employees(id),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (payroll_period_id, employee_id, component_code)
+);
+
+ALTER TABLE public.payroll_line_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Employees can view own payroll items" ON public.payroll_line_items FOR SELECT USING (employee_id = auth.uid());
+CREATE POLICY "Admins can manage payroll items" ON public.payroll_line_items FOR ALL USING (public.is_admin_class()) WITH CHECK (public.is_admin_class());
+
+CREATE TABLE IF NOT EXISTS public.payroll_summaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_period_id UUID NOT NULL REFERENCES public.payroll_periods(id) ON DELETE CASCADE,
+    employee_id       UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    gross_earnings   INTEGER NOT NULL DEFAULT 0,
+    total_deductions INTEGER NOT NULL DEFAULT 0,
+    take_home_pay    INTEGER NOT NULL DEFAULT 0,
+    target_points INTEGER DEFAULT 0,
+    actual_points INTEGER DEFAULT 0,
+    point_shortage INTEGER DEFAULT 0,
+    days_present INTEGER DEFAULT 0,
+    days_late    INTEGER DEFAULT 0,
+    days_absent  INTEGER DEFAULT 0,
+    overtime_hours  DECIMAL(5,2) DEFAULT 0,
+    overtime_amount INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (payroll_period_id, employee_id)
+);
+
+ALTER TABLE public.payroll_summaries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Employees can view own payroll summary" ON public.payroll_summaries FOR SELECT USING (employee_id = auth.uid());
+CREATE POLICY "Admins can manage payroll summaries" ON public.payroll_summaries FOR ALL USING (public.is_admin_class()) WITH CHECK (public.is_admin_class());
+
+CREATE TABLE IF NOT EXISTS public.payroll_adjustments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_period_id UUID NOT NULL REFERENCES public.payroll_periods(id) ON DELETE CASCADE,
+    employee_id       UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    adjustment_type TEXT NOT NULL CHECK (adjustment_type IN ('bonus','deduction')),
+    amount          INTEGER NOT NULL CHECK (amount > 0),
+    reason          TEXT NOT NULL,
+    requested_by UUID REFERENCES public.employees(id),
+    approved_by  UUID REFERENCES public.employees(id),
+    approved_at  TIMESTAMPTZ,
+    status       TEXT DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+    created_at  TIMESTAMPTZ DEFAULT now(),
+    updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.payroll_adjustments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Employees can view own adjustments" ON public.payroll_adjustments FOR SELECT USING (employee_id = auth.uid());
+CREATE POLICY "Admins can manage adjustments" ON public.payroll_adjustments FOR ALL USING (public.is_admin_class()) WITH CHECK (public.is_admin_class());
+
+-- HR Functions
+CREATE OR REPLACE FUNCTION public.calculate_late_deduction(p_check_in_time TIME, p_is_absent BOOLEAN DEFAULT false) RETURNS INTEGER AS $$
+DECLARE
+    v_work_start     TIME;
+    v_rate_per_hour  INTEGER;
+    v_max_daily      INTEGER;
+    v_late_minutes   INTEGER;
+    v_deduction      INTEGER;
+BEGIN
+    SELECT setting_value::TIME    INTO v_work_start    FROM public.app_settings WHERE setting_key = 'work_start_time';
+    SELECT setting_value::INTEGER INTO v_rate_per_hour FROM public.app_settings WHERE setting_key = 'late_rate_per_hour';
+    SELECT setting_value::INTEGER INTO v_max_daily     FROM public.app_settings WHERE setting_key = 'late_max_daily';
+    v_work_start    := COALESCE(v_work_start, '08:00'::TIME);
+    v_rate_per_hour := COALESCE(v_rate_per_hour, 20000);
+    v_max_daily     := COALESCE(v_max_daily, 20000);
+    IF p_is_absent OR p_check_in_time IS NULL THEN RETURN v_max_daily; END IF;
+    IF p_check_in_time <= v_work_start THEN RETURN 0; END IF;
+    v_late_minutes := EXTRACT(EPOCH FROM (p_check_in_time - v_work_start)) / 60;
+    v_deduction := FLOOR((v_late_minutes::DECIMAL / 60) * v_rate_per_hour);
+    RETURN LEAST(v_deduction, v_max_daily);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.calculate_point_deduction(p_employee_id UUID, p_year INTEGER, p_month INTEGER) RETURNS TABLE (target_points INTEGER, actual_points INTEGER, point_shortage INTEGER, deduction_amount INTEGER) AS $$
+DECLARE
+    v_target INTEGER; v_actual INTEGER; v_rate   INTEGER;
+BEGIN
+    SELECT e.target_monthly_points INTO v_target FROM public.employees e WHERE e.id = p_employee_id;
+    v_target := COALESCE(v_target, 0);
+    SELECT COALESCE(SUM(woa.points_earned), 0) INTO v_actual FROM public.work_order_assignments woa JOIN public.work_orders wo ON wo.id = woa.work_order_id WHERE woa.employee_id = p_employee_id AND EXTRACT(YEAR FROM wo.completed_at) = p_year AND EXTRACT(MONTH FROM wo.completed_at) = p_month AND wo.status = 'closed';
+    SELECT setting_value::INTEGER INTO v_rate FROM public.app_settings WHERE setting_key = 'point_deduction_rate';
+    v_rate := COALESCE(v_rate, 11600);
+    RETURN QUERY SELECT v_target, v_actual, CASE WHEN v_actual < v_target THEN v_target - v_actual ELSE 0 END, CASE WHEN v_actual < v_target THEN (v_target - v_actual) * v_rate ELSE 0 END;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
