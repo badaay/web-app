@@ -96,6 +96,24 @@ CREATE TABLE IF NOT EXISTS public.customers (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 7.1 PSB Registrations (Prospects)
+CREATE TABLE IF NOT EXISTS public.psb_registrations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    alt_phone TEXT,
+    address TEXT NOT NULL,
+    packet TEXT,
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION,
+    photo_ktp TEXT,
+    photo_rumah TEXT,
+    secret_token UUID UNIQUE DEFAULT gen_random_uuid(),
+    status TEXT DEFAULT 'waiting',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 8. App Settings
 CREATE TABLE IF NOT EXISTS public.app_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -163,6 +181,24 @@ CREATE TABLE IF NOT EXISTS public.work_order_assignments (
     points_earned INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE (work_order_id, employee_id)
+);
+
+-- 12. Customer Bills Table
+-- Stores monthly billing records and tracking for payments.
+CREATE TABLE IF NOT EXISTS public.customer_bills (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID REFERENCES public.customers(id) ON DELETE CASCADE,
+    period_date DATE NOT NULL, -- The billing month/year (usually 1st of the month)
+    due_date DATE,
+    amount DECIMAL(12,2) NOT NULL,
+    status TEXT DEFAULT 'unpaid', -- unpaid, paid, cancelled
+    payment_method TEXT, -- transfer, cash, gateway
+    payment_date TIMESTAMPTZ,
+    secret_token TEXT UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (customer_id, period_date)
 );
 
 -- IV. FUNCTIONS & TRIGGERS
@@ -259,10 +295,12 @@ ALTER TABLE public.internet_packages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.psb_registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.installation_monitorings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_bills ENABLE ROW LEVEL SECURITY;
 
 -- 2. Policies
 -- Roles: Public Select
@@ -284,6 +322,7 @@ CREATE POLICY "Allow admin insert for app_settings" ON public.app_settings FOR I
 CREATE POLICY "Allow admin delete for app_settings" ON public.app_settings FOR DELETE USING (is_admin_class());
 
 -- Generic Public/Permissive Policies (Can be tightened later per business logic)
+CREATE POLICY "Enable all for anyone" ON public.psb_registrations FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for anyone" ON public.customers FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for anyone" ON public.inventory_items FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for anyone" ON public.internet_packages FOR ALL USING (true) WITH CHECK (true);
@@ -310,6 +349,11 @@ CREATE POLICY "assignments_update" ON public.work_order_assignments
 CREATE POLICY "assignments_delete" ON public.work_order_assignments
   FOR DELETE USING (has_any_role(ARRAY['S_ADM', 'OWNER']));
 
+-- Customer Bills: Admin/Treasurer full access; public select for invoice portal
+CREATE POLICY "bills_select_admin" ON public.customer_bills FOR SELECT USING (is_admin_class() OR has_role('TREASURER'));
+CREATE POLICY "bills_modify_admin" ON public.customer_bills FOR ALL USING (is_admin_class() OR has_role('TREASURER')) WITH CHECK (is_admin_class() OR has_role('TREASURER'));
+CREATE POLICY "bills_select_public" ON public.customer_bills FOR SELECT USING (true); -- Public can read IF they know the token (secured at API/Search level)
+
 
 -- VI. OPTIMIZATION (INDEXES)
 CREATE INDEX IF NOT EXISTS idx_work_orders_status ON public.work_orders(status);
@@ -317,6 +361,9 @@ CREATE INDEX IF NOT EXISTS idx_work_orders_customer_id ON public.work_orders(cus
 CREATE INDEX IF NOT EXISTS idx_work_orders_employee_id ON public.work_orders(employee_id);
 CREATE INDEX IF NOT EXISTS idx_wo_assignments_work_order_id ON public.work_order_assignments(work_order_id);
 CREATE INDEX IF NOT EXISTS idx_wo_assignments_employee_id ON public.work_order_assignments(employee_id);
+CREATE INDEX IF NOT EXISTS idx_bills_customer_id ON public.customer_bills(customer_id);
+CREATE INDEX IF NOT EXISTS idx_bills_status ON public.customer_bills(status);
+CREATE INDEX IF NOT EXISTS idx_bills_token ON public.customer_bills(secret_token);
 
 
 -- VII. SEED DATA
