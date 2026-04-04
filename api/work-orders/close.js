@@ -17,6 +17,7 @@
 
 import { supabaseAdmin, verifyAuth, hasRole, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
 import { notifyWorkOrderEvent } from '../_lib/fonnte.js';
+import { APP_CONFIG } from '../../src/api/config.js';
 
 export const config = { runtime: 'edge' };
 
@@ -42,7 +43,7 @@ export default withCors(async function handler(req) {
     // Get the work order first
     const { data: wo, error: fetchError } = await supabaseAdmin
       .from('work_orders')
-      .select('*, master_queue_types(base_point)')
+      .select('*, master_queue_types(base_point), work_order_assignments(*)')
       .eq('id', workOrderId)
       .single();
 
@@ -50,23 +51,27 @@ export default withCors(async function handler(req) {
       return errorResponse('Work order not found', 404);
     }
 
-    // Verify the user is the assigned technician or an admin/supervisor
-    let isAuthorized = (wo.claimed_by === user.id);
+    const assignments = wo.work_order_assignments || [];
+    const isAssigned = assignments.some(a => a.employee_id === user.id);
+    let isAuthorized = isAssigned;
     
     if (!isAuthorized) {
       const canCloseForOthers = await hasRole(user.id, ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH']);
       if (canCloseForOthers) {
         isAuthorized = true;
       } else {
-        // Fallback: Check if the user's email matches the employee who claimed it
-        const { data: techRow } = await supabaseAdmin
-            .from('employees')
-            .select('id')
-            .eq('id', wo.claimed_by)
-            .eq('email', user.email)
-            .single();
-        
-        if (techRow) isAuthorized = true;
+        // Fallback: Check if the user's email matches any employee in the assignments
+        // Convert array of assigned employee UUIDs to check against their emails
+        const employeeIds = assignments.map(a => a.employee_id);
+        if (employeeIds.length > 0) {
+            const { data: techRows } = await supabaseAdmin
+                .from('employees')
+                .select('id')
+                .in('id', employeeIds)
+                .eq('email', user.email);
+            
+            if (techRows && techRows.length > 0) isAuthorized = true;
+        }
       }
     }
 
@@ -109,7 +114,7 @@ export default withCors(async function handler(req) {
         
       if (psb && psb.status !== 'completed') {
         const generatedPassword = Math.random().toString(36).slice(-8); // 8-char password
-        const email = `${psb.phone}@sifatih.local`;
+        const email = `${psb.phone}${APP_CONFIG.AUTH_DOMAIN_SUFFIX}`;
         
         // 2. Create Auth User using the exact same UUID. This links auth automatically via the existing customers row id.
         const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
@@ -124,6 +129,11 @@ export default withCors(async function handler(req) {
             // 3. Mark registration as completed
             await supabaseAdmin.from('psb_registrations')
               .update({ status: 'completed' })
+              .eq('id', psb.id);
+              
+            // 4. Update the customers table with the new email so they can log in
+            await supabaseAdmin.from('customers')
+              .update({ email })
               .eq('id', psb.id);
               
             // Send WA Integration (Placeholder for C04-06)
@@ -143,24 +153,38 @@ export default withCors(async function handler(req) {
       }
     }
 
-    // Calculate and add points to technician
-    if (wo.claimed_by && wo.master_queue_types?.base_point) {
-      const pointsToAdd = wo.master_queue_types.base_point;
+    // Calculate and add points to all assigned technicians
+    if (assignments.length > 0 && wo.master_queue_types?.base_point) {
+      const basePoint = wo.master_queue_types.base_point;
       
-      // Get current points
-      const { data: tech } = await supabaseAdmin
-        .from('employees')
-        .select('total_points')
-        .eq('id', wo.claimed_by)
-        .single();
+      for (const assignment of assignments) {
+          // In SIFATIH schema, leads get full, members get half/split, or we just award base_point for now
+          // For now give basePoint to all, or adapt to your specific logic.
+          const pointsToAdd = assignment.assignment_role === 'lead' ? basePoint : Math.floor(basePoint / 2);
+          
+          // Get current points
+          const { data: tech } = await supabaseAdmin
+            .from('employees')
+            .select('total_points')
+            .eq('id', assignment.employee_id)
+            .single();
 
-      // Update points
-      await supabaseAdmin
-        .from('employees')
-        .update({
-          total_points: (tech?.total_points || 0) + pointsToAdd
-        })
-        .eq('id', wo.claimed_by);
+          if (tech) {
+              // Update employee total points
+              await supabaseAdmin
+                .from('employees')
+                .update({
+                  total_points: (tech.total_points || 0) + pointsToAdd
+                })
+                .eq('id', assignment.employee_id);
+                
+              // Update the assignment to reflect points earned
+              await supabaseAdmin
+                .from('work_order_assignments')
+                .update({ points_earned: pointsToAdd })
+                .eq('id', assignment.id);
+          }
+      }
     }
 
     // ── [FONNTE] Notify customer — Centralized, reliable ─────────────────

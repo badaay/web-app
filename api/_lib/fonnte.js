@@ -281,16 +281,8 @@ export async function notifyWorkOrderEvent(workOrderId, eventType) {
             if (tech) technicianName = tech.name;
         }
 
-        // ── Resolve package name separately (no FK → can't join) ──────────────
-        let packageName = 'Internet';
-        if (wo.package_id) {
-            const { data: pkg } = await supabaseAdmin
-                .from('internet_packages')
-                .select('name')
-                .eq('id', wo.package_id)
-                .single();
-            if (pkg?.name) packageName = pkg.name;
-        }
+        // ── Resolve package name from customer record ──────────────
+        let packageName = wo.customers?.packet || 'Internet';
 
         const customer = wo.customers;
         const variables = {

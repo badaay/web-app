@@ -12,7 +12,7 @@ export async function loadWorkOrders(listContainer, onLoaded) {
 
     const { data, error } = await supabase
         .from('work_orders')
-        .select('*, customers(*), employees!employee_id(name)')
+        .select('*, customers(*), work_order_assignments(assignment_role, employees(name))')
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -38,35 +38,22 @@ export function renderStatusSummary(allWorkOrders, currentFilter, onFilterChange
     const statuses = ['waiting', 'confirmed', 'open', 'closed'];
     const total = allWorkOrders.length;
 
-    // Create step-based progress flow
+    // Simplified Summary implementation for Kanban
     const stepsHtml = `
-        <div class="d-flex justify-content-between align-items-center mb-3" style="flex-wrap: wrap;">
-            <div class="d-flex align-items-center gap-2" style="flex-wrap: wrap;">
-                <div class="text-muted small me-2">Status Flow:</div>
-                ${statuses.map((s, idx) => `
-                    <div class="d-inline-flex align-items-center">
-                        <button class="badge p-2 border-0 wo-filter-badge ${currentFilter === s ? 'ring-active' : ''}"
-                            style="background-color:${getStatusColor(s)};color:#fff;cursor:pointer;min-width:80px;"
-                            data-filter="${s}"
-                            title="Click to filter">
-                            ${getStatusDisplayText(s)}<br><small>${counts[s] || 0}</small>
-                        </button>
-                        ${idx < statuses.length - 1 ? '<i class="bi bi-arrow-right text-muted mx-2"></i>' : ''}
-                    </div>
-                `).join('')}
-            </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div><h5 class="m-0 text-white"><i class="bi bi-kanban"></i> Status Antrian</h5></div>
             <div class="ms-auto mt-2 mt-md-0">
                 <button class="badge p-2 border-0 wo-filter-badge ${currentFilter === 'All' ? 'ring-active' : ''}"
                     style="background:var(--vscode-accent);color:#fff;cursor:pointer;min-width:80px;"
                     data-filter="All"
                     title="Show all">
-                    <i class="bi bi-list me-1"></i>Semua<br><small>${total}</small>
+                    <i class="bi bi-list me-1"></i>Reset Filter<br><small>${total}</small>
                 </button>
             </div>
         </div>
     `;
 
-    summaryContainer.innerHTML = stepsHtml;
+    // summaryContainer.innerHTML = stepsHtml;
 
     summaryContainer.querySelectorAll('.wo-filter-badge').forEach(badge => {
         badge.onclick = () => {
@@ -142,55 +129,75 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick) {
         return;
     }
 
-    const tableHtml = `
-        <div class="table-responsive mt-3">
-            <table class="table table-dark table-hover align-middle">
-                <thead class="table-secondary">
-                    <tr>
-                        <th style="width: 100px;">Tgl Daftar</th>
-                        <th style="width: 150px;">Pelanggan</th>
-                        <th style="width: 100px;">No HP</th>
-                        <th style="width: 80px;">Tipe</th>
-                        <th style="width: 100px;">Status</th>
-                        <th style="width: 120px;">Teknisi</th>
-                        <th style="width: 150px;">Keterangan</th>
-                        <th style="width: 80px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${filteredOrders.map(wo => `
-                        <tr>
-                            <td><small>${wo.registration_date || '-'}</small></td>
-                            <td><strong>${wo.customers?.name || '-'}</strong></td>
-                            <td><small>${wo.customers?.phone || '-'}</small></td>
-                            <td><span class="badge bg-dark">${wo.title?.substring(0, 10) || 'PSB'}</span></td>
-                            <td>
-                                <span class="badge" style="background-color:${getStatusColor(wo.status)};color:#fff;font-weight:600;">
-                                    <i class="bi bi-circle-fill me-1" style="font-size:0.6em;"></i>
-                                    ${getStatusDisplayText(wo.status)}
-                                </span>
-                            </td>
-                            <td><small>${wo.employees?.name || 'Belum ditugaskan'}</small></td>
-                            <td><small>${wo.ket?.substring(0, 15) || wo.payment_status || '-'}</small></td>
-                            <td>
-                                ${wo.status === 'waiting' ? `
-                                    <button class="btn btn-sm btn-success assign-confirm-wo" data-id="${wo.id}" title="Konfirmasi & Tugaskan">
-                                        Konfirmasi
-                                    </button>
-                                ` : `
-                                    <button class="btn btn-sm btn-primary view-wo-details-btn" data-id="${wo.id}" title="Lihat Aksi">
-                                        <i class="bi bi-three-dots"></i>
-                                    </button>
-                                `}
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
+    const columns = [
+        { id: 'waiting', title: '🟡 Menunggu', statuses: ['waiting'], width: '300px' },
+        { id: 'progress', title: '🔵 Diproses', statuses: ['confirmed', 'open', 'pending'], width: '300px' },
+        { id: 'closed', title: '🟢 Selesai', statuses: ['closed'], width: '300px' },
+        { id: 'issues', title: '🔴 Kendala/Batal', statuses: ['odp_full', 'cancelled'], width: '300px' }
+    ];
 
-    tableContainer.innerHTML = tableHtml;
+    let kanbanHtml = '<div class="d-flex flex-nowrap overflow-x-auto pb-3 gap-3" style="min-height: 60vh;">';
+
+    columns.forEach(col => {
+        const colOrders = filteredOrders.filter(wo => col.statuses.includes(wo.status));
+        
+        kanbanHtml += `
+            <div class="d-flex flex-column" style="min-width: ${col.width}; flex-shrink: 0;">
+                <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-1 rounded" style="background-color: var(--vscode-header-bg); border-top: 3px solid ${getStatusColor(col.statuses[0])};">
+                    <span class="fw-bold" style="color: var(--vscode-text-bright);">${col.title}</span>
+                    <span class="badge bg-secondary rounded-pill">${colOrders.length}</span>
+                </div>
+                <div class="d-flex flex-column gap-2 flex-grow-1">
+                    ${colOrders.length === 0 ? '<div class="text-center p-3 small border border-secondary rounded border-dashed" style="border-style: dashed !important; color: var(--vscode-text);">Kosong</div>' : ''}
+                    ${colOrders.map(wo => `
+                        <div class="card border-secondary shadow-sm text-start position-relative" style="background-color: var(--vscode-bg); color: var(--vscode-text);">
+                            <div class="card-body p-2 position-relative">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span class="badge" style="background-color:${getStatusColor(wo.status)}; color:#fff; font-size:0.65rem;">
+                                        ${getStatusDisplayText(wo.status)}
+                                    </span>
+                                    <small style="font-size:0.65rem; color: var(--vscode-text);">${wo.registration_date || '-'}</small>
+                                </div>
+                                
+                                <div class="fw-bold mb-1" style="font-size:0.9rem; color: var(--vscode-text-bright);">${wo.customers?.name || '-'}</div>
+                                <div class="small text-info mb-1"><i class="bi bi-telephone me-1"></i>${wo.customers?.phone || '-'}</div>
+                                <div class="small mb-2 lh-sm" style="font-size:0.8rem; color: var(--vscode-text);">${wo.ket?.substring(0, 40) || 'Pemasangan Baru (PSB)'}${wo.ket?.length > 40 ? '...' : ''}</div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-2 border-top border-secondary pt-2">
+                                    <div class="small" style="color: ${wo.work_order_assignments?.length ? 'var(--vscode-text-bright)' : 'var(--vscode-warning)'}">
+                                        <i class="bi bi-person me-1"></i>${(() => {
+                                            const assignments = wo.work_order_assignments || [];
+                                            const lead = assignments.find(a => a.assignment_role === 'lead')?.employees?.name;
+                                            const members = assignments.filter(a => a.assignment_role === 'member').map(a => a.employees?.name);
+                                            if (!lead && members.length === 0) return 'Belum Ditugaskan';
+                                            let display = lead || members[0] || 'Tim Teknisi';
+                                            if (members.length > 0 && lead) display += ` <span class="badge bg-secondary ms-1 shadow-sm">+${members.length}</span>`;
+                                            else if (members.length > 1 && !lead) display += ` <span class="badge bg-secondary ms-1 shadow-sm">+${members.length - 1}</span>`;
+                                            return display;
+                                        })()}
+                                    </div>
+                                    <div>
+                                        ${wo.status === 'waiting' ? `
+                                            <button class="btn btn-sm btn-success assign-confirm-wo py-0 px-2" data-id="${wo.id}" title="Konfirmasi & Tugaskan" style="font-size:0.75rem;">
+                                                <i class="bi bi-check2"></i>
+                                            </button>
+                                        ` : `
+                                            <button class="btn btn-sm btn-primary view-wo-details-btn py-0 px-2" data-id="${wo.id}" title="Lihat Aksi" style="font-size:0.75rem;">
+                                                <i class="bi bi-three-dots"></i>
+                                            </button>
+                                        `}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    kanbanHtml += '</div>';
+    tableContainer.innerHTML = kanbanHtml;
 
     // Wire up action buttons for non-waiting rows
     tableContainer.querySelectorAll('.view-wo-details-btn').forEach(btn => {

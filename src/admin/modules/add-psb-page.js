@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const errNode = document.createElement('div');
         errNode.className = 'custom-inline-error mt-1 fw-bold shadow';
-        errNode.style.background = '#da3633';
-        errNode.style.color = '#fff';
+        errNode.style.background = 'var(--vscode-danger)';
+        errNode.style.color = 'var(--vscode-text-bright)';
         errNode.style.padding = '6px 12px';
         errNode.style.borderRadius = '6px';
         errNode.style.fontSize = '0.8rem';
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="col-md-7">
                                 <label class="form-label text-white-50 small mb-2">Pilih Titik Lokasi di Peta</label>
                                 <div class="position-relative">
-                                    <div id="location-picker-map" class="rounded border border-secondary shadow-sm" style="height: 350px; background: #1e1e1e; z-index: 1;"></div>
+                                    <div id="location-picker-map" class="rounded border border-secondary shadow-sm" style="height: 350px; background: var(--vscode-bg); z-index: 1;"></div>
                                     <button type="button" id="btn-get-location" class="btn btn-sm btn-dark border-secondary position-absolute" style="top: 315px; right: 5px; z-index: 1000;">
                                         <i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya
                                     </button>
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     <div class="card-body">
                         <!-- Selected Package Summary Card -->
-                        <div class="card bg-gradient border-primary mb-4 shadow" id="summary-package-card" style="display:none; background: linear-gradient(145deg, rgba(13,110,253,0.1) 0%, rgba(0,0,0,0) 100%);">
+                        <div class="card bg-gradient border-primary mb-4 shadow" id="summary-package-card" style="display:none; background: linear-gradient(145deg, color-mix(in srgb, var(--vscode-accent) 15%, transparent) 0%, transparent 100%);">
                             <div class="card-body py-3 px-4">
                                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                     <div>

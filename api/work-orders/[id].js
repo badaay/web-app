@@ -8,7 +8,7 @@
  *   "status"         : "waiting|confirmed|open|closed",
  *   "customer_id"    : "uuid|null",
  *   "employee_id"    : "uuid|null",
- *   "package_id"     : "uuid|null",
+ *   // package_id removed
  *   "ket"            : "...",
  *   "payment_status" : "pending|paid"
  * }
@@ -36,7 +36,7 @@ export default withCors(async function handler(req) {
       const body = await req.json();
 
       // Whitelist updatable fields
-      const ALLOWED = ['title', 'status', 'customer_id', 'employee_id', 'package_id', 'ket', 'payment_status'];
+      const ALLOWED = ['title', 'status', 'customer_id', 'employee_id', 'ket', 'payment_status'];
       const updates = Object.fromEntries(
         Object.entries(body).filter(([k]) => ALLOWED.includes(k))
       );

@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const bubble = document.createElement('div');
             bubble.className = 'chat-bubble';
-            bubble.style.borderLeftColor = type?.color || '#3B82F6';
+            bubble.style.borderLeftColor = type?.color || 'var(--vscode-accent)';
             
             bubble.innerHTML = `
                 <div class="d-flex justify-content-between align-items-start mb-3">

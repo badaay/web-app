@@ -3,6 +3,7 @@ import { adminResetPassword, generatePassword } from '../../api/registration-ser
 import { populatePackagesDropdown, getGoogleMapsLink, showSharedMap, createStandardMarker, getSpinner } from '../utils/ui-common.js';
 import { showToast } from '../utils/toast.js';
 import { APP_BASE_URL } from '../../config.js';
+import { APP_CONFIG } from '../../api/config.js';
 
 export async function initCustomers() {
     const listContainer = document.getElementById('customers-list');
@@ -95,7 +96,7 @@ export async function initCustomers() {
                                             </a>
                                         </div>
                                         <div class="small text-white-50 text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">${cust.customer_code || 'Belum Ada Kode'}</div>
-                                        ${cust.email && !cust.email.includes('@sifatih.id') ? `<div class="smaller text-info opacity-75 mt-1" style="font-size: 0.65rem;"><i class="bi bi-envelope me-1"></i>${cust.email}</div>` : ''}
+                                        ${cust.email && !cust.email.includes(APP_CONFIG.AUTH_DOMAIN_SUFFIX) ? `<div class="smaller text-info opacity-75 mt-1" style="font-size: 0.65rem;"><i class="bi bi-envelope me-1"></i>${cust.email}</div>` : ''}
                                     </td>
                                     <td>
                                         <span class="badge bg-vscode-header border border-secondary text-white fw-normal">${cust.packet || '-'}</span>
@@ -242,8 +243,9 @@ export async function initCustomers() {
                         <div class="card-body p-3">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label text-white-50 small fw-bold">ID Login (Customer Code)</label>
-                                    <input type="text" class="form-control form-control-sm bg-dark text-info fw-bold" id="cust-code" value="${cust?.customer_code || ''}" readonly>
+                                    <label class="form-label text-white-50 small fw-bold">Nomor handphone ( digunakan sebagai login )</label>
+                                    <input type="text" class="form-control form-control-sm bg-dark text-info fw-bold" id="cust-phone-login" value="${cust?.phone || ''}" readonly>
+                                    <input type="hidden" id="cust-code" value="${cust?.customer_code || ''}">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-white-50 small fw-bold">Password Baru (Optional)</label>
@@ -273,7 +275,7 @@ export async function initCustomers() {
                             </div>
                             <div class="col-12">
                                 <label class="form-label text-white-50 small fw-bold">Email Kontak (Opsional)</label>
-                                <input type="text" class="form-control" id="cust-email" value="${cust?.email && !cust?.email.includes('@sifatih.id') ? cust.email : ''}" placeholder="Alamat email aktif">
+                                <input type="text" class="form-control" id="cust-email" value="${cust?.email && !cust?.email.includes(APP_CONFIG.AUTH_DOMAIN_SUFFIX) ? cust.email : ''}" placeholder="Alamat email aktif">
                             </div>
                             <div class="col-12">
                                 <label class="form-label text-white-50 small fw-bold">NIK / KTP</label>
@@ -481,7 +483,7 @@ export async function initCustomers() {
                 lng: parseFloat(document.getElementById('cust-lng').value) || null,
                 photo_ktp: newPhotoKTP,
                 photo_rumah: newPhotoHouse,
-                email: document.getElementById('cust-email').value.trim() || (cust?.email && !cust?.email.includes('@sifatih.id') ? cust.email : null)
+                email: document.getElementById('cust-email').value.trim() || (cust?.email && !cust?.email.includes(APP_CONFIG.AUTH_DOMAIN_SUFFIX) ? cust.email : null)
             };
 
             if (!formData.name || !formData.address) return showToast('warning', 'Nama dan Alamat wajib diisi.');
@@ -733,7 +735,7 @@ async function handleCustomerImport(file, onRefresh) {
                 await apiCall('/admin/create-user', {
                     method: 'POST',
                     body: JSON.stringify({
-                        email: rowData.email || `${rowData.phone}@sifatih.id`,
+                        email: rowData.email || `${rowData.phone}${APP_CONFIG.AUTH_DOMAIN_SUFFIX}`,
                         password: 'User123!', // Default password
                         metadata: {
                             role: 'customer',
@@ -750,7 +752,7 @@ async function handleCustomerImport(file, onRefresh) {
                             mac_address: rowData.mac_address,
                             lat: rowData.lat,
                             lng: rowData.lng,
-                            email: rowData.email || `${rowData.phone}@sifatih.id`
+                            email: rowData.email || `${rowData.phone}${APP_CONFIG.AUTH_DOMAIN_SUFFIX}`
                         }
                     })
                 });
