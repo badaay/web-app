@@ -84,20 +84,11 @@ export default withCors(async function handler(req) {
       return errorResponse('Work order is already closed', 400);
     }
 
-    // Update work order to closed
-    const { data: updatedWO, error: updateError } = await supabaseAdmin
-      .from('work_orders')
-      .update({
-        status: 'closed',
-        closed_at: new Date().toISOString(),
-        mac_address: closeData.mac_address || wo.mac_address,
-        damping: closeData.damping || wo.damping,
-        notes: closeData.notes || wo.notes,
-        photo_proof: closeData.photo_proof || wo.photo_proof
-      })
-      .eq('id', workOrderId)
-      .select()
-      .single();
+    // Update status and calculate points via PostgreSQL function (atomic)
+    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('close_work_order_with_points', {
+      p_work_order_id: workOrderId,
+      p_close_data: closeData
+    });
 
     if (updateError) {
       return errorResponse(`Failed to close work order: ${updateError.message}`, 500);
@@ -193,7 +184,7 @@ export default withCors(async function handler(req) {
     return jsonResponse({
       success: true,
       message: 'Work order closed successfully',
-      data: updatedWO
+      data: rpcResult
     });
 
   } catch (error) {

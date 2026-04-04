@@ -312,6 +312,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (targetId === 'billing-content') {
             const { initBilling } = await import('./modules/billing.js');
             initBilling();
+        } else if (targetId === 'attendance-content') {
+            const { initAttendance } = await import('./modules/attendance.js');
+            initAttendance();
+        } else if (targetId === 'overtime-content') {
+            const { initOvertime } = await import('./modules/overtime.js');
+            initOvertime();
+        } else if (targetId === 'payroll-content') {
+            const { initPayroll } = await import('./modules/payroll.js');
+            initPayroll();
         }
     }
+
+    // Official Toast Utility
+    import('./utils/toast.js').then(({ showToast }) => {
+        window.showToast = (type, message, options) => {
+            // Handle cases where developer might pass (message, type) by mistake
+            if (['success', 'error', 'warning', 'info'].includes(message)) {
+                const temp = type;
+                type = message;
+                message = temp;
+            }
+            // Map 'danger' to 'error'
+            if (type === 'danger') type = 'error';
+            showToast(type, message, options);
+        };
+    });
 });
