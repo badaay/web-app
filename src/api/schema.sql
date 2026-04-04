@@ -125,6 +125,24 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 12. Customer Bills Table
+-- Stores monthly billing records and tracking for payments.
+CREATE TABLE IF NOT EXISTS public.customer_bills (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+    period_date DATE NOT NULL,
+    due_date DATE,
+    amount DECIMAL(12,2) NOT NULL,
+    status TEXT DEFAULT 'unpaid',
+    payment_method TEXT,
+    payment_date TIMESTAMPTZ,
+    secret_token TEXT UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (customer_id, period_date)
+);
+
 -- III. TRANSACTIONAL TABLES
 
 -- 9. Work Orders Table
