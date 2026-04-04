@@ -533,57 +533,44 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveBtn.disabled = true;
 
             try {
-                // 1. Set default role to 'Customer'
-                const { data: roleData } = await supabase.from('roles').select('id').eq('code', 'CUST').single();
-                const role_id = roleData ? roleData.id : null;
+                // Read files as base64 (if any)
+                const toBase64 = file => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
 
-                const customerPayload = {
-                    name: name,
+                const photoKtpBase64 = fotoKtp ? await toBase64(fotoKtp) : null;
+                const photoRumahBase64 = fotoRumah ? await toBase64(fotoRumah) : null;
+
+                const payload = {
+                    name,
+                    phone,
+                    alt_phone: altPhone,
                     address: finalAddress,
-                    phone: phone,
                     packet: pkgName,
-                    install_date: installDate || null,
                     lat: parseFloat(lat),
                     lng: parseFloat(lng),
-                    role_id: role_id,
-                    email: email || null  // optional contact email; auth account created later on installation confirm
+                    photo_ktp: photoKtpBase64,
+                    photo_rumah: photoRumahBase64
                 };
 
-                // 2. Insert customer row only — Auth credentials are created later
-                //    when admin confirms the installation is done (pemasangan selesai).
-                const { data: newCust, error: custErr } = await supabase
-                    .from('customers')
-                    .insert([customerPayload])
-                    .select()
-                    .single();
+                const response = await fetch('/api/customers/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-                if (custErr) {
-                    if (custErr.message && custErr.message.toLowerCase().includes('unique')) {
-                        throw new Error('Nomor telepon/email ini sudah terdaftar. Silakan gunakan nomor lain.');
-                    }
-                    throw custErr;
+                const resData = await response.json();
+
+                if (!response.ok) {
+                   throw new Error(resData.error || 'Pendaftaran gagal');
                 }
 
-                // 3. Insert into work_orders (Antrian PSB)
-                if (newCust && newCust.id) {
-                    // Fetch PSB queue type id
-                    const { data: psbType } = await supabase.from('master_queue_types').select('id').eq('name', 'PSB').single();
-                    const { error: woErr } = await supabase.from('work_orders').insert([{
-                            customer_id: newCust.id,
-                        type_id: psbType?.id || null,
-                        status: 'waiting', // New default status
-                        source: 'customer', // Mark source
-                        title: 'Pemasangan Baru (PSB)',
-                        registration_date: new Date().toISOString().split('T')[0],
-                        referral_name: '',
-                        ket: 'Paket: ' + pkgName,
-                        created_at: new Date().toISOString()
-                    }]);
-                    if (woErr) console.warn("Notice: Gagal membuat antrian PSB otomatis:", woErr.message);
-                }
-
-                showToast('success', 'Registrasi Pelanggan berhasil diselesaikan! Data masuk ke Antrian.');
-                window.location.href = APP_BASE_URL + '/?success=true';
+                showToast('success', 'Registrasi berhasil! Beralih ke halaman tracking...');
+                // Redirect to Tracking portal
+                window.location.href = APP_BASE_URL + '/enduser/tracking.html?token=' + resData.data.secret_token;
 
             } catch (err) {
                 showToast('error', 'Gagal memproses pendaftaran: ' + err.message);

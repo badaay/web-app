@@ -26,6 +26,37 @@ export const AuthService = {
     },
 
     /**
+     * Customer Login using Phone and Password
+     * Calls our custom /api/customers/login API route
+     */
+    async loginCustomerPhone(phone, password) {
+        try {
+            const response = await fetch('/api/customers/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone, password })
+            });
+            const data = await response.json();
+            
+            if (!response.ok) {
+                return { error: { message: data.error || 'Login failed' } };
+            }
+
+            // Client sets the returned session to Supabase
+            const { error: sbError } = await supabase.auth.setSession({
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token
+            });
+
+            if (sbError) return { error: sbError };
+
+            return { data: { user: data.user, session: data.session } };
+        } catch (err) {
+            return { error: err };
+        }
+    },
+
+    /**
      * Centralized Registration
      */
     async signUp(email, password, metadata = {}) {

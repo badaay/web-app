@@ -98,15 +98,49 @@ export default withCors(async function handler(req) {
       return errorResponse(`Failed to close work order: ${updateError.message}`, 500);
     }
 
-    // Update customer data if work order has customer_id
-    if (wo.customer_id && (closeData.mac_address || closeData.damping)) {
-      await supabaseAdmin
-        .from('customers')
-        .update({
-          mac_address: closeData.mac_address || undefined,
-          damping: closeData.damping || undefined
-        })
-        .eq('id', wo.customer_id);
+    // Check if this work order is linked to a PSB registration by checking if the customer is a prospect
+    if (wo.customer_id) {
+      // 1. Fetch PSB
+      const { data: psb } = await supabaseAdmin
+        .from('psb_registrations')
+        .select('*')
+        .eq('id', wo.customer_id)
+        .maybeSingle();
+        
+      if (psb && psb.status !== 'completed') {
+        const generatedPassword = Math.random().toString(36).slice(-8); // 8-char password
+        const email = `${psb.phone}@sifatih.local`;
+        
+        // 2. Create Auth User using the exact same UUID. This links auth automatically via the existing customers row id.
+        const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+            id: wo.customer_id, // Important: re-use the exact same UUID
+            email,
+            password: generatedPassword,
+            email_confirm: true,
+            user_metadata: { role: 'customer', name: psb.name }
+        });
+        
+        if (!authErr) {
+            // 3. Mark registration as completed
+            await supabaseAdmin.from('psb_registrations')
+              .update({ status: 'completed' })
+              .eq('id', psb.id);
+              
+            // Send WA Integration (Placeholder for C04-06)
+            console.log(`[WA-WELCOME] Sen WhatsApp to ${psb.phone}. Password: ${generatedPassword}`);
+        }
+      }
+
+      // Update customer data if work order has customer_id intuitively
+      if (closeData.mac_address || closeData.damping) {
+        await supabaseAdmin
+          .from('customers')
+          .update({
+            mac_address: closeData.mac_address || undefined,
+            damping: closeData.damping || undefined
+          })
+          .eq('id', wo.customer_id);
+      }
     }
 
     // Calculate and add points to technician
