@@ -17,13 +17,37 @@ let currentSearch = '';
  */
 export async function initWorkOrders() {
     const contentContainer = document.getElementById('work-orders-content');
-    if (!contentContainer) return;
+    const workOrdersCard = document.getElementById('work-orders-list');
+    if (!contentContainer || !workOrdersCard) return;
 
-    const listContainer = document.getElementById('work-orders-list');
-    if (!listContainer) {
-        contentContainer.innerHTML = '<div class="alert alert-danger">No list container found</div>';
-        return;
-    }
+    // Create the tabbed structure for work orders (Pemasangan and Perbaikan)
+    const tabsContainer = document.createElement('div');
+    tabsContainer.id = 'work-orders-tabs-container';
+    tabsContainer.innerHTML = `
+        <ul class="nav nav-tabs" id="woTypeTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pemasangan-tab" data-bs-toggle="tab" data-bs-target="#pemasangan-panel" type="button" role="tab">Pemasangan</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="perbaikan-tab" data-bs-toggle="tab" data-bs-target="#perbaikan-panel" type="button" role="tab">Perbaikan</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="woTypeTabsContent">
+            <div class="tab-pane fade show active" id="pemasangan-panel" role="tabpanel">
+                <div id="work-orders-list-pemasangan" class="mt-3"></div>
+            </div>
+            <div class="tab-pane fade" id="perbaikan-panel" role="tabpanel">
+                <div id="work-orders-list-perbaikan" class="mt-3"></div>
+            </div>
+        </div>
+    `;
+    
+    // Replace the card body content with the tabs container
+    workOrdersCard.querySelector('.card-body').innerHTML = '';
+    workOrdersCard.querySelector('.card-body').appendChild(tabsContainer);
+
+    const listContainerPemasangan = document.getElementById('work-orders-list-pemasangan');
+    const listContainerPerbaikan = document.getElementById('work-orders-list-perbaikan');
 
     // Add action buttons to header
     let header = document.querySelector('.admin-header');
@@ -56,19 +80,56 @@ export async function initWorkOrders() {
         contentContainer.parentNode.insertBefore(summaryContainer, contentContainer);
     }
 
-    // Load initial data
-    await loadWorkOrders(listContainer, (data) => {
-        allWorkOrders = data;
-        updateDisplay();
+    // Fetch queue type IDs
+    let pemasanganTypeId, perbaikanTypeId;
+    try {
+        const { data: queueTypes, error } = await supabase.from('master_queue_types').select('id, name');
+        if (error) throw error;
+        if (queueTypes) {
+            pemasanganTypeId = queueTypes.find(t => t.name === 'PSB')?.id;
+            perbaikanTypeId = queueTypes.find(t => t.name === 'Repair')?.id;
+        }
+    } catch (err) {
+        console.error('Error fetching queue types:', err);
+        showToast('Gagal memuat tipe antrian', 'error');
+        return;
+    }
+
+    if (!pemasanganTypeId || !perbaikanTypeId) {
+        showToast('Data tipe antrian tidak lengkap', 'error');
+        return;
+    }
+
+    // Load initial data for both tabs
+    loadDataForTab(pemasanganTypeId, listContainerPemasangan);
+    loadDataForTab(perbaikanTypeId, listContainerPerbaikan);
+
+    // Wire up tab events to reload data if needed (or just filter)
+    document.getElementById('pemasangan-tab').addEventListener('shown.bs.tab', () => {
+        loadDataForTab(pemasanganTypeId, listContainerPemasangan);
+        renderTargetStatistics(pemasanganTypeId, perbaikanTypeId);
+    });
+    document.getElementById('perbaikan-tab').addEventListener('shown.bs.tab', () => {
+        loadDataForTab(perbaikanTypeId, listContainerPerbaikan);
+        renderTargetStatistics(pemasanganTypeId, perbaikanTypeId);
     });
 
+
     // Wire up action buttons
-    document.getElementById('add-wo-btn').onclick = () => showWorkOrderModal(null);
+    document.getElementById('add-wo-btn').onclick = () => showWorkOrderModal(null, () => {
+        // Refresh the correct tab after adding
+        const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
+        const typeId = activeTab === 'pemasangan-tab' ? pemasanganTypeId : perbaikanTypeId;
+        
+        const container = activeTab === 'pemasangan-tab' 
+            ? document.getElementById('work-orders-list-pemasangan') 
+            : document.getElementById('work-orders-list-perbaikan');
+
+        loadDataForTab(typeId, container);
+    });
     document.getElementById('refresh-wo-btn').onclick = () => {
-        loadWorkOrders(listContainer, (data) => {
-            allWorkOrders = data;
-            updateDisplay();
-        });
+        loadDataForTab(pemasanganTypeId, listContainerPemasangan);
+        loadDataForTab(perbaikanTypeId, listContainerPerbaikan);
     };
 
     // Wire map button
@@ -84,7 +145,9 @@ export async function initWorkOrders() {
     // Render search bar
     renderSearchBar((query) => {
         currentSearch = query;
-        updateDisplay();
+        // We need to update both displays now
+        loadDataForTab(pemasanganTypeId, listContainerPemasangan);
+        loadDataForTab(perbaikanTypeId, listContainerPerbaikan);
     });
 
     // [WO-005] Listen for confirmation requests from other modules (like dashboard)
@@ -100,30 +163,120 @@ export async function initWorkOrders() {
             else showToast(`Work order with ID ${woId} not found.`, 'error');
         }
     });
+
+    // Render target statistics
+    await renderTargetStatistics(pemasanganTypeId, perbaikanTypeId);
+}
+
+/**
+ * Render work order target statistics for today
+ * Caches the result to avoid repeated queries
+ */
+let cachedTargetStats = null;
+
+async function renderTargetStatistics(pemasanganTypeId, perbaikanTypeId) {
+    const targetContainer = document.getElementById('work-order-target-content');
+    if (!targetContainer) return;
+
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // Query for today's confirmed work orders
+        const { data: todayWorkOrders } = await supabase
+            .from('work_orders')
+            .select('id, status, type_id, created_at, claimed_at, completed_at, registration_date')
+            .gte('registration_date', today)
+            .lte('registration_date', today + 'T23:59:59');
+
+        // Calculate statistics
+        const stats = {
+            waiting: todayWorkOrders?.filter(wo => wo.status === 'waiting').length || 0,
+            confirmed: todayWorkOrders?.filter(wo => wo.status === 'confirmed').length || 0,
+            inProgress: todayWorkOrders?.filter(wo => wo.status === 'open').length || 0,
+            completed: todayWorkOrders?.filter(wo => wo.status === 'closed').length || 0,
+            leftOver: todayWorkOrders?.filter(wo => {
+                // Leftover: confirmed on a previous day but not completed today
+                const confirmedDate = new Date(wo.created_at).toISOString().split('T')[0];
+                return wo.status !== 'closed' && confirmedDate < today;
+            }).length || 0,
+            pemasangan: todayWorkOrders?.filter(wo => wo.type_id === pemasanganTypeId).length || 0,
+            perbaikan: todayWorkOrders?.filter(wo => wo.type_id === perbaikanTypeId).length || 0
+        };
+
+        // Cache the stats
+        cachedTargetStats = stats;
+
+        // Render statistics
+        let html = `
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <div class="p-2 rounded bg-vscode-input text-center">
+                        <div class="small text-white-50">Menunggu</div>
+                        <div class="fw-bold fs-5 text-warning">${stats.waiting}</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-2 rounded bg-vscode-input text-center">
+                        <div class="small text-white-50">Diproses</div>
+                        <div class="fw-bold fs-5 text-info">${stats.inProgress}</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-2 rounded bg-vscode-input text-center">
+                        <div class="small text-white-50">Selesai</div>
+                        <div class="fw-bold fs-5 text-success">${stats.completed}</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-2 rounded bg-opacity-10 text-center border border-danger border-opacity-25">
+                        <div class="small text-danger">Leftover</div>
+                        <div class="fw-bold fs-5 text-danger">${stats.leftOver}</div>
+                    </div>
+                </div>
+            </div>
+            <hr class="border-secondary">
+            <div class="small text-white-50 fw-bold mb-2">Target Tipe Pekerjaan:</div>
+            <div class="row g-2">
+                <div class="col-6">
+                    <div class="p-2 rounded bg-vscode-input text-center">
+                        <div class="small">Pemasangan</div>
+                        <div class="fw-bold text-primary">${stats.pemasangan}</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-2 rounded bg-vscode-input text-center">
+                        <div class="small">Perbaikan</div>
+                        <div class="fw-bold text-warning">${stats.perbaikan}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        targetContainer.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading target statistics:', error);
+        targetContainer.innerHTML = '<div class="alert alert-danger alert-sm">Gagal memuat target</div>';
+    }
+}
+
+/**
+ * Helper to load and render data for a specific tab
+ */
+function loadDataForTab(typeId, container) {
+    loadWorkOrders(container, typeId, (data) => {
+        const filtered = getFilteredOrders(data, 'All', currentSearch);
+        renderWorkOrders(filtered, 
+            (wo) => showWorkOrderActions(wo),
+            (wo) => showAssignConfirmPanel(wo),
+            container
+        );
+    });
 }
 
 /**
  * Update display with current filter and search
  */
-function updateDisplay() {
-    // Update status summary with steps
-    renderStatusSummary(allWorkOrders, currentFilter, (newFilter) => {
-        currentFilter = newFilter;
-        updateDisplay();
-    });
-
-    // Get filtered data
-    const filtered = getFilteredOrders(allWorkOrders, currentFilter, currentSearch);
-
-    // Update map global for button
-    exposeMapGlobal(filtered, currentFilter);
-
-    // Render table
-    renderWorkOrders(filtered, 
-        (wo) => showWorkOrderActions(wo), // Main row click action
-        (wo) => showAssignConfirmPanel(wo)  // "Konfirmasi" button action
-    );
-}
+// This function is now replaced by loadDataForTab
 
 /**
  * [WO-004] Show panel to quickly confirm a work order.
@@ -184,11 +337,14 @@ async function showAssignConfirmPanel(wo) {
         modal.hide();
         
         // Refresh data without full page reload
-        const listContainer = document.getElementById('work-orders-list');
-        loadWorkOrders(listContainer, (data) => {
-            allWorkOrders = data;
-            updateDisplay();
-        });
+        const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
+        const typeId = activeTab === 'pemasangan-tab' ? pemasanganTypeId : perbaikanTypeId;
+        
+        const container = activeTab === 'pemasangan-tab' 
+            ? document.getElementById('work-orders-list-pemasangan') 
+            : document.getElementById('work-orders-list-perbaikan');
+
+        loadDataForTab(typeId, container);
     };
 
     // Remove any existing listener before adding a new one
@@ -345,7 +501,15 @@ async function showWorkOrderActions(wo) {
 
     document.getElementById('action-edit-wo').onclick = () => {
         modal.hide();
-        showWorkOrderModal(wo);
+        showWorkOrderModal(wo, () => {
+            // Refresh the correct tab after editing
+            const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
+            const typeId = wo.type_id; // Assuming wo object has type_id
+            const container = activeTab === 'pemasangan-tab' 
+                ? document.getElementById('work-orders-list-pemasangan') 
+                : document.getElementById('work-orders-list-perbaikan');
+            loadDataForTab(typeId, container);
+        });
     };
 
     document.getElementById('action-monitor-wo').onclick = () => {
@@ -363,7 +527,13 @@ async function showWorkOrderActions(wo) {
             });
             showToast('Antrian berhasil ditutup', 'success');
             modal.hide();
-            location.reload();
+            // Refresh the correct tab
+            const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
+            const typeId = wo.type_id;
+            const container = activeTab === 'pemasangan-tab' 
+                ? document.getElementById('work-orders-list-pemasangan') 
+                : document.getElementById('work-orders-list-perbaikan');
+            loadDataForTab(typeId, container);
         } catch (err) {
             showToast(`Error: ${err.message}`, 'error');
         }
@@ -376,7 +546,13 @@ async function showWorkOrderActions(wo) {
             await apiCall(`/work-orders/${wo.id}`, { method: 'DELETE' });
             showToast('Antrian berhasil dihapus', 'success');
             modal.hide();
-            location.reload();
+            // Refresh the correct tab
+            const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
+            const typeId = wo.type_id;
+            const container = activeTab === 'pemasangan-tab' 
+                ? document.getElementById('work-orders-list-pemasangan') 
+                : document.getElementById('work-orders-list-perbaikan');
+            loadDataForTab(typeId, container);
         } catch (err) {
             showToast(`Error: ${err.message}`, 'error');
         }

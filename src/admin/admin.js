@@ -16,7 +16,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isLoginPage = window.location.pathname.includes('/admin/login');
     const isDashboardPage = window.location.pathname.endsWith('/admin/') || window.location.pathname.endsWith('/admin/index.html') || window.location.pathname.endsWith('/admin');
 
-    const { data: { session, user } } = await AuthService.getSession();
+    const { data } = await AuthService.getSession();
+    const session = data?.session;
+    const user = session?.user;
 
     if (isLoginPage) {
         if (session) {
@@ -28,7 +30,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .single();
             const existingRole = existingProfile?.roles?.code;
             if (existingRole === 'TECH' || existingRole === 'SPV_TECH') {
-                window.location.href = APP_BASE_URL + '/activity.html';
+                // Extract employee_id from session email (format: eid@sifatih.id)
+                const eid = session.user.email ? session.user.email.split('@')[0] : 'tech';
+                window.location.href = APP_BASE_URL + `/activity.html?eid=${encodeURIComponent(eid)}`;
             } else if (existingRole === 'CUST') {
                 window.location.href = APP_BASE_URL + '/enduser/dashboard.html';
             } else {
@@ -38,7 +42,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         initLoginLogic();
     } else if (isDashboardPage) {
-        initDashboardLogic(user || session.user);
+        if (!user) {
+            console.warn('No user session found. Redirecting to login...');
+            window.location.href = APP_BASE_URL + '/admin/login.html';
+            return;
+        }
+        initDashboardLogic(user);
     }
 
     function initLoginLogic() {
@@ -60,7 +69,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const roleCode = profile?.roles?.code;
                 if (roleCode === 'TECH' || roleCode === 'SPV_TECH') {
-                    window.location.href = APP_BASE_URL + '/activity.html';
+                    // Extract employee_id from session email (format: eid@sifatih.id)
+                    const eid = data.user.email ? data.user.email.split('@')[0] : 'tech';
+                    window.location.href = APP_BASE_URL + `/activity.html?eid=${encodeURIComponent(eid)}`;
                 } else if (roleCode === 'CUST') {
                     window.location.href = APP_BASE_URL + '/enduser/dashboard.html';
                 } else {

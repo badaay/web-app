@@ -6,14 +6,25 @@ import { getStatusColor, getStatusDisplayText } from './utils.js';
 /**
  * Load all work orders from Supabase
  */
-export async function loadWorkOrders(listContainer, onLoaded) {
+export async function loadWorkOrders(listContainer, typeId, onLoaded) {
     if (!listContainer) return;
     listContainer.innerHTML = getSpinner('Memuat Antrian...');
 
-    const { data, error } = await supabase
+    let query = supabase
         .from('work_orders')
-        .select('*, customers(*), work_order_assignments(assignment_role, employees(name))')
+        .select(`
+            id, title, status, created_at, registration_date, ket, customer_id, employee_id, type_id, claimed_by, claimed_at, completed_at,
+            customers(id, name, phone, address, lat, lng, packet),
+            master_queue_types(id, name, color, icon, base_point),
+            work_order_assignments(id, assignment_role, employee_id, employees(id, name))
+        `)
         .order('created_at', { ascending: false });
+
+    if (typeId) {
+        query = query.eq('type_id', typeId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         listContainer.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
@@ -70,7 +81,9 @@ export function renderSearchBar(onSearch) {
     // Only inject search bar once
     if (document.getElementById('wo-search-bar')) return;
 
-    const container = document.getElementById('work-orders-list');
+    const searchBarContainer = document.getElementById('wo-search-bar-container');
+    if (!searchBarContainer) return; // If no container, skip search bar
+    
     const searchWrapper = document.createElement('div');
     searchWrapper.id = 'wo-search-bar';
     searchWrapper.className = 'mb-3 d-flex gap-2 align-items-center';
@@ -81,7 +94,7 @@ export function renderSearchBar(onSearch) {
         </div>
         <button class="btn btn-sm btn-outline-secondary" id="wo-clear-search"><i class="bi bi-x"></i></button>
     `;
-    container.parentNode.insertBefore(searchWrapper, container);
+    searchBarContainer.appendChild(searchWrapper);
 
     const searchInput = document.getElementById('wo-search-input');
     const clearBtn = document.getElementById('wo-clear-search');
@@ -120,8 +133,7 @@ export function getFilteredOrders(allWorkOrders, currentFilter, searchQuery) {
 /**
  * Render work orders table with rows and actions
  */
-export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick) {
-    const tableContainer = document.getElementById('work-orders-list');
+export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tableContainer) {
     if (!tableContainer) return;
 
     if (filteredOrders.length === 0) {
@@ -132,7 +144,6 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick) {
     const columns = [
         { id: 'waiting', title: '🟡 Menunggu', statuses: ['waiting'], width: '300px' },
         { id: 'progress', title: '🔵 Diproses', statuses: ['confirmed', 'open', 'pending'], width: '300px' },
-        { id: 'closed', title: '🟢 Selesai', statuses: ['closed'], width: '300px' },
         { id: 'issues', title: '🔴 Kendala/Batal', statuses: ['odp_full', 'cancelled'], width: '300px' }
     ];
 
@@ -156,7 +167,7 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick) {
                                     <span class="badge" style="background-color:${getStatusColor(wo.status)}; color:#fff; font-size:0.65rem;">
                                         ${getStatusDisplayText(wo.status)}
                                     </span>
-                                    <small style="font-size:0.65rem; color: var(--vscode-text);">${wo.registration_date || '-'}</small>
+                                    <small class="wo-time-ago">${formatTimeAgo(wo.created_at)}</small>
                                 </div>
                                 
                                 <div class="fw-bold mb-1" style="font-size:0.9rem; color: var(--vscode-text-bright);">${wo.customers?.name || '-'}</div>
@@ -216,4 +227,23 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick) {
             if (onConfirmClick) onConfirmClick(wo);
         };
     });
+}
+
+function formatTimeAgo(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return Math.floor(seconds) + " seconds ago";
 }

@@ -7,12 +7,55 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Cache DOM elements early for error handling
+    const errorAlert = document.getElementById('error-alert');
+    const errorMessage = document.getElementById('error-message');
+    const tiketHariIniContainer = document.getElementById('tiket-hari-ini-container');
+    const tiketBaruContainer = document.getElementById('tiket-baru-container');
+    const tiketAktifContainer = document.getElementById('tiket-aktif-container');
+    const techInfo = document.getElementById('technician-info');
+    const techName = document.getElementById('tech-name');
+    const techId = document.getElementById('tech-id');
+    
+    // Helper for showing errors (defined early for use in session check)
+    function showError(msg) {
+        errorAlert.classList.remove('d-none');
+        errorMessage.innerText = msg;
+        if(tiketHariIniContainer) tiketHariIniContainer.innerHTML = '';
+        if(tiketBaruContainer) tiketBaruContainer.innerHTML = '';
+        if(tiketAktifContainer) tiketAktifContainer.innerHTML = '';
+    }
+
     // Auth & role guard — only TECH and SPV_TECH may access this page
-    const { data: { session: activitySession } } = await supabase.auth.getSession();
+    // Wait for session to be ready with timeout
+    let activitySession = null;
+    let sessionReady = false;
+    let sessionCheckAttempts = 0;
+    const maxSessionCheckAttempts = 10;
+    
+    // Poll for session with maximum 2 seconds timeout
+    while (!sessionReady && sessionCheckAttempts < maxSessionCheckAttempts) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            activitySession = session;
+            sessionReady = true;
+            break;
+        }
+        sessionCheckAttempts++;
+        if (sessionCheckAttempts < maxSessionCheckAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+    }
+    
     if (!activitySession) {
-        window.location.href = APP_BASE_URL + '/admin/login';
+        showError('Auth session missing! Redirecting ke login...');
+        setTimeout(() => {
+            window.location.href = APP_BASE_URL + '/admin/login';
+        }, 2000);
         return;
     }
+    
+    // Verify role
     const { data: activityProfile } = await supabase
         .from('profiles')
         .select('roles(code)')
@@ -28,18 +71,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Nav Elements
     const navBtns = document.querySelectorAll('.menu-item');
     const views = {
+        'view-tiket-hari-ini': document.getElementById('view-tiket-hari-ini'),
         'view-tiket-baru': document.getElementById('view-tiket-baru'),
         'view-tiket-aktif': document.getElementById('view-tiket-aktif'),
         'view-registrasi': document.getElementById('view-registrasi')
     };
-
-    const tiketBaruContainer = document.getElementById('tiket-baru-container');
-    const tiketAktifContainer = document.getElementById('tiket-aktif-container');
-    const errorAlert = document.getElementById('error-alert');
-    const errorMessage = document.getElementById('error-message');
-    const techInfo = document.getElementById('technician-info');
-    const techName = document.getElementById('tech-name');
-    const techId = document.getElementById('tech-id');
 
     // Execution Modal Elements
     let executionModal;
@@ -185,6 +221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             </div>
         `;
+        tiketHariIniContainer.innerHTML = loadingHtml;
         tiketBaruContainer.innerHTML = loadingHtml;
         tiketAktifContainer.innerHTML = loadingHtml;
 
@@ -203,6 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (woErr) {
             showError('Gagal memuat daftar pekerjaan: ' + woErr.message);
+            tiketHariIniContainer.innerHTML = '';
             tiketBaruContainer.innerHTML = '';
             tiketAktifContainer.innerHTML = '';
             return;
@@ -215,16 +253,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p>Tidak ada tiket yang ditemukan.</p>
                 </div>
             `;
+            tiketHariIniContainer.innerHTML = emptyHtml;
             tiketBaruContainer.innerHTML = emptyHtml;
             tiketAktifContainer.innerHTML = emptyHtml;
             return;
         }
 
+        tiketHariIniContainer.innerHTML = '';
         tiketBaruContainer.innerHTML = '';
         tiketAktifContainer.innerHTML = '';
 
+        let hasHariIni = false;
         let hasBaru = false;
         let hasAktif = false;
+
+        const today = new Date().toISOString().split('T')[0];
 
         wos.forEach(wo => {
             const customerName = wo.customers?.name || 'Pelanggan tidak diketahui';
@@ -308,16 +351,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Ticket Splitting Logic
+            const isClaimedToday = wo.claimed_at && wo.claimed_at.startsWith(today);
+
+            if (isClaimedToday || (wo.status === 'open' && wo.claimed_by === techDbId)) {
+                tiketHariIniContainer.appendChild(bubble.cloneNode(true));
+                hasHariIni = true;
+            }
+
             if (wo.status === 'confirmed' && !wo.claimed_by) {
                 tiketBaruContainer.appendChild(bubble);
                 hasBaru = true;
             } else if (wo.status === 'open') {
-                tiketAktifContainer.appendChild(bubble);
+                tiketAktifContainer.appendChild(bubble.cloneNode(true));
                 hasAktif = true;
             }
             // Closed tickets are filtered out as requested
         });
 
+        if (!hasHariIni) tiketHariIniContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Belum ada aktivitas hari ini.</p>';
         if (!hasBaru) tiketBaruContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Belum ada tiket baru yang tersedia.</p>';
         if (!hasAktif) tiketAktifContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Anda tidak memiliki tiket aktif.</p>';
     }
@@ -545,12 +596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    function showError(msg) {
-        errorAlert.classList.remove('d-none');
-        errorMessage.innerText = msg;
-        if(tiketBaruContainer) tiketBaruContainer.innerHTML = '';
-        if(tiketAktifContainer) tiketAktifContainer.innerHTML = '';
-    }
+    // Navigation and ticket loading continue...
 
     function getStatusColor(status) {
         const s = status ? status.toLowerCase() : '';

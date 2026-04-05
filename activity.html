@@ -163,34 +163,44 @@
                 <span id="error-message">Terjadi kesalahan</span>
             </div>
 
-            <!-- VIEW 1: Tiket Baru -->
-            <div id="view-tiket-baru" class="view-section">
+            <!-- VIEW 1: Tiket Hari Ini -->
+            <div id="view-tiket-hari-ini" class="view-section">
                 <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
-                    <i class="bi bi-inbox text-primary me-2"></i>Tiket Baru (Tersedia)
+                    <i class="bi bi-calendar-check text-success me-2"></i>Aktivitas Hari Ini
                 </h5>
-                <div id="tiket-baru-container">
+                <div id="tiket-hari-ini-container">
                     <div class="loading-chat">
-                        <div class="spinner-border text-primary" role="status">
+                        <div class="spinner-border text-success" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- VIEW 2: Tiket Aktif -->
+            <!-- VIEW 2: Tiket Baru -->
+            <div id="view-tiket-baru" class="view-section d-none">
+                <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
+                    <i class="bi bi-inbox text-primary me-2"></i>Tiket Baru (Tersedia)
+                </h5>
+                <div id="tiket-baru-container">
+                    <!-- Loaded via JS -->
+                </div>
+            </div>
+
+            <!-- VIEW 3: Tiket Aktif -->
             <div id="view-tiket-aktif" class="view-section d-none">
                 <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
-                    <i class="bi bi-tools text-warning me-2"></i>Tiket Aktif Saya
+                    <i class="bi bi-tools text-warning me-2"></i>Semua Tiket Aktif Saya
                 </h5>
                 <div id="tiket-aktif-container">
                     <!-- Loaded via JS -->
                 </div>
             </div>
 
-            <!-- VIEW 3: Registrasi Pelanggan -->
+            <!-- VIEW 4: Registrasi Pelanggan -->
             <div id="view-registrasi" class="view-section d-none">
                 <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
-                    <i class="bi bi-person-plus text-success me-2"></i>Registrasi Pelanggan Baru
+                    <i class="bi bi-person-plus text-info me-2"></i>Registrasi Pelanggan Baru
                 </h5>
                 <form id="tech-reg-customer-form" class="chat-bubble">
                     <div class="row g-3">
@@ -358,7 +368,11 @@
 
     <!-- Bottom Navigation Bar -->
     <nav class="chat-menu">
-        <a href="#" class="menu-item active" data-target="view-tiket-baru">
+        <a href="#" class="menu-item active" data-target="view-tiket-hari-ini">
+            <i class="bi bi-calendar-check"></i>
+            <span>Hari Ini</span>
+        </a>
+        <a href="#" class="menu-item" data-target="view-tiket-baru">
             <i class="bi bi-inbox"></i>
             <span>Tiket Baru</span>
         </a>

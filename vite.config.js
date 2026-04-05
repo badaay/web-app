@@ -29,6 +29,25 @@ function activityRewritePlugin() {
 
 export default defineConfig({
     base: BASE_URL,
+    server: {
+        // Proxy /api/* requests to Vercel Edge Functions locally
+        // For local development without Vercel CLI, set up a mock server
+        // or use `vercel dev` to test actual Edge Functions
+        proxy: {
+            '/api': {
+                target: 'http://localhost:3000',
+                changeOrigin: true,
+                rewrite: (path) => path,
+                configure: (proxy, options) => {
+                    proxy.on('error', (err, req, res) => {
+                        console.log('Proxy error:', err);
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'API proxy error - ensure `vercel dev` or local API server is running' }));
+                    });
+                }
+            }
+        }
+    },
     build: {
         rollupOptions: {
             input: {
@@ -62,7 +81,7 @@ export default defineConfig({
 
                 // Ignore custom app query params when looking up precached
                 // HTML files so activity.html?eid=X → serves activity.html.
-                ignoreURLParametersMatching: [/^eid$/, /^cid$/, /^customer$/, /^redirect$/, /^success$/],
+                ignoreURLParametersMatching: [/^eid$/, /^cid$/, /^customer$/, /^redirect$/, /^success$/, /^token$/],
 
                 globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
                 runtimeCaching: [
