@@ -4,6 +4,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "error": [
+    { "statusCode": 404, "destination": "/404.html" }
+  ],
   "rewrites": [
     {
       "source": "/admin",
@@ -12,6 +15,14 @@
     {
       "source": "/admin/",
       "destination": "/admin/index.html"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/admin/login.html"
+    },
+    {
+      "source": "/admin/add-psb",
+      "destination": "/admin/add-psb.html"
     },
     {
       "source": "/:eid/activity",
@@ -26,8 +37,12 @@
       "destination": "/enduser/login.html"
     },
     {
-      "source": "/admin/login",
-      "destination": "/admin/login.html"
+      "source": "/enduser/tracking",
+      "destination": "/enduser/tracking.html"
+    },
+    {
+      "source": "/invoice",
+      "destination": "/invoice.html"
     }
   ],
   "headers": [

@@ -57,6 +57,8 @@ export default defineConfig({
                 'add-psb': resolve(__dirname, 'admin/add-psb.html'),
                 'enduser-login': resolve(__dirname, 'enduser/login.html'),
                 'enduser-dashboard': resolve(__dirname, 'enduser/dashboard.html'),
+                'enduser-tracking': resolve(__dirname, 'enduser/tracking.html'),
+                'invoice': resolve(__dirname, 'invoice.html'),
                 'activity': resolve(__dirname, 'activity.html'),
             },
         },
