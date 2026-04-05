@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="modern-slate">
 
 <head>
     <meta charset=" UTF-8">
@@ -87,6 +87,12 @@
                     style="font-size: 0.65rem; letter-spacing: 1.5px;">Keuangan</div>
                 <button class="nav-item-custom nav-module-link" data-module="billing-content">
                     <i class="bi bi-receipt-cutoff"></i> Layanan & Tagihan
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="financial-reports-content">
+                    <i class="bi bi-graph-up"></i> Laporan Keuangan
+                </button>
+                <button class="nav-item-custom nav-module-link" data-module="financial-ledger-content">
+                    <i class="bi bi-book"></i> Buku Besar
                 </button>
 
                 <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
@@ -468,38 +474,36 @@
                                     </button>
                                 </div>
                             </div>
-                            <div id="work-orders-list" class="card">
-                                <div class="card-body text-center py-5">Memuat data Antrian...</div>
-                            </div>
-                        </div>
-
-                        <!-- Attendance -->
-                        <div class="tab-pane fade" id="attendance-content" role="tabpanel">
-                            <div id="attendance-module-root"></div>
-                        </div>
-
-                        <!-- Overtime -->
-                        <div class="tab-pane fade" id="overtime-content" role="tabpanel">
-                            <div id="overtime-module-root"></div>
-                        </div>
-
-                        <!-- Payroll -->
-                        <div class="tab-pane fade" id="payroll-content" role="tabpanel">
-                            <div id="payroll-module-root"></div>
-                        </div>
-
-                        <!-- Billing & Payments -->
-                        <div class="tab-pane fade" id="billing-content" role="tabpanel">
-                            <div id="billing-module-root">
-                                <div class="text-center py-5 text-white-50">
-                                    <div class="spinner-border spinner-border-sm me-2"></div>
-                                    Memuat modul tagihan...
+                            <div id="wo-search-bar-container"></div>
+                            <div id="wo-target-today-section" class="mb-4"></div>
+                            <div class="row g-3">
+                                <div class="col-lg-8">
+                                    <div id="work-orders-list" class="card">
+                                        <div class="card-body text-center py-5">Memuat data Antrian...</div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div id="work-order-target-today" class="card bg-vscode border-secondary">
+                                        <div class="card-header bg-vscode-header border-secondary py-3">
+                                            <h6 class="mb-0 fw-bold"><i class="bi bi-target me-2"></i>Target Hari Ini</h6>
+                                        </div>
+                                        <div class="card-body" id="work-order-target-content">
+                                            <div class="text-center text-white-50 py-4"><small>Memuat target...</small></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                    </div><!-- end masterDataTabsContent -->
-                </div><!-- end master-data-container -->
+                        <!-- Financial Reports Tab -->
+                        <div class="tab-pane fade" id="financial-reports-content" role="tabpanel">
+                            <!-- Content will be rendered by financial-reports.js -->
+                        </div>
+                        <!-- Financial Ledger Tab -->
+                        <div class="tab-pane fade" id="financial-ledger-content" role="tabpanel">
+                            <!-- Content will be rendered by financial-ledger.js -->
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -550,12 +554,12 @@
                     <p>Konfirmasi work order <strong id="assign-wo-code"></strong>?</p>
                     <p class="text-muted small">Status akan diubah menjadi "Confirmed" dan akan muncul di papan teknisi
                         untuk di-klaim.</p>
-                    <div class="mb-3 d-none">
+                    <!-- <div class="mb-3">
                         <label class="form-label small text-white-50">Tugaskan ke Teknisi</label>
                         <select class="form-select form-select-sm" id="assign-employee-select">
                             <option value="">-- Pilih Teknisi (opsional) --</option>
                         </select>
-                    </div>
+                    </div> -->
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>

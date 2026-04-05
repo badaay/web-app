@@ -199,6 +199,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 initModule('settings-content');
                 initModule('roles-content');
                 pageTitle = 'Settings';
+            } else if (target === 'financial-reports-content' || target === 'financial-ledger-content') {
+                masterDataContainer.classList.remove('d-none');
+                masterPanes.forEach(pane => pane.classList.remove('show', 'active'));
+                const financialPane = document.getElementById(target);
+                if (financialPane) financialPane.classList.add('show', 'active');
+                initModule(target);
+                pageTitle = target === 'financial-reports-content' ? 'Laporan Keuangan' : 'Buku Besar';
             } else {
                 // Check if it's a master data pane
                 masterDataContainer.classList.remove('d-none');
@@ -266,72 +273,83 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function initModule(targetId) {
-        if (targetId === 'dashboard') {
-            const { initDashboard } = await import('./modules/dashboard.js');
-            initDashboard();
-        } else if (targetId === 'employees-content') {
-            const { initEmployees } = await import('./modules/employees.js');
-            initEmployees();
-        } else if (targetId === 'customers-content') {
-            const { initCustomers } = await import('./modules/customers.js');
-            initCustomers();
-        } else if (targetId === 'add-customer-view-content') {
-            const { initAddCustomerView } = await import('./modules/add-customer-view.js');
-            initAddCustomerView();
-        } else if (targetId === 'settings-content') {
-            const { initSettings } = await import('./modules/settings.js');
-            initSettings();
-        } else if (targetId === 'roles-content') {
-            const { initRoles } = await import('./modules/roles.js');
-            initRoles();
-        } else if (targetId === 'packages-content') {
-            const { initPackages } = await import('./modules/packages.js');
-            initPackages();
-        } else if (targetId === 'inventory-content') {
-            const { initInventory } = await import('./modules/inventory.js');
-            initInventory();
-        } else if (targetId === 'queue-types-content') {
-            const { initQueueTypes } = await import('./modules/queue-types.js');
-            initQueueTypes();
-        } else if (targetId === 'reports-content') {
-            const { initReports } = await import('./modules/reports.js');
-            initReports();
-        } else if (targetId === 'performance-content') {
-            const { initPerformance } = await import('./modules/performance.js');
-            initPerformance();
-        } else if (targetId === 'work-orders-content') {
-            const { initWorkOrders } = await import('./modules/work-orders/index.js');
-            initWorkOrders();
-        } else if (targetId === 'customer-map-view-content') {
-            const { initCustomerMapView } = await import('./modules/customer-map-view.js');
-            initCustomerMapView();
-        } else if (targetId === 'theme-pane') {
-            const { initTheme } = await import('./modules/theme.js');
-            initTheme();
-        } else if (targetId === 'whatsapp-pane') {
-            const { initWhatsApp } = await import('./modules/whatsapp.js');
-            initWhatsApp();
-        } else if (targetId === 'notifications-pane') {
-            const { initNotifications } = await import('./modules/notifications.js');
-            initNotifications();
-        } else if (targetId === 'scheduling-pane') {
-            const { initScheduling } = await import('./modules/scheduling.js');
-            initScheduling();
-        } else if (targetId === 'payments-pane') {
-            const { initPayments } = await import('./modules/payments.js');
-            initPayments();
-        } else if (targetId === 'billing-content') {
-            const { initBilling } = await import('./modules/billing.js');
-            initBilling();
-        } else if (targetId === 'attendance-content') {
-            const { initAttendance } = await import('./modules/attendance.js');
-            initAttendance();
-        } else if (targetId === 'overtime-content') {
-            const { initOvertime } = await import('./modules/overtime.js');
-            initOvertime();
-        } else if (targetId === 'payroll-content') {
-            const { initPayroll } = await import('./modules/payroll.js');
-            initPayroll();
+        try {
+            if (targetId === 'dashboard') {
+                const { initDashboard } = await import('./modules/dashboard.js');
+                initDashboard();
+            } else if (targetId === 'employees-content') {
+                const { initEmployees } = await import('./modules/employees.js');
+                initEmployees();
+            } else if (targetId === 'customers-content') {
+                const { initCustomers } = await import('./modules/customers.js');
+                initCustomers();
+            } else if (targetId === 'add-customer-view-content') {
+                const { initAddCustomerView } = await import('./modules/add-customer-view.js');
+                initAddCustomerView();
+            } else if (targetId === 'settings-content') {
+                const { initSettings } = await import('./modules/settings.js');
+                initSettings();
+            } else if (targetId === 'roles-content') {
+                const { initRoles } = await import('./modules/roles.js');
+                initRoles();
+            } else if (targetId === 'packages-content') {
+                const { initPackages } = await import('./modules/packages.js');
+                initPackages();
+            } else if (targetId === 'inventory-content') {
+                const { initInventory } = await import('./modules/inventory.js');
+                initInventory();
+            } else if (targetId === 'queue-types-content') {
+                const { initQueueTypes } = await import('./modules/queue-types.js');
+                initQueueTypes();
+            } else if (targetId === 'reports-content') {
+                const { initReports } = await import('./modules/reports.js');
+                initReports();
+            } else if (targetId === 'performance-content') {
+                const { initPerformance } = await import('./modules/performance.js');
+                initPerformance();
+            } else if (targetId === 'work-orders-content') {
+                const { initWorkOrders } = await import('./modules/work-orders/index.js');
+                initWorkOrders();
+            } else if (targetId === 'customer-map-view-content') {
+                const { initCustomerMapView } = await import('./modules/customer-map-view.js');
+                initCustomerMapView();
+            } else if (targetId === 'theme-pane') {
+                const { initTheme } = await import('./modules/theme.js');
+                initTheme();
+            } else if (targetId === 'whatsapp-pane') {
+                const { initWhatsApp } = await import('./modules/whatsapp.js');
+                initWhatsApp();
+            } else if (targetId === 'notifications-pane') {
+                const { initNotifications } = await import('./modules/notifications.js');
+                initNotifications();
+            } else if (targetId === 'scheduling-pane') {
+                const { initScheduling } = await import('./modules/scheduling.js');
+                initScheduling();
+            } else if (targetId === 'payments-pane') {
+                const { initPayments } = await import('./modules/payments.js');
+                initPayments();
+            } else if (targetId === 'billing-content') {
+                const { initBilling } = await import('./modules/billing.js');
+                initBilling();
+            } else if (targetId === 'attendance-content') {
+                const { initAttendance } = await import('./modules/attendance.js');
+                initAttendance();
+            } else if (targetId === 'overtime-content') {
+                const { initOvertime } = await import('./modules/overtime.js');
+                initOvertime();
+            } else if (targetId === 'payroll-content') {
+                const { initPayroll } = await import('./modules/payroll.js');
+                initPayroll();
+            } else if (targetId === 'financial-ledger-content') {
+                const { initFinancialLedger } = await import('./modules/financial-ledger.js');
+                initFinancialLedger();
+            } else if (targetId === 'financial-reports-content') {
+                const { initFinancialReports } = await import('./modules/financial-reports.js');
+                initFinancialReports();
+            }
+        } catch (error) {
+            console.error(`Failed to load module '${targetId}':`, error);
+            showToast('error', `Gagal memuat modul: ${error.message}`);
         }
     }
 

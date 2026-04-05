@@ -66,12 +66,33 @@ export async function verifyAuth(req) {
  * @returns {Promise<string|null>}
  */
 export async function getEmployeeRole(userId) {
-  const { data } = await supabaseAdmin
-    .from('profiles')
-    .select('roles(code)')
-    .eq('id', userId)
-    .single();
-  return data?.roles?.code ?? null;
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('role_id, roles(code)')
+      .eq('id', userId)
+      .maybeSingle(); // Returns null if no rows, instead of throwing error
+
+    if (error) {
+      console.warn(`[getEmployeeRole] Query error for user ${userId}:`, error.message);
+      return null;
+    }
+
+    if (!data) {
+      console.warn(`[getEmployeeRole] No profile found for user ${userId}`);
+      return null;
+    }
+
+    if (!data.roles) {
+      console.warn(`[getEmployeeRole] Profile exists but no role linked for user ${userId}`);
+      return null;
+    }
+
+    return data.roles.code ?? null;
+  } catch (err) {
+    console.error(`[getEmployeeRole] Unexpected error for user ${userId}:`, err);
+    return null;
+  }
 }
 
 /**
