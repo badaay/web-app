@@ -3,214 +3,293 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Pembayaran Layanan - Internet Fiber</title>
-    <!-- Bootstrap 5 -->
+    <title>Invoice Pembayaran - Internet Fiber</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Modern Slate Theme Variables */
         :root {
-            --bs-body-bg: #0f172a;
-            --bs-body-color: #cbd5e1;
-            --accent: #38bdf8;
-            --card-bg: #1e293b;
+            --vscode-bg: #f1f5f9;
+            --vscode-sidebar-bg: #f8fafc;
+            --vscode-header-bg: #e2e8f0;
+            --vscode-activitybar-bg: #cbd5e1;
+            --vscode-text: #475569;
+            --vscode-text-bright: #1e293b;
+            --vscode-accent: #3b5bdb;
+            --vscode-accent-hover: #2f4ac5;
+            --vscode-border: #cbd5e1;
+            --vscode-success: #16a34a;
+            --vscode-danger: #dc2626;
+            --vscode-warning: #d97706;
         }
 
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            padding: 2rem 0;
+            background-color: var(--vscode-bg);
+            color: var(--vscode-text);
+            padding: 1rem 0;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
         }
 
+        @media (min-width: 768px) {
+            body { padding: 3rem 0; }
+        }
+
+        /* Abstract Background Shapes for Glassmorphism Effect */
+        .bg-shape {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 10s infinite alternate ease-in-out;
+        }
+        .shape-1 { top: -5%; left: -5%; width: 40vw; height: 40vw; background-color: #93c5fd; }
+        .shape-2 { bottom: -10%; right: -5%; width: 50vw; height: 50vw; background-color: #c4b5fd; }
+        .shape-3 { top: 40%; left: 30%; width: 30vw; height: 30vw; background-color: #e2e8f0; animation-delay: -5s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(20px, 40px) scale(1.1); }
+        }
+
+        /* Glassmorphic Card */
         .invoice-card {
-            background-color: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 1.5rem;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 1rem;
             overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 40px -10px rgba(30, 41, 59, 0.1);
+        }
+
+        @media (min-width: 768px) {
+            .invoice-card { border-radius: 1.5rem; }
         }
 
         .invoice-header {
-            padding: 3rem 2.5rem;
-            background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
-            color: white;
+            padding: 2rem 1.5rem;
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            color: var(--vscode-text-bright);
+        }
+
+        @media (min-width: 768px) {
+            .invoice-header { padding: 2.5rem; }
         }
 
         .invoice-body {
-            padding: 2.5rem;
+            padding: 1.5rem;
         }
 
-        .invoice-footer {
-            padding: 2rem 2.5rem;
-            background-color: rgba(255, 255, 255, 0.02);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        @media (min-width: 768px) {
+            .invoice-body { padding: 2.5rem; }
         }
 
+        /* Typography overrides */
+        .text-bright { color: var(--vscode-text-bright) !important; }
+        .text-muted-custom { color: var(--vscode-text) !important; }
+        .text-accent { color: var(--vscode-accent) !important; }
+
+        /* Stamp */
         .paid-stamp {
             position: absolute;
-            top: 2rem;
-            right: 2rem;
-            transform: rotate(-15deg);
-            border: 5px solid #22c55e;
-            color: #22c55e;
-            padding: 0.5rem 1.5rem;
-            font-size: 2rem;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            border: 0.4rem solid var(--vscode-success);
+            color: var(--vscode-success);
+            padding: 0.5rem 1rem;
+            font-size: 2.5rem;
             font-weight: 900;
             text-transform: uppercase;
-            border-radius: 0.75rem;
-            opacity: 0.2;
+            border-radius: 0.5rem;
+            opacity: 0.12;
             pointer-events: none;
             user-select: none;
+            z-index: 10;
+            width: fit-content;
         }
 
         .unpaid-stamp {
-            border-color: #ef4444;
-            color: #ef4444;
+            border-color: var(--vscode-danger);
+            color: var(--vscode-danger);
         }
 
+        /* Glass Table */
         .table-custom {
-            color: var(--bs-body-color);
+            color: var(--vscode-text-bright);
+            font-size: 0.9rem;
+            background: transparent;
+            margin-bottom: 0;
         }
 
         .table-custom th {
-            color: white;
+            color: var(--vscode-text);
             font-weight: 600;
-            border-color: rgba(255, 255, 255, 0.1);
+            border-bottom: 2px solid rgba(30, 41, 59, 0.1);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            background: transparent;
+            padding-bottom: 1rem;
         }
 
         .table-custom td {
-            border-color: rgba(255, 255, 255, 0.05);
-            padding: 1.25rem 0.5rem;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.05);
+            padding: 1.25rem 0;
+            background: transparent;
+        }
+
+        /* Custom Footer */
+        .invoice-footer {
+            background: rgba(255, 255, 255, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 1.5rem;
         }
 
         #loading-overlay {
             position: fixed;
             inset: 0;
-            background: var(--bs-body-bg);
+            background: rgba(241, 245, 249, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
         }
 
-        .btn-accent {
-            background-color: var(--accent);
-            color: #0f172a;
-            font-weight: 600;
-        }
-
-        .btn-accent:hover {
-            background-color: #7dd3fc;
-            color: #0f172a;
+        /* Buttons responsive behavior */
+        @media (max-width: 576px) {
+            .btn-group-mobile {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                gap: 0.75rem !important;
+            }
+            .btn-group-mobile .btn {
+                width: 100%;
+                padding: 0.75rem;
+            }
         }
     </style>
 </head>
 <body>
 
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+
     <div id="loading-overlay">
         <div class="text-center">
-            <div class="spinner-border text-info mb-3"></div>
-            <p class="text-white-50">Mengambil data invoice...</p>
+            <div class="spinner-border text-primary mb-3" style="color: var(--vscode-accent) !important;"></div>
+            <p class="text-muted-custom fw-medium">Memuat Invoice...</p>
         </div>
     </div>
 
     <div class="container d-none" id="main-content">
         <div class="row justify-content-center">
-            <div class="col-lg-8">
+            <div class="col-12 col-lg-8">
                 
-                <div class="text-center mb-5">
-                    <h2 class="text-white fw-bold">Bukti Pembayaran</h2>
-                    <p class="text-white-50">Terima kasih telah berlangganan layanan Internet kami.</p>
+                <div class="text-center mb-4">
+                    <h4 class="text-bright fw-bold mb-1">Bukti Pembayaran</h4>
+                    <p class="text-muted-custom small">SiFatih Internet Service</p>
                 </div>
 
                 <div class="invoice-card position-relative">
                     <div id="status-stamp"></div>
                     
                     <div class="invoice-header">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <h1 class="h3 fw-bold mb-1">SiFatih Internet Service</h1>
-                                <p class="mb-0 opacity-75 small">Layanan Internet Cepat & Stabil</p>
+                        <div class="row gy-3 align-items-center">
+                            <div class="col-12 col-md-6 text-center text-md-start">
+                                <h2 class="h4 fw-bold mb-0 text-bright">SiFatih Net</h2>
+                                <p class="mb-0 small text-muted-custom mt-1">Invoice Layanan Fiber</p>
                             </div>
-                            <div class="col-md-6 text-md-end mt-4 mt-md-0">
-                                <h3 class="fw-bold mb-1" id="invoice-number">#INV-00000</h3>
-                                <p class="mb-0 opacity-75 small" id="bill-period">Januari 2024</p>
+                            <div class="col-12 col-md-6 text-center text-md-end">
+                                <h5 class="fw-bold mb-0 text-accent" id="invoice-number">#INV-XXXXX</h5>
+                                <p class="mb-0 small text-muted-custom mt-1" id="bill-period">---</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="invoice-body">
-                        <div class="row mb-5">
-                            <div class="col-sm-6">
-                                <h6 class="text-white-50 small text-uppercase fw-bold mb-3">Pelanggan:</h6>
-                                <h5 class="text-white fw-bold mb-1" id="cust-name">—</h5>
-                                <p class="mb-0 small opacity-75" id="cust-code">—</p>
-                                <p class="mb-0 small opacity-75" id="cust-address">—</p>
+                        <div class="row gy-4 mb-4">
+                            <div class="col-12 col-sm-7">
+                                <label class="text-accent small text-uppercase fw-bold mb-2 d-block">Ditagihkan Kepada:</label>
+                                <h6 class="text-bright fw-bold mb-1" id="cust-name">---</h6>
+                                <div class="small text-muted-custom">
+                                    <p class="mb-0" id="cust-code">ID: ---</p>
+                                    <p class="mb-0" id="cust-address">---</p>
+                                </div>
                             </div>
-                            <div class="col-sm-6 text-sm-end mt-4 mt-sm-0">
-                                <h6 class="text-white-50 small text-uppercase fw-bold mb-3">Detail:</h6>
-                                <p class="mb-1 small">Metode: <span class="text-white" id="pay-method">—</span></p>
-                                <p class="mb-0 small">Tanggal Bayar: <span class="text-white" id="pay-date">—</span></p>
+                            <div class="col-12 col-sm-5 text-sm-end">
+                                <label class="text-accent small text-uppercase fw-bold mb-2 d-block">Status Detail:</label>
+                                <p class="mb-1 small text-muted-custom">Metode: <span class="text-bright fw-medium" id="pay-method">---</span></p>
+                                <p class="mb-0 small text-muted-custom">Tanggal: <span class="text-bright fw-medium" id="pay-date">---</span></p>
                             </div>
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-custom mb-4">
+                            <table class="table table-custom">
                                 <thead>
                                     <tr>
-                                        <th>Deskripsi Layanan</th>
-                                        <th class="text-end">Jumlah</th>
+                                        <th>Layanan</th>
+                                        <th class="text-end">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
                                         <td>
-                                            <div class="text-white fw-bold" id="item-pkg">—</div>
-                                            <div class="small opacity-75">Iuran bulanan paket internet</div>
+                                            <div class="text-bright fw-bold" id="item-pkg">---</div>
+                                            <div class="text-muted-custom mt-1" style="font-size: 0.8rem;">Iuran Internet Bulanan</div>
                                         </td>
-                                        <td class="text-end text-white fw-bold" id="item-amount">Rp 0</td>
+                                        <td class="text-end text-bright fw-bold align-middle" id="item-amount">Rp 0</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
 
-                        <div class="row justify-content-end">
-                            <div class="col-md-5">
+                        <div class="row justify-content-end mt-4">
+                            <div class="col-12 col-md-6 col-lg-5">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-white-50 small">Subtotal</span>
-                                    <span class="text-white fw-semibold" id="summary-subtotal">Rp 0</span>
+                                    <span class="small text-muted-custom">Subtotal</span>
+                                    <span class="text-bright fw-medium" id="summary-subtotal">Rp 0</span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-4">
-                                    <span class="text-white-50 small">Pajak (0%)</span>
-                                    <span class="text-white fw-semibold">Rp 0</span>
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span class="small text-muted-custom">PPN (0%)</span>
+                                    <span class="text-bright fw-medium">Rp 0</span>
                                 </div>
-                                <div class="d-flex justify-content-between pt-3 border-top border-secondary">
-                                    <span class="text-white fw-bold">TOTAL</span>
-                                    <span class="h4 text-info fw-bold" id="summary-total">Rp 0</span>
+                                <div class="d-flex justify-content-between pt-3" style="border-top: 2px dashed rgba(30, 41, 59, 0.1);">
+                                    <span class="text-bright fw-bold">TOTAL BAYAR</span>
+                                    <span class="h5 text-accent fw-bold mb-0" id="summary-total">Rp 0</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="invoice-footer text-center">
-                        <p class="small text-white-50 mb-0">Invoice ini sah dan diterbitkan secara digital oleh sistem.</p>
-                        <p class="small text-white-50 mb-4">Untuk bantuan teknis silakan hubungi Customer Support kami.</p>
+                    <div class="invoice-footer">
+                        <div class="text-center mb-4">
+                            <p class="text-muted-custom mb-1" style="font-size: 0.8rem;">Invoice ini diterbitkan secara otomatis dan sah tanpa tanda tangan basah.</p>
+                        </div>
                         
-                        <div class="d-flex gap-2 justify-content-center">
-                            <button onclick="window.print()" class="btn btn-outline-secondary btn-sm px-4">
+                        <div class="btn-group-mobile d-flex gap-2 justify-content-center">
+                            <button onclick="window.print()" class="btn btn-outline-dark btn-sm px-4" style="border-color: var(--vscode-border);">
                                 <i class="bi bi-printer me-2"></i>Cetak PDF
                             </button>
-                            <a href="#" id="wa-support" class="btn btn-success btn-sm px-4">
-                                <i class="bi bi-whatsapp me-2"></i>Hubungi Admin
+                            <a href="#" id="wa-support" class="btn btn-sm px-4 text-white" style="background-color: var(--vscode-success); border: none;">
+                                <i class="bi bi-whatsapp me-2"></i>WhatsApp Admin
                             </a>
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-4 text-center">
-                    <p class="small text-white-50">© 2024 SiFatih Net. All rights reserved.</p>
+                    <p class="small text-muted-custom">© 2024 SiFatih Net. All rights reserved.</p>
                 </div>
 
             </div>
@@ -221,56 +300,72 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token');
+            const isTest = urlParams.get('test') === 'true';
 
+            // Function to populate UI
+            const updateUI = (bill, cust) => {
+                document.getElementById('invoice-number').innerText = `#INV-${bill.id.slice(0, 8).toUpperCase()}`;
+                document.getElementById('bill-period').innerText = new Date(bill.period_date).toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+                
+                document.getElementById('cust-name').innerText = cust.name;
+                document.getElementById('cust-code').innerText = `ID: ${cust.customer_code || '—'}`;
+                document.getElementById('cust-address').innerText = cust.address || 'Alamat tidak terdaftar';
+                
+                document.getElementById('pay-method').innerText = bill.payment_method ? bill.payment_method.toUpperCase() : 'BELUM TERBAYAR';
+                document.getElementById('pay-date').innerText = bill.payment_date ? new Date(bill.payment_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+                
+                document.getElementById('item-pkg').innerText = cust.packet || 'Layanan Internet';
+                
+                const formattedAmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(bill.amount);
+                document.getElementById('item-amount').innerText = formattedAmt;
+                document.getElementById('summary-subtotal').innerText = formattedAmt;
+                document.getElementById('summary-total').innerText = formattedAmt;
+
+                const stamp = document.getElementById('status-stamp');
+                if (bill.status === 'paid') {
+                    stamp.innerHTML = '<div class="paid-stamp" style="color: var(--vscode-success); border-color: var(--vscode-success);">LUNAS</div>';
+                } else {
+                    stamp.innerHTML = '<div class="paid-stamp unpaid-stamp" style="color: var(--vscode-danger); border-color: var(--vscode-danger);">UNPAID</div>';
+                }
+
+                document.getElementById('loading-overlay').classList.add('d-none');
+                document.getElementById('main-content').classList.remove('d-none');
+            };
+
+            // 1. Handle Test Mode
+            if (isTest) {
+                console.log("Running in Test Mode with dummy data...");
+                const dummyData = {
+                    id: "test-8888-9999",
+                    period_date: "2024-05-01",
+                    amount: 350000,
+                    status: "paid",
+                    payment_method: "Transfer Bank (BCA)",
+                    payment_date: "2024-05-05T10:30:00Z",
+                    customers: {
+                        name: "Fatih Al-Ayyubi",
+                        customer_code: "FT-001-MAX",
+                        address: "Jl. Tekno No. 123, Sleman, Yogyakarta",
+                        packet: "Home Ultimate 100 Mbps"
+                    }
+                };
+                setTimeout(() => updateUI(dummyData, dummyData.customers), 800);
+                return;
+            }
+
+            // 2. Handle Real API Mode
             if (!token) {
-                document.body.innerHTML = '<div class="text-center mt-5"><h1 class="text-danger">Akses Ditolak</h1><p>Token invoice tidak valid atau hilang.</p></div>';
+                document.body.innerHTML = '<div class="container text-center mt-5 position-relative z-index-1"><i class="bi bi-exclamation-octagon text-danger display-1"></i><h2 class="text-bright mt-3 fw-bold">Akses Ditolak</h2><p class="text-muted-custom">Token tidak valid atau link sudah kedaluwarsa.</p></div>';
                 return;
             }
 
             try {
                 const response = await fetch(`/api/bills/public?token=${token}`);
                 const res = await response.json();
-
-                if (!res.success) {
-                    throw new Error(res.error || 'Gagal mengambil data');
-                }
-
-                const bill = res.data;
-                const cust = bill.customers;
-
-                // Update UI
-                document.getElementById('invoice-number').innerText = `#INV-${bill.id.slice(0, 8).toUpperCase()}`;
-                
-                const periodDate = new Date(bill.period_date);
-                document.getElementById('bill-period').innerText = periodDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-                
-                document.getElementById('cust-name').innerText = cust.name;
-                document.getElementById('cust-code').innerText = cust.customer_code || 'ID: —';
-                document.getElementById('cust-address').innerText = cust.address || '—';
-                
-                document.getElementById('pay-method').innerText = bill.payment_method ? bill.payment_method.toUpperCase() : 'BELUM TERBAYAR';
-                document.getElementById('pay-date').innerText = bill.payment_date ? new Date(bill.payment_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
-                
-                document.getElementById('item-pkg').innerText = cust.packet || 'Layanan Internet';
-                const formattedAmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(bill.amount).replace(',00', '');
-                document.getElementById('item-amount').innerText = formattedAmt;
-                document.getElementById('summary-subtotal').innerText = formattedAmt;
-                document.getElementById('summary-total').innerText = formattedAmt;
-
-                // Stamp
-                const stamp = document.getElementById('status-stamp');
-                if (bill.status === 'paid') {
-                    stamp.innerHTML = '<div class="paid-stamp">LUNAS</div>';
-                } else {
-                    stamp.innerHTML = '<div class="paid-stamp unpaid-stamp">UNPAID</div>';
-                }
-
-                // Show content
-                document.getElementById('loading-overlay').classList.add('d-none');
-                document.getElementById('main-content').classList.remove('d-none');
-
+                if (!res.success) throw new Error(res.error || 'Data tidak ditemukan');
+                updateUI(res.data, res.data.customers);
             } catch (err) {
-                document.body.innerHTML = `<div class="text-center mt-5"><h1 class="text-danger">Gagal</h1><p>${err.message}</p></div>`;
+                document.body.innerHTML = `<div class="container text-center mt-5 position-relative z-index-1"><i class="bi bi-x-circle text-danger display-1"></i><h2 class="text-bright mt-3 fw-bold">Gagal Memuat</h2><p class="text-muted-custom">${err.message}</p></div>`;
             }
         });
     </script>

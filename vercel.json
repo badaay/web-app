@@ -4,9 +4,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "error": [
-    { "statusCode": 404, "destination": "/404.html" }
-  ],
   "rewrites": [
     {
       "source": "/admin",

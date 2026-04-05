@@ -18,7 +18,7 @@ export default withCors(async function handler(req) {
     // Query the psb_registrations table using the secret token
     const { data: psbData, error: psbError } = await supabaseAdmin
       .from('psb_registrations')
-      .select('name, status, created_at, address, packet')
+      .select('name, phone, status, created_at, updated_at, address, packet')
       .eq('secret_token', token)
       .maybeSingle();
 
@@ -30,9 +30,42 @@ export default withCors(async function handler(req) {
       return errorResponse('Valid token not found or registration does not exist', 404);
     }
 
-    // If there is an integration with work orders in the future, we can augment scheduled_date here.
-    // For now we just return the registration details.
-    
+    // Try to find a customer linked by phone number to get installation scheduled date
+    let scheduledDate = null;
+    let workOrderStatus = null;
+    if (psbData.phone) {
+      const { data: customer } = await supabaseAdmin
+        .from('customers')
+        .select('id')
+        .eq('phone', psbData.phone)
+        .maybeSingle();
+
+      if (customer) {
+        // Get latest work order for this customer
+        const { data: wo } = await supabaseAdmin
+          .from('work_orders')
+          .select('id, status')
+          .eq('customer_id', customer.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (wo) {
+          workOrderStatus = wo.status;
+          // Get planned installation date from monitoring record
+          const { data: monitoring } = await supabaseAdmin
+            .from('installation_monitorings')
+            .select('planned_date, actual_date')
+            .eq('work_order_id', wo.id)
+            .maybeSingle();
+
+          if (monitoring) {
+            scheduledDate = monitoring.actual_date || monitoring.planned_date || null;
+          }
+        }
+      }
+    }
+
     return jsonResponse({
         success: true,
         data: {
@@ -41,7 +74,9 @@ export default withCors(async function handler(req) {
           address: psbData.address,
           packet: psbData.packet,
           registration_date: psbData.created_at,
-          scheduled_date: null // Placeholder for C04-03 scheduled_date requirement
+          updated_at: psbData.updated_at,
+          scheduled_date: scheduledDate,
+          work_order_status: workOrderStatus,
         }
     }, 200);
 

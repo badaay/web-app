@@ -1,25 +1,35 @@
 <!DOCTYPE html>
-<html lang="id" data-theme="modern-slate">
-
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tracking Pendaftaran - SiFatih</title>
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Fonts: Outfit -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <link rel="stylesheet" href="/src/admin/themes.css">
-
     <style>
+        /* Modern Slate Theme Variables */
+        :root {
+            --vscode-bg: #f1f5f9;
+            --vscode-sidebar-bg: #f8fafc;
+            --vscode-header-bg: #e2e8f0;
+            --vscode-activitybar-bg: #cbd5e1;
+            --vscode-text: #475569;
+            --vscode-text-bright: #1e293b;
+            --vscode-accent: #3b5bdb;
+            --vscode-accent-hover: #2f4ac5;
+            --vscode-border: #cbd5e1;
+            --vscode-success: #16a34a;
+            --vscode-danger: #dc2626;
+            --vscode-warning: #d97706;
+        }
+
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: var(--vscode-bg, #f3f4f6);
-            color: var(--vscode-text-bright, #1f2937);
+            background-color: var(--vscode-bg);
+            color: var(--vscode-text);
             overflow-x: hidden;
             display: flex;
             align-items: center;
@@ -27,20 +37,44 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
+            position: relative;
         }
 
+        /* Abstract Background Shapes for Glassmorphism Effect */
+        .bg-shape {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 10s infinite alternate ease-in-out;
+        }
+        .shape-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background-color: #93c5fd; }
+        .shape-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background-color: #c4b5fd; }
+        .shape-3 { top: 30%; left: 20%; width: 40vw; height: 40vw; background-color: #e2e8f0; animation-delay: -5s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(20px, 40px) scale(1.1); }
+        }
+
+        /* Glass Container */
         .tracking-container {
             width: 100%;
             max-width: 480px;
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 40px -10px rgba(30, 41, 59, 0.1);
             overflow: hidden;
+            z-index: 1;
         }
 
         .tracking-header {
-            background: linear-gradient(135deg, var(--vscode-accent, #2563eb), var(--vscode-accent-hover, #1d4ed8));
-            color: white;
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
             padding: 30px;
             text-align: center;
             position: relative;
@@ -49,20 +83,22 @@
         .tracking-header h3 {
             font-weight: 700;
             margin-bottom: 5px;
+            color: var(--vscode-text-bright);
         }
 
         .tracking-header p {
             margin: 0;
-            opacity: 0.9;
+            font-size: 0.95rem;
+            color: var(--vscode-text);
         }
 
         .magic-bubble {
-            background: #fff;
-            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 1.25rem;
             padding: 24px;
             margin: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.8);
             animation: slideUp 0.5s ease-out forwards;
             opacity: 0;
             transform: translateY(20px);
@@ -89,7 +125,7 @@
             top: 0;
             bottom: 0;
             width: 2px;
-            background: #e5e7eb;
+            background: rgba(30, 41, 59, 0.1);
         }
 
         .timeline-step {
@@ -103,10 +139,7 @@
             margin-bottom: 0;
         }
 
-        .timeline-step.active {
-            opacity: 1;
-        }
-        
+        .timeline-step.active, 
         .timeline-step.completed {
             opacity: 1;
         }
@@ -119,40 +152,56 @@
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: white;
-            border: 2px solid #9ca3af;
+            background: var(--vscode-bg);
+            border: 2px solid rgba(30, 41, 59, 0.2);
             z-index: 2;
+            transition: all 0.3s ease;
         }
 
         .timeline-step.completed::before {
-            background: #10b981;
-            border-color: #10b981;
+            background: var(--vscode-success);
+            border-color: var(--vscode-success);
         }
 
         .timeline-step.active::before {
             background: transparent;
-            border: 3px solid var(--vscode-accent, #2563eb);
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+            border: 3px solid var(--vscode-accent);
+            box-shadow: 0 0 0 4px rgba(59, 91, 219, 0.2);
         }
 
         .timeline-step h5 {
             font-size: 1rem;
             font-weight: 600;
             margin-bottom: 4px;
+            color: var(--vscode-text-bright);
         }
 
         .timeline-step p {
             font-size: 0.85rem;
-            color: #6b7280;
+            color: var(--vscode-text);
             margin: 0;
         }
 
+        /* Glass Alerts */
         .status-alert {
             display: none;
-            border-radius: 16px;
+            border-radius: 1rem;
             padding: 16px;
             margin: 20px;
             font-size: 0.95rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        #alert-odp {
+            background: rgba(217, 119, 6, 0.1);
+            border: 1px solid rgba(217, 119, 6, 0.3);
+            color: #92400e;
+        }
+
+        #alert-cancel {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #991b1b;
         }
 
         .status-alert i {
@@ -160,10 +209,60 @@
             margin-bottom: 10px;
             display: block;
         }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.05);
+            font-size: 0.875rem;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .info-row .label { color: var(--vscode-text); }
+        .info-row .value { font-weight: 600; color: var(--vscode-text-bright); text-align: right; }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(30, 41, 59, 0.1);
+            border-radius: 10px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            color: var(--vscode-text);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--vscode-text-bright);
+        }
+
+        .scheduled-box {
+            background: rgba(22, 163, 74, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(22, 163, 74, 0.3);
+            border-radius: 1rem;
+            padding: 16px 20px;
+            margin: 0 20px 8px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .scheduled-box i { color: var(--vscode-success); }
     </style>
 </head>
 
 <body>
+
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
 
     <div class="tracking-container">
         <div class="tracking-header">
@@ -171,41 +270,37 @@
             <p id="ui-address">Memuat data pendaftaran...</p>
         </div>
 
-        <div id="loading" class="text-center p-5 text-muted">
-            <div class="spinner-border text-primary border-3" role="status"></div>
-            <p class="mt-3">Mencari tiket tracking Anda...</p>
+        <div id="loading" class="text-center p-5">
+            <div class="spinner-border border-3" style="color: var(--vscode-accent);" role="status"></div>
+            <p class="mt-3 text-muted" style="color: var(--vscode-text) !important;">Mencari tiket tracking Anda...</p>
         </div>
 
         <div id="error-screen" class="text-center p-5 d-none">
-            <i class="bi bi-search" style="font-size: 3rem; color: #9ca3af;"></i>
-            <h5 class="mt-3 font-weight-bold">Tiket Tidak Ditemukan</h5>
-            <p class="text-muted text-sm">Pastikan link pendaftaran Anda benar atau hubungi admin.</p>
+            <i class="bi bi-search" style="font-size: 3rem; color: var(--vscode-border);"></i>
+            <h5 class="mt-3 font-weight-bold" style="color: var(--vscode-text-bright);">Tiket Tidak Ditemukan</h5>
+            <p class="text-sm" style="color: var(--vscode-text);">Pastikan link pendaftaran Anda benar atau hubungi admin.</p>
         </div>
 
         <div id="tracking-content" class="d-none">
             <div class="magic-bubble">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold">Status Proses</span>
+                    <span class="fw-bold" style="color: var(--vscode-text-bright);">Status Proses</span>
                     <span id="ui-badge" class="badge rounded-pill bg-secondary px-3 py-2">Loading</span>
                 </div>
                 
                 <div class="timeline" id="ui-timeline">
-                    <!-- Step 1 -->
                     <div class="timeline-step" id="step-waiting">
                         <h5>Antrian</h5>
                         <p>Pesanan Anda telah masuk dalam daftar antrian.</p>
                     </div>
-                    <!-- Step 2 -->
                     <div class="timeline-step" id="step-confirmed">
                         <h5>Konfirmasi</h5>
                         <p>Pesanan telah dikonfirmasi oleh tim admin.</p>
                     </div>
-                    <!-- Step 3 -->
                     <div class="timeline-step" id="step-pending">
                         <h5>Pending</h5>
                         <p>Menunggu jadwal ketersediaan teknisi.</p>
                     </div>
-                    <!-- Step 4 -->
                     <div class="timeline-step" id="step-active">
                         <h5>Selesai</h5>
                         <p>Proses instalasi telah selesai dilakukan.</p>
@@ -213,21 +308,51 @@
                 </div>
             </div>
 
-            <!-- Warning Cards (hidden by default) -->
-            <div id="alert-odp" class="status-alert bg-warning text-dark">
+            <div id="scheduled-box" class="scheduled-box">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar-check-fill fs-5"></i>
+                    <div>
+                        <div class="fw-semibold" style="color: var(--vscode-success);">Jadwal Instalasi</div>
+                        <div id="ui-scheduled" class="fw-bold" style="color: var(--vscode-text-bright);">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="alert-odp" class="status-alert">
                 <i class="bi bi-exclamation-triangle-fill"></i>
                 <strong>ODP Penuh</strong><br>
                 Maaf, slot jaringan di lokasi Anda saat ini penuh. Tim kami akan menghubungi Anda saat ada penambahan kapasitas.
             </div>
 
-            <div id="alert-cancel" class="status-alert bg-danger text-white">
+            <div id="alert-cancel" class="status-alert">
                 <i class="bi bi-x-circle-fill"></i>
                 <strong>Dibatalkan</strong><br>
                 Pendaftaran ini telah dibatalkan. Jika Anda masih berminat, silakan hubungi Customer Service kami.
             </div>
-            
-            <div class="text-center p-4 pt-0">
-                <small class="text-muted">Paket: <span id="ui-packet">-</span></small>
+
+            <div class="magic-bubble" style="animation-delay: 0.15s;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fw-bold" style="color: var(--vscode-text-bright);">Info Pendaftaran</span>
+                    <button id="refresh-btn" class="refresh-btn">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="info-row">
+                    <span class="label">Paket</span>
+                    <span class="value" id="ui-packet">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Tanggal Daftar</span>
+                    <span class="value" id="ui-reg-date">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Pembaruan Terakhir</span>
+                    <span class="value" id="ui-updated-at">-</span>
+                </div>
+            </div>
+
+            <div class="text-center p-3 pt-0">
+                <small id="ui-last-checked" style="color: var(--vscode-text);">—</small>
             </div>
         </div>
     </div>
@@ -236,6 +361,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token');
+            const testMode = urlParams.get('test');
 
             const els = {
                 loading: document.getElementById('loading'),
@@ -245,6 +371,12 @@
                 address: document.getElementById('ui-address'),
                 badge: document.getElementById('ui-badge'),
                 packet: document.getElementById('ui-packet'),
+                regDate: document.getElementById('ui-reg-date'),
+                updatedAt: document.getElementById('ui-updated-at'),
+                lastChecked: document.getElementById('ui-last-checked'),
+                scheduled: document.getElementById('ui-scheduled'),
+                scheduledBox: document.getElementById('scheduled-box'),
+                refreshBtn: document.getElementById('refresh-btn'),
                 timeline: {
                     waiting: document.getElementById('step-waiting'),
                     confirmed: document.getElementById('step-confirmed'),
@@ -257,81 +389,117 @@
                 }
             };
 
-            if (!token) {
-                els.loading.classList.add('d-none');
-                els.error.classList.remove('d-none');
-                return;
-            }
+            const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+            const fmtDateTime = (iso) => iso ? new Date(iso).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
-            try {
-                const res = await fetch(`/api/customers/tracking?token=${token}`);
-                const json = await res.json();
-
-                if (!res.ok || !json.success) {
-                    throw new Error(json.error || 'Not found');
-                }
-
-                const data = json.data;
-                
-                // Update basic info
+            function renderData(data) {
                 els.greeting.textContent = `Halo, ${data.name}!`;
                 els.address.textContent = data.address || '';
                 els.packet.textContent = data.packet || 'Tidak diketahui';
+                els.regDate.textContent = fmtDate(data.registration_date);
+                els.updatedAt.textContent = fmtDateTime(data.updated_at);
+                els.lastChecked.textContent = `Dicek: ${fmtDateTime(new Date().toISOString())}`;
+
+                if (data.scheduled_date && data.status !== 'cancel') {
+                    els.scheduled.textContent = fmtDate(data.scheduled_date);
+                    els.scheduledBox.style.display = 'block';
+                } else {
+                    els.scheduledBox.style.display = 'none';
+                }
 
                 els.loading.classList.add('d-none');
                 els.content.classList.remove('d-none');
-
                 updateTimeline(data.status);
-
-            } catch (err) {
-                els.loading.classList.add('d-none');
-                els.error.classList.remove('d-none');
             }
-            
+
+            async function loadData() {
+                // Test Mode Injector
+                if (testMode) {
+                    const mockStatus = ['waiting', 'confirmed', 'pending', 'active', 'odp_full', 'cancel'].includes(testMode) ? testMode : 'pending';
+                    setTimeout(() => {
+                        renderData({
+                            name: "Bagus",
+                            address: "Jl. Sleman, Yogyakarta",
+                            packet: "Home Ultimate 100 Mbps",
+                            registration_date: "2025-10-01T08:00:00Z",
+                            updated_at: new Date().toISOString(),
+                            scheduled_date: mockStatus === 'pending' || mockStatus === 'active' ? "2025-11-03T00:00:00Z" : null,
+                            status: mockStatus
+                        });
+                    }, 800);
+                    return;
+                }
+
+                if (!token) {
+                    els.loading.classList.add('d-none');
+                    els.error.classList.remove('d-none');
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/api/customers/tracking?token=${encodeURIComponent(token)}`);
+                    const json = await res.json();
+                    if (!res.ok || !json.success) throw new Error(json.error || 'Not found');
+                    renderData(json.data);
+                } catch (err) {
+                    els.loading.classList.add('d-none');
+                    els.error.classList.remove('d-none');
+                }
+            }
+
+            await loadData();
+
+            els.refreshBtn && els.refreshBtn.addEventListener('click', async () => {
+                els.refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
+                els.refreshBtn.disabled = true;
+                await loadData();
+                els.refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Refresh';
+                els.refreshBtn.disabled = false;
+            });
+
+            // Auto-refresh every 60 seconds (disabled in test mode)
+            if(!testMode) setInterval(loadData, 60000);
+
             function updateTimeline(status) {
-                // Reset states
-                Object.values(els.timeline).forEach(el => {
-                    el.classList.remove('active', 'completed');
-                });
-                
+                Object.values(els.timeline).forEach(el => el.classList.remove('active', 'completed'));
+                Object.values(els.alerts).forEach(el => el.style.display = 'none');
+                document.getElementById('ui-timeline').style.display = '';
+
                 let badgeClass = 'bg-secondary';
                 let badgeText = 'Menunggu';
 
-                // Status mapping: waiting, confirmed, pending, odp_full, cancel
                 if (status === 'cancel') {
                     els.alerts.cancel.style.display = 'block';
                     document.getElementById('ui-timeline').style.display = 'none';
-                    badgeClass = 'bg-dark'; // Hitam
-                    badgeText = 'Cancel';
+                    badgeClass = 'bg-danger';
+                    badgeText = 'Dibatalkan';
                 } else if (status === 'odp_full') {
                     els.alerts.odp_full.style.display = 'block';
                     els.timeline.waiting.classList.add('completed');
-                    badgeClass = 'bg-danger'; // Coklat/Darker Red for ODP Penuh
                     badgeText = 'ODP Penuh';
-                    // Custom style for "Coklat" feel if preferred, using standard bootstrap for now
-                    els.badge.style.backgroundColor = '#8B4513'; 
+                    badgeClass = 'bg-warning text-dark';
                 } else if (status === 'waiting') {
                     els.timeline.waiting.classList.add('active');
-                    badgeClass = 'bg-success'; // Hijau
+                    badgeClass = 'bg-info text-dark';
                     badgeText = 'Antrian';
                 } else if (status === 'confirmed') {
                     els.timeline.waiting.classList.add('completed');
                     els.timeline.confirmed.classList.add('active');
-                    badgeClass = 'bg-primary'; // Biru
+                    badgeClass = 'bg-primary';
                     badgeText = 'Konfirmasi';
                 } else if (status === 'pending') {
                     els.timeline.waiting.classList.add('completed');
                     els.timeline.confirmed.classList.add('completed');
                     els.timeline.pending.classList.add('active');
-                    badgeClass = 'bg-warning text-dark'; // Orange
-                    badgeText = 'Pending';
+                    badgeClass = 'bg-warning text-dark';
+                    badgeText = 'Pending Jadwal';
                 } else if (status === 'completed' || status === 'active') {
                     els.timeline.waiting.classList.add('completed');
                     els.timeline.confirmed.classList.add('completed');
                     els.timeline.pending.classList.add('completed');
                     els.timeline.active.classList.add('completed');
-                    badgeClass = 'bg-light text-dark border'; // Putih/Light - Selesai
-                    badgeText = 'Selesai';
+                    badgeClass = 'bg-success';
+                    badgeText = 'Instalasi Selesai';
                 }
 
                 els.badge.className = `badge rounded-pill px-3 py-2 ${badgeClass}`;
@@ -340,5 +508,4 @@
         });
     </script>
 </body>
-
 </html>

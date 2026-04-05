@@ -6,47 +6,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tiket Antrian - SiFatih</title>
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Fonts: Outfit -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <link rel="stylesheet" href="/src/admin/themes.css">
     <link rel="stylesheet" href="/src/enduser/dashboard.css">
 
     <style>
+        /* Modern Slate Theme Variables */
+        :root {
+            --vscode-bg: #f1f5f9;
+            --vscode-sidebar-bg: #f8fafc;
+            --vscode-header-bg: #e2e8f0;
+            --vscode-activitybar-bg: #cbd5e1;
+            --vscode-text: #475569;
+            --vscode-text-bright: #1e293b;
+            --vscode-accent: #3b5bdb;
+            --vscode-accent-hover: #2f4ac5;
+            --vscode-border: #cbd5e1;
+            --vscode-success: #16a34a;
+            --vscode-danger: #dc2626;
+            --vscode-warning: #d97706;
+        }
+
         body {
             font-family: 'Outfit', sans-serif;
             background-color: var(--vscode-bg);
-            color: var(--vscode-text-bright);
+            color: var(--vscode-text);
             overflow-x: hidden;
+            min-height: 100vh;
+            margin: 0;
         }
 
         .chat-container {
             max-width: 600px;
             margin: 0 auto;
-            padding-bottom: 100px;
+            padding-bottom: 120px; /* Space for bottom nav */
+            position: relative;
+            z-index: 1;
         }
 
+        /* Solid Header */
         .chat-header-banner {
-            background: linear-gradient(135deg, var(--vscode-accent), var(--vscode-accent-hover));
-            color: white;
-            padding: 30px 20px;
-            border-radius: 0 0 30px 30px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--vscode-border);
+            border-radius: 0 0 2rem 2rem;
+            padding: 30px 25px;
             margin-bottom: 25px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            color: var(--vscode-text-bright);
         }
 
+        .chat-header-banner h4 {
+            color: var(--vscode-accent);
+        }
+
+        #btn-refresh {
+            background: #f8fafc;
+            border: 1px solid var(--vscode-border);
+            color: var(--vscode-text);
+            transition: all 0.2s ease;
+        }
+
+        #btn-refresh:hover {
+            background: var(--vscode-accent);
+            color: white;
+            border-color: var(--vscode-accent);
+        }
+
+        /* Solid Bubbles & Cards */
         .chat-bubble {
-            background: white;
-            border-radius: 20px;
+            background: #ffffff;
+            border-radius: 1.25rem;
             padding: 20px;
             margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--vscode-border);
             border-left: 5px solid var(--vscode-accent);
             animation: slideUp 0.4s ease-out;
+            color: var(--vscode-text-bright);
         }
 
         @keyframes slideUp {
@@ -63,8 +102,9 @@
         .btn-eksekusi {
             width: 100%;
             margin-top: 0.75rem;
-            border-radius: 12px;
+            border-radius: 0.75rem;
             padding: 10px;
+            font-weight: 600;
         }
 
         .badge-status {
@@ -74,23 +114,83 @@
             font-weight: 600;
         }
 
-        /* App Controls Floating */
-        .app-controls {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1001;
+        .view-section h5 {
+            color: var(--vscode-text-bright);
         }
 
-        /* ── PWA Install Banner ── */
+        /* Solid Bottom Navigation */
+        .chat-menu {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 600px;
+            background: #ffffff;
+            border-top: 1px solid var(--vscode-border);
+            border-radius: 1.5rem 1.5rem 0 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 10px 25px 10px;
+            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.03);
+            z-index: 100;
+        }
+
+        .chat-menu .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--vscode-text);
+            font-size: 0.75rem;
+            font-weight: 500;
+            gap: 4px;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+
+        .chat-menu .menu-item i {
+            font-size: 1.3rem;
+            transition: transform 0.2s ease;
+        }
+
+        .chat-menu .menu-item.active {
+            color: var(--vscode-accent);
+        }
+
+        .chat-menu .menu-item.active i {
+            transform: scale(1.1);
+            font-weight: bold;
+        }
+
+        /* Solid Modal */
+        .modal-content {
+            background: #ffffff;
+            border: 1px solid var(--vscode-border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .modal-title {
+            color: var(--vscode-text-bright);
+        }
+
+        .form-control, .form-select {
+            background-color: #f8fafc;
+            border: 1px solid var(--vscode-border);
+            color: var(--vscode-text-bright);
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--vscode-accent);
+            box-shadow: 0 0 0 0.25rem rgba(59, 91, 219, 0.1);
+        }
+
+        /* Solid PWA Banner */
         .pwa-install-banner {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             z-index: 9999;
-            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            background: rgba(15, 23, 42, 0.8);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -99,71 +199,91 @@
             pointer-events: none;
             transition: opacity 0.3s ease;
         }
+
         .pwa-install-banner.pwa-banner--visible {
             opacity: 1;
             pointer-events: auto;
         }
+
         .pwa-banner-inner {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 24px;
+            background: #ffffff;
+            border-radius: 1.5rem;
             padding: 40px 30px;
             max-width: 400px;
             width: 100%;
             text-align: center;
-            color: white;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            color: var(--vscode-text-bright);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
         }
+
         .pwa-banner-icon {
             width: 80px;
             height: 80px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 20px;
+            background: var(--vscode-bg);
+            border: 1px solid var(--vscode-border);
+            border-radius: 1.25rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 24px;
         }
+
+        .pwa-banner-icon i {
+            color: var(--vscode-accent);
+        }
+
         .pwa-banner-copy {
             margin-bottom: 30px;
-            flex: 1;
-            color: #fff;
-            line-height: 1.35;
+            line-height: 1.4;
         }
-        .pwa-banner-copy .title { font-weight: 700; font-size: 1.5rem; margin-bottom: 10px; }
-        .pwa-banner-copy .sub   { font-size: 1rem; opacity: 0.9; }
+
+        .pwa-banner-copy .title { 
+            font-weight: 700; 
+            font-size: 1.5rem; 
+            margin-bottom: 10px; 
+            color: var(--vscode-text-bright);
+        }
+
+        .pwa-banner-copy .sub { 
+            font-size: 0.95rem; 
+            color: var(--vscode-text); 
+        }
+
         .pwa-banner-btns button {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             font-size: 1.1rem;
+            background: var(--vscode-accent);
+            color: white;
+            border: none;
+            border-radius: 1rem;
+            transition: background 0.2s ease;
+        }
+
+        .pwa-banner-btns button:hover {
+            background: var(--vscode-accent-hover);
         }
     </style>
 </head>
 
 <body>
     <div class="chat-container">
-        <!-- Header Section -->
         <div class="chat-header-banner">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h4 class="mb-0 fw-bold">Halo, <span id="tech-name">Teknisi</span></h4>
-                <button id="btn-refresh" class="btn btn-sm btn-light rounded-circle shadow-sm" title="Refresh">
+                <button id="btn-refresh" class="btn btn-sm rounded-circle shadow-sm" title="Refresh">
                     <i class="bi bi-arrow-clockwise"></i>
                 </button>
             </div>
-            <p class="mb-0 opacity-75 small">ID Petugas: <span id="tech-id">FATIH-000</span></p>
+            <p class="mb-0 small" style="color: var(--vscode-text);">ID Petugas: <span id="tech-id" class="fw-medium">FATIH-000</span></p>
         </div>
 
-        <!-- Main Content -->
         <div id="main-content" class="p-3">
-            <!-- Error Notification -->
             <div id="error-alert" class="alert alert-danger d-none shadow-sm rounded-4 border-danger mb-4 text-center">
                 <i class="bi bi-exclamation-triangle-fill me-2 align-middle"></i>
                 <span id="error-message">Terjadi kesalahan</span>
             </div>
 
-            <!-- VIEW 1: Tiket Hari Ini -->
             <div id="view-tiket-hari-ini" class="view-section">
                 <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
                     <i class="bi bi-calendar-check text-success me-2"></i>Aktivitas Hari Ini
@@ -177,27 +297,22 @@
                 </div>
             </div>
 
-            <!-- VIEW 2: Tiket Baru -->
             <div id="view-tiket-baru" class="view-section d-none">
                 <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
                     <i class="bi bi-inbox text-primary me-2"></i>Tiket Baru (Tersedia)
                 </h5>
                 <div id="tiket-baru-container">
-                    <!-- Loaded via JS -->
-                </div>
+                    </div>
             </div>
 
-            <!-- VIEW 3: Tiket Aktif -->
             <div id="view-tiket-aktif" class="view-section d-none">
                 <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
                     <i class="bi bi-tools text-warning me-2"></i>Semua Tiket Aktif Saya
                 </h5>
                 <div id="tiket-aktif-container">
-                    <!-- Loaded via JS -->
-                </div>
+                    </div>
             </div>
 
-            <!-- VIEW 4: Registrasi Pelanggan -->
             <div id="view-registrasi" class="view-section d-none">
                 <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
                     <i class="bi bi-person-plus text-info me-2"></i>Registrasi Pelanggan Baru
@@ -218,32 +333,29 @@
                                 <option value="">Pilih Paket...</option>
                             </select>
                         </div>
-                        <!-- Peta -->
                         <div class="col-12">
                             <label class="form-label small fw-bold">Titik Lokasi</label>
-                            <div id="reg-location-map" class="rounded border" style="height: 250px; background: var(--vscode-bg);"></div>
+                            <div id="reg-location-map" class="rounded border" style="height: 250px; background: var(--vscode-bg); border-color: var(--vscode-border) !important;"></div>
                             <input type="hidden" id="reg-cust-lat">
                             <input type="hidden" id="reg-cust-lng">
                         </div>
-                        <!-- Foto -->
                         <div class="col-6">
                             <label class="form-label small fw-bold d-block">Foto KTP</label>
                             <input type="file" id="reg-cust-ktp" class="form-control form-control-sm" accept="image/*" required>
-                            <img id="preview-reg-ktp" src="" class="img-fluid mt-2 d-none rounded border" style="max-height:100px;">
+                            <img id="preview-reg-ktp" src="" class="img-fluid mt-2 d-none rounded border" style="max-height:100px; border-color: var(--vscode-border) !important;">
                         </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold d-block">Foto Rumah</label>
                             <input type="file" id="reg-cust-rumah" class="form-control form-control-sm" accept="image/*" required>
-                            <img id="preview-reg-rumah" src="" class="img-fluid mt-2 d-none rounded border" style="max-height:100px;">
+                            <img id="preview-reg-rumah" src="" class="img-fluid mt-2 d-none rounded border" style="max-height:100px; border-color: var(--vscode-border) !important;">
                         </div>
-                        <!-- Alamat -->
                         <div class="col-12">
                             <label class="form-label small fw-bold">Detail Alamat</label>
                             <textarea class="form-control" id="reg-cust-address" rows="2" required></textarea>
                         </div>
                         
                         <div class="col-12 mt-4 text-center">
-                            <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm rounded-pill" id="btn-save-registration">
+                            <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm rounded-pill" id="btn-save-registration" style="background-color: var(--vscode-success); border: none;">
                                 <i class="bi bi-cloud-arrow-up-fill me-2"></i> Daftarkan Sekarang
                             </button>
                         </div>
@@ -253,7 +365,6 @@
         </div>
     </div>
 
-    <!-- Execution Modal -->
     <div class="modal fade" id="executionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 rounded-4">
@@ -262,15 +373,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="execution-form">
-                    <!-- Claim / Team Selection Section -->
                     <div id="claim-section" class="mb-4 d-none">
-                        <label class="form-label small fw-bold">Penugasan Tim</label>
-                        <div class="p-3 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-20 text-center">
-                            <p class="small text-muted mb-3">Anda sedang mengambil tiket ini. Tambahkan anggota tim jika diperlukan.</p>
+                        <label class="form-label small fw-bold" style="color: var(--vscode-text-bright);">Penugasan Tim</label>
+                        <div class="p-3 rounded-4 border text-center" style="background-color: #f0fdf4; border-color: #bbf7d0 !important;">
+                            <p class="small mb-3" style="color: #166534;">Anda sedang mengambil tiket ini. Tambahkan anggota tim jika diperlukan.</p>
                             <div id="team-selection-container" class="d-flex flex-wrap gap-2 justify-content-center">
-                                <!-- Dynamic selection -->
-                            </div>
-                            <button type="button" class="btn btn-sm btn-success mt-3 px-3 rounded-pill" id="btn-confirm-claim">
+                                </div>
+                            <button type="button" class="btn btn-sm text-white mt-3 px-3 rounded-pill" id="btn-confirm-claim" style="background-color: var(--vscode-success);">
                                 Konfirmasi & Mulai Pengerjaan
                             </button>
                         </div>
@@ -278,8 +387,8 @@
 
                     <div id="execution-details-section">
                         <div class="mb-4">
-                            <label class="form-label small fw-bold">Rincian Informasi</label>
-                            <div class="p-3 rounded-4 border">
+                            <label class="form-label small fw-bold" style="color: var(--vscode-text-bright);">Rincian Informasi</label>
+                            <div class="p-3 rounded-4 border" style="border-color: var(--vscode-border) !important;">
                                 <div class="mb-3">
                                     <label class="form-label small d-block mb-1">Status Pekerjaan</label>
                                     <select class="form-select rounded-3 mt-1" id="exec-status">
@@ -297,13 +406,13 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label small fw-bold">Dokumentasi & Teknis</label>
-                            <div class="p-3 rounded-4 border">
+                            <label class="form-label small fw-bold" style="color: var(--vscode-text-bright);">Dokumentasi & Teknis</label>
+                            <div class="p-3 rounded-4 border" style="border-color: var(--vscode-border) !important;">
                                 <div class="mb-3">
                                     <label class="form-label small">Foto Bukti Pemasangan</label>
                                     <input type="file" id="exec-photo" class="form-control rounded-3" accept="image/*">
                                     <div id="photo-preview-container" class="mt-2 text-center d-none">
-                                        <img id="exec-photo-preview" src="" class="img-fluid rounded-3 border shadow-sm" style="max-height: 180px;">
+                                        <img id="exec-photo-preview" src="" class="img-fluid rounded-3 border shadow-sm" style="max-height: 180px; border-color: var(--vscode-border) !important;">
                                     </div>
                                 </div>
 
@@ -320,7 +429,7 @@
 
                                 <div class="mb-3">
                                     <label class="form-label small">Label / Barcode Kabel (QR)</label>
-                                    <input type="text" id="exec-cable-label" class="form-control rounded-3" placeholder="Scan atau ketik kode label kabel">
+                                    <input type="text" id="exec-cable-label" class="form-control rounded-3" placeholder="Scan atau ketik kode label">
                                 </div>
 
                                 <div class="row g-2">
@@ -339,34 +448,32 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold" id="btn-save-exec">Simpan Hasil</button>
+                    <button type="button" class="btn text-white rounded-pill px-5 fw-bold" id="btn-save-exec" style="background-color: var(--vscode-accent);">Simpan Hasil</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- PWA Force Install Overlay -->
     <div id="pwa-install-banner" class="pwa-install-banner d-none" role="dialog" aria-modal="true" aria-label="Install Aplikasi Required">
         <div class="pwa-banner-inner">
             <div class="pwa-banner-icon">
-                <i class="bi bi-app-indicator fs-1 text-white"></i>
+                <i class="bi bi-app-indicator fs-1"></i>
             </div>
             <div class="pwa-banner-copy">
                 <div class="title">Wajib Install Aplikasi</div>
                 <div class="sub" data-pwa-android>Silakan install aplikasi SiFatih untuk melanjutkan dan mendapatkan pengalaman terbaik.</div>
                 <div class="sub d-none" data-pwa-ios>
-                    Tap ikon <i class="bi bi-box-arrow-up mx-1"></i> di browser Anda, lalu pilih <br><strong>"Add to Home Screen"</strong> untuk menginstall.
+                    Tap ikon <i class="bi bi-box-arrow-up mx-1"></i> di browser Anda, lalu pilih <br><strong class="text-bright">"Add to Home Screen"</strong> untuk menginstall.
                 </div>
             </div>
             <div class="pwa-banner-btns">
-                <button class="btn btn-light fw-bold rounded-pill shadow-sm" data-pwa-install>
+                <button class="fw-bold shadow-sm" data-pwa-install>
                     <i class="bi bi-download me-2"></i>Install Sekarang
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar -->
     <nav class="chat-menu">
         <a href="#" class="menu-item active" data-target="view-tiket-hari-ini">
             <i class="bi bi-calendar-check"></i>
@@ -382,11 +489,10 @@
         </a>
         <a href="#" class="menu-item" data-target="view-registrasi">
             <i class="bi bi-person-plus"></i>
-            <span>Pelanggan Baru</span>
+            <span>Pendaftaran</span>
         </a>
     </nav>
 
-    <!-- Bootstrap Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/src/activity.js"></script>
 </body>

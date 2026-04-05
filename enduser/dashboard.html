@@ -6,60 +6,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SiFatih - Dashboard Pelanggan</title>
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Fonts: Outfit -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <link rel="stylesheet" href="/src/admin/themes.css">
     <link rel="stylesheet" href="/src/enduser/dashboard.css">
 
     <style>
+        /* Modern Slate Theme Variables */
+        :root {
+            --vscode-bg: #f1f5f9;
+            --vscode-sidebar-bg: #f8fafc;
+            --vscode-header-bg: #e2e8f0;
+            --vscode-activitybar-bg: #cbd5e1;
+            --vscode-text: #475569;
+            --vscode-text-bright: #1e293b;
+            --vscode-accent: #3b5bdb;
+            --vscode-accent-hover: #2f4ac5;
+            --vscode-border: #cbd5e1;
+            --vscode-success: #16a34a;
+            --vscode-danger: #dc2626;
+            --vscode-warning: #d97706;
+        }
+
         body {
             font-family: 'Outfit', sans-serif;
             background-color: var(--vscode-bg);
-            color: var(--vscode-text-bright);
+            color: var(--vscode-text);
             overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Abstract Background Shapes for Glassmorphism Effect */
+        .bg-shape {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 10s infinite alternate ease-in-out;
+        }
+        .shape-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background-color: #93c5fd; }
+        .shape-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background-color: #c4b5fd; }
+        .shape-3 { top: 30%; left: 20%; width: 40vw; height: 40vw; background-color: #e2e8f0; animation-delay: -5s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(20px, 40px) scale(1.1); }
         }
 
         .chat-container {
             max-width: 600px;
             margin: 0 auto;
-            padding-bottom: 100px;
-            /* Space for navbar */
+            padding-bottom: 120px; /* Space for navbar */
+            position: relative;
+            z-index: 1;
         }
 
+        /* Glassmorphic Header */
         .chat-header-banner {
-            background: linear-gradient(135deg, var(--vscode-accent), var(--vscode-accent-hover));
-            color: white;
-            padding: 30px 20px;
-            border-radius: 0 0 30px 30px;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 0 0 2rem 2rem;
+            padding: 30px 25px;
             margin-bottom: 25px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 40px -10px rgba(30, 41, 59, 0.1);
+            color: var(--vscode-text-bright);
         }
 
+        .chat-header-banner h4 {
+            color: var(--vscode-accent);
+        }
+
+        #logout-btn {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            color: var(--vscode-danger);
+            transition: all 0.2s ease;
+        }
+
+        #logout-btn:hover {
+            background: var(--vscode-danger);
+            color: white;
+            border-color: var(--vscode-danger);
+        }
+
+        /* Glassmorphic Bubbles */
         .chat-bubble {
-            background: white;
-            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 1.25rem;
             padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            margin: 0 20px 15px 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.8);
             border-left: 5px solid var(--vscode-accent);
-            animation: slideUp 0.4s ease-out;
+            animation: slideUp 0.4s ease-out forwards;
+            opacity: 0;
+            color: var(--vscode-text-bright);
         }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .badge-status {
@@ -75,15 +130,74 @@
             font-size: 1.1rem;
         }
 
-        /* ── PWA Install Banner ── */
+        /* Glassmorphic Bottom Navigation */
+        .chat-menu {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-top: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 2rem 2rem 0 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 10px 25px 10px; /* Extra bottom padding for mobile home bar */
+            box-shadow: 0 -10px 40px rgba(30, 41, 59, 0.05);
+            z-index: 100;
+        }
+
+        .chat-menu .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--vscode-text);
+            font-size: 0.75rem;
+            font-weight: 500;
+            gap: 4px;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+
+        .chat-menu .menu-item i {
+            font-size: 1.3rem;
+            transition: transform 0.2s ease;
+        }
+
+        .chat-menu .menu-item.active {
+            color: var(--vscode-accent);
+        }
+
+        .chat-menu .menu-item.active i {
+            transform: scale(1.1);
+            font-weight: bold;
+        }
+
+        /* Glassmorphic Modal */
+        .modal-content {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 20px 40px rgba(30, 41, 59, 0.1);
+        }
+
+        .modal-title {
+            color: var(--vscode-text-bright);
+        }
+
+        /* ── Glassmorphic PWA Install Banner ── */
         .pwa-install-banner {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             z-index: 9999;
-            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            background: rgba(241, 245, 249, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -92,73 +206,99 @@
             pointer-events: none;
             transition: opacity 0.3s ease;
         }
+
         .pwa-install-banner.pwa-banner--visible {
             opacity: 1;
             pointer-events: auto;
         }
+
         .pwa-banner-inner {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 2rem;
             padding: 40px 30px;
             max-width: 400px;
             width: 100%;
             text-align: center;
-            color: white;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            color: var(--vscode-text-bright);
+            box-shadow: 0 20px 50px rgba(30, 41, 59, 0.1);
         }
+
         .pwa-banner-icon {
             width: 80px;
             height: 80px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 20px;
+            background: rgba(59, 91, 219, 0.1);
+            border: 1px solid rgba(59, 91, 219, 0.2);
+            border-radius: 1.25rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 24px;
         }
+
+        .pwa-banner-icon i {
+            color: var(--vscode-accent);
+        }
+
         .pwa-banner-copy {
             margin-bottom: 30px;
-            flex: 1;
-            color: #fff;
-            line-height: 1.35;
+            line-height: 1.4;
         }
-        .pwa-banner-copy .title { font-weight: 700; font-size: 1.5rem; margin-bottom: 10px; }
-        .pwa-banner-copy .sub   { font-size: 1rem; opacity: 0.9; }
+
+        .pwa-banner-copy .title { 
+            font-weight: 700; 
+            font-size: 1.5rem; 
+            margin-bottom: 10px; 
+            color: var(--vscode-text-bright);
+        }
+
+        .pwa-banner-copy .sub { 
+            font-size: 0.95rem; 
+            color: var(--vscode-text); 
+        }
+
         .pwa-banner-btns button {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             font-size: 1.1rem;
+            background: var(--vscode-accent);
+            color: white;
+            border: none;
+            border-radius: 1rem;
+            transition: background 0.2s ease;
+        }
+
+        .pwa-banner-btns button:hover {
+            background: var(--vscode-accent-hover);
         }
     </style>
 </head>
 
 <body>
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+
     <div class="chat-container">
-        <!-- Header Section -->
         <div class="chat-header-banner">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h4 class="mb-0 fw-bold">Halo, <span id="user-name">Pelanggan</span></h4>
-                <button id="logout-btn" class="btn btn-sm btn-light rounded-circle shadow-sm">
+                <button id="logout-btn" class="btn btn-sm rounded-circle shadow-sm" title="Keluar">
                     <i class="bi bi-box-arrow-right"></i>
                 </button>
             </div>
-            <p class="mb-0 opacity-75 small">ID: <span id="customer-id">CUST-000</span></p>
+            <p class="mb-0 small" style="color: var(--vscode-text);">ID: <span id="customer-id" class="fw-medium">CUST-000</span></p>
         </div>
 
         <div id="main-content">
-            <!-- Dynamic Bubbles will be injected here -->
             <div id="loading-spinner" class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
+                <div class="spinner-border" style="color: var(--vscode-accent);" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bottom Navigation -->
     <nav class="chat-menu">
         <a href="#" class="menu-item active" data-view="home">
             <i class="bi bi-house-door"></i>
@@ -178,43 +318,39 @@
         </a>
     </nav>
 
-    <!-- Modal for details (optional) -->
     <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 rounded-4">
+            <div class="modal-content rounded-4 border-0">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold" id="infoModalTitle">Detail</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="infoModalBody">
-                    <!-- Content injected here -->
-                </div>
+                <div class="modal-body" id="infoModalBody" style="color: var(--vscode-text);">
+                    </div>
             </div>
         </div>
     </div>
 
-    <!-- PWA Force Install Overlay -->
     <div id="pwa-install-banner" class="pwa-install-banner d-none" role="dialog" aria-modal="true" aria-label="Install Aplikasi Required">
         <div class="pwa-banner-inner">
             <div class="pwa-banner-icon">
-                <i class="bi bi-app-indicator fs-1 text-white"></i>
+                <i class="bi bi-app-indicator fs-1"></i>
             </div>
             <div class="pwa-banner-copy">
                 <div class="title">Wajib Install Aplikasi</div>
                 <div class="sub" data-pwa-android>Silakan install aplikasi SiFatih untuk melanjutkan dan mendapatkan pengalaman terbaik.</div>
                 <div class="sub d-none" data-pwa-ios>
-                    Tap ikon <i class="bi bi-box-arrow-up mx-1"></i> di browser Anda, lalu pilih <br><strong>"Add to Home Screen"</strong> untuk menginstall.
+                    Tap ikon <i class="bi bi-box-arrow-up mx-1"></i> di browser Anda, lalu pilih <br><strong class="text-bright">"Add to Home Screen"</strong> untuk menginstall.
                 </div>
             </div>
             <div class="pwa-banner-btns">
-                <button class="btn btn-light fw-bold rounded-pill shadow-sm" data-pwa-install>
+                <button class="fw-bold shadow-sm" data-pwa-install>
                     <i class="bi bi-download me-2"></i>Install Sekarang
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap & App Logic -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/src/enduser/dashboard-chat.js"></script>
 </body>
