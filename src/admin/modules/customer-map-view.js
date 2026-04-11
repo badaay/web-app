@@ -1,4 +1,5 @@
 import { supabase } from '../../api/supabase.js';
+import { attachSearchBar } from '../utils/map-kit.js';
 
 /**
  * Customer Map View — Refined with OSM/Satellite Layers & Dynamic Legends
@@ -306,6 +307,9 @@ export async function initCustomerMapView() {
             };
             L.control.layers(baseMaps).addTo(mapInstance);
             L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
+
+            // Attach address search bar (top-left, dark theme, flies map on result)
+            attachSearchBar('customer-map-full', mapInstance, { theme: 'dark' });
         }
 
         if (markersLayer) mapInstance.removeLayer(markersLayer);

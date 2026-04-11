@@ -2,6 +2,7 @@ import { supabase, supabaseA, supabaseB, apiCall, getStorageUrl } from '../../ap
 import { compressImage } from '../utils/image-utils.js';
 import { adminResetPassword, generatePassword } from '../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink, showSharedMap, createStandardMarker, getSpinner } from '../utils/ui-common.js';
+import { createLocationPicker, parseCoordsField } from '../utils/map-kit.js';
 import { showToast } from '../utils/toast.js';
 import { APP_BASE_URL } from '../../config.js';
 import { APP_CONFIG } from '../../api/config.js';
@@ -307,11 +308,10 @@ export async function initCustomers() {
                                         <i class="bi bi-google me-1"></i> Google Maps
                                     </a>
                                 </div>
-                                <div class="input-group input-group-sm mb-2">
-                                    <input type="number" step="any" class="form-control" id="cust-lat" value="${cust?.lat || ''}" placeholder="Lat">
-                                    <input type="number" step="any" class="form-control" id="cust-lng" value="${cust?.lng || ''}" placeholder="Lng">
-                                </div>
-                                <div id="edit-location-picker-map" class="rounded border border-secondary" style="height: 200px; background: #1e1e1e; z-index: 1;"></div>
+                                <input type="text" class="form-control form-control-sm font-monospace mb-2" id="cust-coords"
+                                       value="${cust?.lat && cust?.lng ? `${cust.lat}, ${cust.lng}` : ''}"
+                                       placeholder="-7.1234, 112.5678  (atau cari alamat di peta)">
+                                <div id="edit-location-picker-map" class="rounded border border-secondary" style="height: 220px; background: #1e1e1e; z-index: 1;"></div>
                             </div>
                          </div>
                     </div>
@@ -363,54 +363,23 @@ export async function initCustomers() {
             </form>
         `;
 
-        // Interactive Map Selector Logic
-        setTimeout(() => {
-            const latInput = document.getElementById('cust-lat');
-            const lngInput = document.getElementById('cust-lng');
-            const gLink = document.getElementById('edit-google-maps-link');
-
-            const initialLat = parseFloat(latInput.value) || -6.2000;
-            const initialLng = parseFloat(lngInput.value) || 106.8166;
-
-            const editMap = L.map('edit-location-picker-map').setView([initialLat, initialLng], 14);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(editMap);
-
-            let editMarker;
-            if (parseFloat(latInput.value) && parseFloat(lngInput.value)) {
-                editMarker = L.marker([initialLat, initialLng]).addTo(editMap);
-            }
-
-            const updateMap = (lat, lng) => {
-                if (editMarker) editMarker.setLatLng([lat, lng]);
-                else editMarker = L.marker([lat, lng]).addTo(editMap);
-                editMap.panTo([lat, lng]);
-
-                const url = getGoogleMapsLink(lat, lng);
-                if (url) {
-                    gLink.href = url;
+        // Interactive Map Selector — powered by MapKit
+        const _initCoords = (cust?.lat && cust?.lng) ? [cust.lat, cust.lng] : null;
+        const _picker = createLocationPicker('edit-location-picker-map', 'cust-coords', {
+            theme: 'dark',
+            initCoords: _initCoords,
+            onPin: (lat, lng) => {
+                // Keep the Google Maps link in sync
+                const gLink = document.getElementById('edit-google-maps-link');
+                if (gLink) {
+                    gLink.href = getGoogleMapsLink(lat, lng);
                     gLink.classList.remove('d-none');
                 }
-            };
+            }
+        });
 
-            editMap.on('click', (e) => {
-                const { lat, lng } = e.latlng;
-                latInput.value = lat.toFixed(7);
-                lngInput.value = lng.toFixed(7);
-                updateMap(lat, lng);
-            });
-
-            [latInput, lngInput].forEach(el => {
-                el.oninput = () => {
-                    const l = parseFloat(latInput.value);
-                    const n = parseFloat(lngInput.value);
-                    if (!isNaN(l) && !isNaN(n)) updateMap(l, n);
-                };
-            });
-
-            // Re-invalidate size to fix grey tiles in modal
-            setTimeout(() => editMap.invalidateSize(), 300);
-
-            // Load images from Storage if they are paths
+        // Load images from Storage if they are paths
+        setTimeout(() => {
             if (cust?.photo_ktp) {
                 getStorageUrl(cust.photo_ktp, 'ktp_vault', true).then(url => {
                     const img = document.querySelector('#edit-ktp-preview-container img');
@@ -423,7 +392,7 @@ export async function initCustomers() {
                     if (img) img.src = url;
                 });
             }
-        }, 500);
+        }, 600);
 
         // Populate Packages
         populatePackagesDropdown('cust-packet-select', cust?.packet);
@@ -495,8 +464,7 @@ export async function initCustomers() {
                 username: document.getElementById('cust-username').value.trim(),
                 mac_address: document.getElementById('cust-mac').value.trim(),
                 damping: document.getElementById('cust-damping').value.trim(),
-                lat: parseFloat(document.getElementById('cust-lat').value) || null,
-                lng: parseFloat(document.getElementById('cust-lng').value) || null,
+                ...((() => { const _c = parseCoordsField(document.getElementById('cust-coords')?.value); return { lat: _c?.lat ?? null, lng: _c?.lng ?? null }; })()),
                 photo_ktp: currentPhotoKTP,
                 photo_rumah: currentPhotoHouse,
                 email: document.getElementById('cust-email').value.trim() || (cust?.email && !cust?.email.includes(APP_CONFIG.AUTH_DOMAIN_SUFFIX) ? cust.email : null)

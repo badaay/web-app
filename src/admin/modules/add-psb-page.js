@@ -4,6 +4,7 @@ import { AuthService } from '../../api/auth-service.js';
 import { APP_BASE_URL } from '../../config.js';
 import { APP_CONFIG } from '../../api/config.js';
 import { showToast } from '../utils/toast.js';
+import { createLocationPicker, parseCoordsField } from '../utils/map-kit.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('psb-form-container');
@@ -190,20 +191,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="card-body bg-white rounded-bottom" style="border-bottom-left-radius: 1.25rem; border-bottom-right-radius: 1.25rem;">
                         <div class="row g-4 d-flex align-items-stretch">
                             <div class="col-md-7">
-                                <label class="form-label text-secondary small mb-2 fw-medium">Pilih Titik Lokasi di Peta</label>
-                                <div class="position-relative">
-                                    <div id="location-picker-map" class="rounded border shadow-sm" style="height: 350px; background: #f8fafc; z-index: 1;"></div>
-                                    <button type="button" id="btn-get-location" class="btn btn-sm btn-white border shadow-sm position-absolute" style="top: 315px; right: 5px; z-index: 1000; background: white;">
-                                        <i class="bi bi-geo-alt-fill text-primary me-1"></i> Lokasi Saya
-                                    </button>
-                                </div>
-                                <p class="text-secondary mt-2 mb-0" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i> Klik pada peta untuk menentukan koordinat pasti lokasi pemasangan.</p>
-                                
-                                <!-- HIDDEN LAT LONG -->
-                                <div class="d-none">
-                                    <input type="number" step="any" id="adv-cust-lat" required>
-                                    <input type="number" step="any" id="adv-cust-lng" required>
-                                </div>
+                                <label class="form-label text-secondary small mb-2 fw-medium">Cari atau Pilih Titik Lokasi di Peta</label>
+                                <input type="text" class="form-control bg-white text-dark border mb-2 font-monospace" id="adv-cust-coords"
+                                       placeholder="-7.1234, 112.5678  (klik peta atau cari alamat di atas)">
+                                <div id="location-picker-map" class="rounded border shadow-sm" style="height: 350px; background: #f8fafc; z-index: 1;"></div>
+                                <p class="text-secondary mt-2 mb-0" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i> Klik pada peta untuk menentukan koordinat, atau gunakan tombol Lokasi Saya di peta.</p>
                             </div>
                             <div class="col-md-5 d-flex flex-column bg-light p-3 rounded border">
                                 <div class="mb-3 flex-grow-1">
@@ -375,10 +367,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Initialize Map Variables
-    let pickMap;
-    let marker;
-    const defaultPos = [-7.150970, 112.721245];
+    // Initialize Map Variables (picker instance stored here)
+    let _psbPicker = null;
 
     // Functions for Step Transitions
     const steps = [
@@ -435,25 +425,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Special actions on step enter
         if (stepIndex === 1) {
-            // Re-render map inside the now-visible container
-            const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-            const Stadia_AlidadeSatellite = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.{ext}', {
-                minZoom: 0,
-                maxZoom: 20,
-                attribution: '&copy; CNES, Distribution Airbus DS, © Airbus DS, © PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                ext: 'jpg'
-            });
-            const baseLayers = {
-                'Default': osm,
-                'Terrains': Stadia_AlidadeSatellite
-            };
-            if (!pickMap) {
-                pickMap = L.map('location-picker-map').addLayer(osm).setView(defaultPos, 13);
-                L.control.layers(baseLayers).addTo(pickMap);
-
-                pickMap.on('click', (e) => setPin(e.latlng.lat, e.latlng.lng));
+            // Init location picker (light theme) using MapKit
+            if (!_psbPicker) {
+                _psbPicker = createLocationPicker('location-picker-map', 'adv-cust-coords', { theme: 'light' });
+            } else {
+                setTimeout(() => _psbPicker.instance?.invalidateSize(), 200);
             }
-            setTimeout(() => pickMap.invalidateSize(), 200);
         } else if (stepIndex === 2) {
             // Ensure summary is shown and animated
             const summaryCard = document.getElementById('summary-package-card');
@@ -486,13 +463,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     handleTransition('btn-next-3', 2, () => {
-        const lat = document.getElementById('adv-cust-lat').value;
-        const lng = document.getElementById('adv-cust-lng').value;
-        const addr = document.getElementById('adv-cust-address').value.trim();
+        const coords = parseCoordsField(document.getElementById('adv-cust-coords')?.value);
+        const addr   = document.getElementById('adv-cust-address').value.trim();
 
         let isValid = true;
 
-        if (!lat || !lng) {
+        if (!coords) {
             showInlineError('location-picker-map', 'Silakan pilih titik lokasi pemasangan di peta.');
             isValid = false;
         }
@@ -531,38 +507,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    function setPin(lat, lng) {
-        document.getElementById('adv-cust-lat').value = lat.toFixed(7);
-        document.getElementById('adv-cust-lng').value = lng.toFixed(7);
-
-        if (marker) marker.remove();
-        marker = L.marker([lat, lng]).addTo(pickMap);
-        pickMap.setView([lat, lng], 16);
-    }
-
-    // GPS Button Logic
-    const btnGetLocation = document.getElementById('btn-get-location');
-    if (btnGetLocation) {
-        btnGetLocation.onclick = () => {
-            if (!navigator.geolocation) return showToast('warning', 'Browser Anda tidak mendukung geolokasi.');
-            btnGetLocation.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Mencari...';
-            btnGetLocation.disabled = true;
-
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    setPin(pos.coords.latitude, pos.coords.longitude);
-                    btnGetLocation.innerHTML = '<i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya';
-                    btnGetLocation.disabled = false;
-                },
-                (err) => {
-                    showToast('error', 'Gagal mendapatkan lokasi: ' + err.message);
-                    btnGetLocation.innerHTML = '<i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya';
-                    btnGetLocation.disabled = false;
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        };
-    }
+    // GPS and setPin are now handled internally by createLocationPicker
 
     // FINAL SUBMIT (Save Registration)
     const saveBtn = document.getElementById('save-adv-customer-btn');
@@ -596,8 +541,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const pkgName = document.getElementById('selected-package-name').value;
             const address = document.getElementById('adv-cust-address').value.trim();
-            const lat = document.getElementById('adv-cust-lat').value;
-            const lng = document.getElementById('adv-cust-lng').value;
+            const _coordsParsed = parseCoordsField(document.getElementById('adv-cust-coords')?.value);
+            const lat = _coordsParsed?.lat ?? null;
+            const lng = _coordsParsed?.lng ?? null;
             const installDate = null;
             const email = document.getElementById('adv-cust-email').value.trim();
             const altPhone = document.getElementById('adv-cust-alt-phone').value.trim();

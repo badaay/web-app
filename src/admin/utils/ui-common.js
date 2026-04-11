@@ -1,5 +1,6 @@
 import { supabase } from '../../api/supabase.js';
 import { showToast } from './toast.js';
+import { createViewMap } from './map-kit.js';
 
 /**
  * UI Common Utility Module
@@ -93,23 +94,8 @@ export function showSharedMap(lat, lng, title = 'Lokasi', popupHtml = '') {
     if (mTitle) mTitle.innerHTML = `<i class="bi bi-geo-alt me-2 text-info"></i>${title}`;
 
     setTimeout(() => {
-        if (window.adminModalMap) {
-            window.adminModalMap.remove();
-            window.adminModalMap = null;
-        }
-
-        const map = L.map('admin-map').setView([lat, lng], 16);
-        window.adminModalMap = map;
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        
-        const marker = L.marker([lat, lng], {
-            icon: createStandardMarker('#3b82f6')
-        }).addTo(map);
-
-        if (popupHtml) {
-            marker.bindPopup(popupHtml, { maxWidth: 280 }).openPopup();
-        }
+        // createViewMap handles cleanup of previous instance via _mkViewMaps registry
+        createViewMap('admin-map', [{ lat, lng, popupHtml, color: '#3b82f6' }], { zoom: 16 });
     }, 300);
 }
 

@@ -1,6 +1,7 @@
 import { supabase, supabaseA, supabaseB } from '../../api/supabase.js';
 import { generatePassword, generateCustomerCode, adminCreateCustomer } from '../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink } from '../utils/ui-common.js';
+import { createLocationPicker, parseCoordsField } from '../utils/map-kit.js';
 import { showToast } from '../utils/toast.js';
 import { compressImage } from '../utils/image-utils.js';
 
@@ -125,17 +126,9 @@ export async function initAddCustomerView() {
                                 </a>
                             </div>
                             <div class="card-body p-4">
-                                <div id="location-picker-map" class="rounded border border-secondary mb-3" style="height: 350px; background: #1e1e1e; z-index: 1;"></div>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label text-white-50 small fw-bold">Latitude</label>
-                                        <input type="number" step="any" class="form-control" id="adv-cust-lat" placeholder="Koordinat Latitude">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label text-white-50 small fw-bold">Longitude</label>
-                                        <input type="number" step="any" class="form-control" id="adv-cust-lng" placeholder="Koordinat Longitude">
-                                    </div>
-                                </div>
+                                <input type="text" class="form-control font-monospace mb-2" id="adv-cust-coords"
+                                       placeholder="-7.1234, 112.5678  (klik peta atau cari alamat)">
+                                <div id="location-picker-map" class="rounded border border-secondary" style="height: 350px; background: #1e1e1e; z-index: 1;"></div>
                             </div>
                         </div>
                     </div>
@@ -219,43 +212,17 @@ export async function initAddCustomerView() {
     // Dynamic Packages
     populatePackagesDropdown('adv-cust-package');
 
-    // Initialize Map
-    let pickMap;
-    let marker;
-    const defaultPos = [-7.150970, 112.721245];
-
+    // Initialize Map via MapKit
     setTimeout(() => {
-        if (pickMap) pickMap.remove();
-        pickMap = L.map('location-picker-map').setView(defaultPos, 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickMap);
-
-        const updateMarker = (lat, lng) => {
-            if (marker) marker.setLatLng([lat, lng]);
-            else marker = L.marker([lat, lng]).addTo(pickMap);
-            pickMap.panTo([lat, lng]);
-
-            // Update Google Maps Link
-            const gMapsLink = document.getElementById('adv-google-maps-link');
-            if (gMapsLink) {
-                const url = getGoogleMapsLink(lat, lng);
-                gMapsLink.href = url;
-                gMapsLink.classList.remove('d-none');
+        createLocationPicker('location-picker-map', 'adv-cust-coords', {
+            theme: 'dark',
+            onPin: (lat, lng) => {
+                const gMapsLink = document.getElementById('adv-google-maps-link');
+                if (gMapsLink) {
+                    gMapsLink.href = getGoogleMapsLink(lat, lng);
+                    gMapsLink.classList.remove('d-none');
+                }
             }
-        };
-
-        pickMap.on('click', (e) => {
-            const { lat, lng } = e.latlng;
-            latInput.value = lat.toFixed(7);
-            lngInput.value = lng.toFixed(7);
-            updateMarker(lat, lng);
-        });
-
-        [latInput, lngInput].forEach(el => {
-            el.oninput = () => {
-                const lat = parseFloat(latInput.value);
-                const lng = parseFloat(lngInput.value);
-                if (!isNaN(lat) && !isNaN(lng)) updateMarker(lat, lng);
-            };
         });
     }, 500);
 
@@ -270,8 +237,7 @@ export async function initAddCustomerView() {
             alt_phone: document.getElementById('adv-cust-alt-phone').value.trim(),
             packet: document.getElementById('adv-cust-package').value,
             address: document.getElementById('adv-cust-address').value.trim(),
-            lat: parseFloat(latInput.value) || null,
-            lng: parseFloat(lngInput.value) || null,
+            ...(() => { const _c = parseCoordsField(document.getElementById('adv-cust-coords')?.value); return { lat: _c?.lat ?? null, lng: _c?.lng ?? null }; })(),
             photo_ktp: null,
             photo_rumah: null,
             customer_code: currentCredentials.code
