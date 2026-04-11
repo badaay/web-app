@@ -44,18 +44,24 @@ export function parseCoordsField(str) {
 }
 
 // ─────────────────────────────────────────────
-// 3. SVG Marker Factory
+// 3. SVG Marker Factory (Modern High-Tech Glow)
 // ─────────────────────────────────────────────
-export function createMapMarker(color = '#3b82f6', label = '') {
+export function createMapMarker(color = '#0047AB', label = '') {
     const txt = label
-        ? `<text x="12" y="15.5" text-anchor="middle" font-size="8" font-weight="bold" fill="${color}" font-family="monospace">${label}</text>`
+        ? `<text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="900" fill="${color}" font-family="monospace">${label}</text>`
         : '';
     return L.divIcon({
-        className: '',
+        className: 'mk-glow-marker',
         html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="28" height="36">
+            <defs>
+                <filter id="mk-glow-${label.replace(/[^a-z0-9]/gi, '')}" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="1.5" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+            </defs>
             <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20S24 19.2 24 12C24 5.4 18.6 0 12 0z"
-                fill="${color}" stroke="#fff" stroke-width="1.5"/>
-            <circle cx="12" cy="12" r="5.5" fill="white" opacity="0.92"/>
+                fill="${color}" stroke="#fff" stroke-width="1.5" style="filter:drop-shadow(0 0 5px ${color}88)"/>
+            <circle cx="12" cy="12" r="6" fill="white" opacity="0.95"/>
             ${txt}
         </svg>`,
         iconSize: [28, 36],

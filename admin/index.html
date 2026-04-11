@@ -28,83 +28,106 @@
         <!-- Sidebar -->
         <div class="sidebar" id="admin-sidebar">
             <div class="sidebar-header">
-                <i class="bi bi-shield-lock-fill text-accent me-2"></i>
+                <i class="bi bi-shield-lock-fill text-accent-gradient me-2"></i>
                 <div class="d-flex flex-column">
                     <span class="fw-bold lh-1">SiFatih Admin</span>
                     <span class="text-white-50" style="font-size: 0.65rem; letter-spacing: 0.5px;">Powered by MitraFlow</span>
                 </div>
             </div>
+            
+            <!-- Sidebar Module Filter -->
+            <div class="px-3 py-2 border-bottom border-secondary border-opacity-10">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-white-50 small"></i>
+                    <input type="text" id="sidebar-module-search" class="form-control form-control-sm bg-vscode-input border-0 rounded-pill ps-5 py-2" 
+                           placeholder="Cari fitur..." style="font-size: 0.75rem;">
+                </div>
+            </div>
+
             <div class="sidebar-nav">
-                <div class="px-4 py-2 small text-uppercase text-white-50 fw-bold"
-                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Menu Utama</div>
-                <button class="nav-item-custom nav-module-link active" data-module="dashboard">
-                    <i class="bi bi-speedometer2"></i> Dashboard
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="work-orders-content">
-                    <i class="bi bi-file-earmark-text"></i> Antrian PSB
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="customer-map-view-content">
-                    <i class="bi bi-pin-map"></i> MAP View
-                </button>
+                <div class="nav-group" data-group="main">
+                    <div class="px-4 py-2 small text-uppercase text-white-50 fw-bold"
+                        style="font-size: 0.65rem; letter-spacing: 1.5px;">Menu Utama</div>
+                    <button class="nav-item-custom nav-module-link active" data-module="dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="work-orders-content">
+                        <i class="bi bi-file-earmark-text"></i> Antrian PSB
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="customer-map-view-content">
+                        <i class="bi bi-pin-map"></i> MAP View
+                    </button>
+                </div>
 
-                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
-                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Master Data</div>
-                <button class="nav-item-custom nav-module-link" data-module="employees-content">
-                    <i class="bi bi-person-vcard"></i> Karyawan
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="customers-content">
-                    <i class="bi bi-people"></i> Pelanggan
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="inventory-content">
-                    <i class="bi bi-box-seam"></i> Inventaris
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="packages-content">
-                    <i class="bi bi-tags"></i> Paket Layanan
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="queue-types-content">
-                    <i class="bi bi-ticket-detailed"></i> Tipe & Point Antrian
-                </button>
+                <div class="nav-group" data-group="master">
+                    <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                        style="font-size: 0.65rem; letter-spacing: 1.5px;">Master Data</div>
+                    <button class="nav-item-custom nav-module-link" data-module="employees-content">
+                        <i class="bi bi-person-vcard"></i> Karyawan
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="customers-content">
+                        <i class="bi bi-people"></i> Pelanggan
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="inventory-content">
+                        <i class="bi bi-box-seam"></i> Inventaris
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="packages-content">
+                        <i class="bi bi-tags"></i> Paket Layanan
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="queue-types-content">
+                        <i class="bi bi-ticket-detailed"></i> Tipe & Point
+                    </button>
+                </div>
 
-                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
-                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Analitik & Performa</div>
-                <button class="nav-item-custom nav-module-link" data-module="reports-content">
-                    <i class="bi bi-bar-chart-line"></i> Laporan & Statistik
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="performance-content">
-                    <i class="bi bi-lightning-charge"></i> Performa Teknisi
-                </button>
+                <div class="nav-group" data-group="analytics">
+                    <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                        style="font-size: 0.65rem; letter-spacing: 1.5px;">Analitik & Performa</div>
+                    <button class="nav-item-custom nav-module-link" data-module="reports-content">
+                        <i class="bi bi-bar-chart-line"></i> Laporan
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="performance-content">
+                        <i class="bi bi-lightning-charge"></i> Performa
+                    </button>
+                </div>
 
-                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
-                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Payroll & HR</div>
-                <button class="nav-item-custom nav-module-link" data-module="attendance-content">
-                    <i class="bi bi-calendar-check"></i> Kehadiran
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="overtime-content">
-                    <i class="bi bi-clock-history"></i> Lembur
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="payroll-content">
-                    <i class="bi bi-cash-stack"></i> Payroll
-                </button>
+                <div class="nav-group" data-group="hr">
+                    <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                        style="font-size: 0.65rem; letter-spacing: 1.5px;">Payroll & HR</div>
+                    <button class="nav-item-custom nav-module-link" data-module="attendance-content">
+                        <i class="bi bi-calendar-check"></i> Kehadiran
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="overtime-content">
+                        <i class="bi bi-clock-history"></i> Lembur
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="payroll-content">
+                        <i class="bi bi-cash-stack"></i> Payroll
+                    </button>
+                </div>
 
-                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
-                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Keuangan</div>
-                <button class="nav-item-custom nav-module-link" data-module="billing-content">
-                    <i class="bi bi-receipt-cutoff"></i> Layanan & Tagihan
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="financial-reports-content">
-                    <i class="bi bi-graph-up"></i> Laporan Keuangan
-                </button>
-                <button class="nav-item-custom nav-module-link" data-module="financial-ledger-content">
-                    <i class="bi bi-book"></i> Buku Besar
-                </button>
+                <div class="nav-group" data-group="finance">
+                    <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                        style="font-size: 0.65rem; letter-spacing: 1.5px;">Keuangan</div>
+                    <button class="nav-item-custom nav-module-link" data-module="billing-content">
+                        <i class="bi bi-receipt-cutoff"></i> Tagihan
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="financial-reports-content">
+                        <i class="bi bi-graph-up"></i> Lap. Keuangan
+                    </button>
+                    <button class="nav-item-custom nav-module-link" data-module="financial-ledger-content">
+                        <i class="bi bi-book"></i> Buku Besar
+                    </button>
+                </div>
 
-                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
-                    style="font-size: 0.65rem; letter-spacing: 1.5px;">Sistem</div>
-                <button class="nav-item-custom nav-module-link" data-module="settings-module">
-                    <i class="bi bi-gear"></i> Settings
-                </button>
-                <button class="nav-item-custom mt-auto" id="nav-logout-btn-sidebar">
-                    <i class="bi bi-box-arrow-right text-danger"></i> Keluar
+                <div class="nav-group" data-group="system">
+                    <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                        style="font-size: 0.65rem; letter-spacing: 1.5px;">Sistem</div>
+                    <button class="nav-item-custom nav-module-link" data-module="settings-module">
+                        <i class="bi bi-gear"></i> Settings
+                    </button>
+                </div>
+                
+                <button class="nav-item-custom mt-auto text-danger-emphasis" id="nav-logout-btn-sidebar">
+                    <i class="bi bi-box-arrow-right"></i> Keluar
                 </button>
             </div>
         </div>

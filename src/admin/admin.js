@@ -151,6 +151,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Initialize modules and navigation
         initNavigation(roleFeature, masterDataContainer, settingsContainer);
+        
+        // Sidebar Module Search
+        initSidebarSearch();
 
         // Logout handlers
         const logoutHandler = async () => {
@@ -356,6 +359,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error(`Failed to load module '${targetId}':`, error);
             showToast('error', `Gagal memuat modul: ${error.message}`);
         }
+    }
+
+    function initSidebarSearch() {
+        const searchInput = document.getElementById('sidebar-module-search');
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const navItems = document.querySelectorAll('.sidebar-nav .nav-item-custom:not(#nav-logout-btn-sidebar)');
+            const groups = document.querySelectorAll('.nav-group');
+
+            navItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const isMatch = text.includes(query);
+                item.style.display = isMatch ? 'flex' : 'none';
+            });
+
+            groups.forEach(group => {
+                const itemsInGroup = group.querySelectorAll('.nav-item-custom');
+                const hasVisibleItem = Array.from(itemsInGroup).some(item => item.style.display === 'flex');
+                group.style.display = hasVisibleItem ? 'block' : 'none';
+            });
+        });
     }
 
     // Official Toast Utility

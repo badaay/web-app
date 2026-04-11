@@ -76,50 +76,55 @@ export async function initCustomerMapView() {
 
     // =====================  UI RENDER  =====================
     container.innerHTML = `
-        <div id="cmap-wrapper" style="display:flex;height:calc(100vh - 130px);gap:0;border-radius:12px;overflow:hidden;border:1px solid var(--vscode-border);">
+        <div id="cmap-wrapper" class="glass-container" style="display:flex;height:calc(100vh - 130px);gap:0;border-radius:16px;overflow:hidden;border:1px solid var(--vscode-border);position:relative;">
+            
+            <!-- Mobile Toggle -->
+            <button id="cmap-mobile-toggle" class="btn btn-primary d-md-none position-absolute" 
+                    style="bottom:20px; right:20px; z-index:1100; border-radius:50%; width:50px; height:50px; box-shadow:var(--glow-accent); border:none; background:var(--vscode-accent-gradient);">
+                <i class="bi bi-filter"></i>
+            </button>
+
             <!-- Sidebar -->
-            <div id="cmap-sidebar" style="width:290px;min-width:290px;background:var(--vscode-sidebar-bg);border-right:1px solid var(--vscode-border);display:flex;flex-direction:column;overflow:hidden;">
-                <div style="padding:14px 16px;background:var(--vscode-header-bg);border-bottom:1px solid var(--vscode-border);">
-                    <div style="font-weight:700;color:#fff;font-size:14px;"><i class="bi bi-geo-alt-fill me-2 text-accent"></i>Visualisasi Lokasi</div>
-                    <div id="cmap-count" style="font-size:11px;color:var(--vscode-text);margin-top:2px;">Memuat data...</div>
+            <div id="cmap-sidebar" class="glass-sidebar" style="width:310px;min-width:310px;background:var(--glass-bg);backdrop-filter:blur(20px);border-right:1px solid var(--vscode-border);display:flex;flex-direction:column;overflow:hidden;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);z-index:1050;">
+                <div style="padding:20px;background:rgba(0,0,0,0.2);border-bottom:1px solid var(--vscode-border);">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div style="font-weight:700;color:var(--vscode-text-bright);font-size:16px;letter-spacing:-0.5px;">
+                            <i class="bi bi-layers-half me-2 text-accent-gradient"></i>Map Explorer
+                        </div>
+                        <button class="btn btn-link text-white d-md-none p-0" id="cmap-close-sidebar"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div id="cmap-count" style="font-size:11px;color:var(--vscode-accent-teal);margin-top:4px;font-weight:600;">Memuat data...</div>
                 </div>
 
-                <div style="flex:1;overflow-y:auto;padding:12px 14px;">
-                    <!-- Color Mode -->
-                    <div class="mb-3">
-                        <label class="small text-white-50 text-uppercase mb-2 d-block">🎨 Warna Marker</label>
-                        <select id="cmap-color-mode" class="form-select form-select-sm bg-dark text-white border-secondary shadow-sm">
-                            <option value="type" selected>Tipe Pekerjaan (PSB, Repair, etc)</option>
-                            <option value="status">Status Pengerjaan (Waiting, Open, etc)</option>
-                            <option value="packet">Paket Internet</option>
-                            <option value="damping">Redaman Signal</option>
-                        </select>
+                <div style="flex:1;overflow-y:auto;padding:16px;" class="sidebar-scroll">
+                    <!-- SECTION: COSMETIC -->
+                    <div class="filter-section mb-4">
+                        <label class="filter-header">🎨 Visualisasi</label>
+                        <div class="mb-3">
+                            <label class="tiny-label">Warna Berdasarkan</label>
+                            <select id="cmap-color-mode" class="form-select form-select-sm bg-dark-soft border-0 shadow-sm">
+                                <option value="type" selected>Tipe Pekerjaan</option>
+                                <option value="status">Status Tiket</option>
+                                <option value="packet">Paket Internet</option>
+                                <option value="damping">Redaman Signal</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <hr class="border-secondary opacity-25">
-
-                    <!-- Filters -->
-                    <div class="mb-3">
-                        <label class="small text-white-50 text-uppercase mb-2 d-block">🔍 Filter Data</label>
+                    <!-- SECTION: CORE FILTERS -->
+                    <div class="filter-section mb-4">
+                        <label class="filter-header">🔍 Filter Utama</label>
                         
-                        <div class="mb-2">
-                            <label class="tiny-label">Status Cepat</label>
-                            <div class="form-check form-switch small">
-                                <input class="form-check-input" type="checkbox" id="cmap-filter-process">
-                                <label class="form-check-label text-white-50" for="cmap-filter-process">Sedang Diproses (Open)</label>
-                            </div>
-                        </div>
-
-                        <div class="mb-2">
+                        <div class="mb-3">
                             <label class="tiny-label">Tipe Pekerjaan</label>
-                            <select id="cmap-filter-type" class="form-select form-select-sm bg-dark text-white border-secondary">
+                            <select id="cmap-filter-type" class="form-select form-select-sm bg-dark-soft border-0">
                                 <option value="">Semua Tipe</option>
                             </select>
                         </div>
 
-                        <div class="mb-2">
+                        <div class="mb-3">
                             <label class="tiny-label">Status Tiket</label>
-                            <select id="cmap-filter-status" class="form-select form-select-sm bg-dark text-white border-secondary">
+                            <select id="cmap-filter-status" class="form-select form-select-sm bg-dark-soft border-0">
                                 <option value="">Semua Status</option>
                                 <option value="waiting">Menunggu</option>
                                 <option value="confirmed">Divalidasi</option>
@@ -129,55 +134,84 @@ export async function initCustomerMapView() {
                             </select>
                         </div>
 
-                        <div class="mb-2">
+                        <div class="mb-3">
                             <label class="tiny-label">Paket Internet</label>
-                            <select id="cmap-filter-packet" class="form-select form-select-sm bg-dark text-white border-secondary">
+                            <select id="cmap-filter-packet" class="form-select form-select-sm bg-dark-soft border-0">
                                 <option value="">Semua Paket</option>
                             </select>
                         </div>
-
-                        <div class="mb-2">
-                            <label class="tiny-label">Koordinat</label>
-                            <select id="cmap-filter-coords" class="form-select form-select-sm bg-dark text-white border-secondary">
-                                <option value="1">Hanya dengan Lokasi</option>
-                                <option value="0">Tampilkan Semua</option>
-                            </select>
+                        
+                        <div class="d-flex gap-2 mb-2">
+                             <div class="flex-grow-1">
+                                <label class="tiny-label">Lokasi</label>
+                                <select id="cmap-filter-coords" class="form-select form-select-sm bg-dark-soft border-0">
+                                    <option value="1">Ada Titik</option>
+                                    <option value="0">Semua</option>
+                                </select>
+                             </div>
+                             <div class="pt-4">
+                                <div class="form-check form-switch p-0 m-0 d-flex align-items-center gap-2">
+                                    <input class="form-check-input ms-0 mt-0" type="checkbox" id="cmap-filter-process">
+                                    <label class="form-check-label tiny-label mb-0" for="cmap-filter-process">OPEN ONLY</label>
+                                </div>
+                             </div>
                         </div>
                     </div>
 
-                    <hr class="border-secondary opacity-25">
-
-                    <!-- Column Toggles -->
-                    <div class="mb-3">
-                        <label class="small text-white-50 text-uppercase mb-2 d-block">📋 Detail Popup</label>
-                        ${Object.entries(fieldLabels).map(([key, label]) => `
-                            <label class="d-flex align-items-center gap-2 mb-1 cursor-pointer small">
-                                <input type="checkbox" class="cmap-field-toggle" data-field="${key}" ${displayFields[key] ? 'checked' : ''}>
-                                <span class="text-white-50">${label}</span>
-                            </label>
-                        `).join('')}
+                    <!-- SECTION: TOGGLES -->
+                    <div class="filter-section mb-4">
+                        <label class="filter-header">📋 Kelola Detail Pop-up</label>
+                        <div class="grid-columns-2">
+                            ${Object.entries(fieldLabels).map(([key, label]) => `
+                                <label class="field-pill cursor-pointer">
+                                    <input type="checkbox" class="cmap-field-toggle d-none" data-field="${key}" ${displayFields[key] ? 'checked' : ''}>
+                                    <span>${label}</span>
+                                </label>
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
 
-                <div class="p-3 border-top border-secondary border-opacity-25">
-                    <button id="cmap-fit-bounds-btn" class="btn btn-outline-info btn-sm w-100 mb-2">
-                        <i class="bi bi-bounding-box me-1"></i>Fit ke Area
+                <div class="p-3 border-top border-secondary border-opacity-10 bg-black-20">
+                    <button id="cmap-fit-bounds-btn" class="btn btn-accent-gradient btn-sm w-100 mb-2 py-2 fw-bold">
+                        <i class="bi bi-bounding-box me-2"></i>FOKUS AREA
                     </button>
-                    <div class="text-white-50 text-center" style="font-size: 9px; opacity: 0.5;">Gunakan layer control di kanan atas peta.</div>
+                    <div class="text-white-50 text-center" style="font-size: 9px; opacity: 0.7;">Mode: Desktop Optimized v2.0</div>
                 </div>
             </div>
 
             <!-- Map Area -->
             <div style="flex:1;position:relative;">
                 <div id="customer-map-full" style="height:100%;width:100%;z-index: 1;"></div>
-                <div id="cmap-stats-panel" style="position:absolute;top:10px;left:10px;z-index:1000;background:rgba(15,15,15,0.8);backdrop-filter:blur(4px);padding:8px 12px;border-radius:8px;border:1px solid #333;pointer-events:none;"></div>
+                <div id="cmap-stats-panel" class="glass-stats-panel"></div>
             </div>
         </div>
 
         <style>
-            .tiny-label { font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; }
-            .leaflet-control-layers { background: #1e1e1e !important; color: #fff !important; border: 1px solid #444 !important; }
-            .leaflet-control-layers-overlays label { color: #fff !important; }
+            .glass-sidebar::-webkit-scrollbar { width: 4px; }
+            .glass-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+            
+            .filter-header { font-size: 11px; font-weight: 800; color: var(--vscode-accent-teal); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: block; opacity: 0.8; }
+            .tiny-label { font-size: 10px; color: var(--vscode-text); display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
+            
+            .bg-dark-soft { background: rgba(15, 23, 42, 0.4) !important; color: #fff !important; }
+            .bg-black-20 { background: rgba(0,0,0,0.2); }
+            
+            .grid-columns-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+            
+            .field-pill { display: flex; align-items: center; justify-content: center; padding: 6px 4px; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); font-size: 9px; color: var(--vscode-text); transition: all 0.2s; text-align: center; line-height: 1.1; }
+            .field-pill:has(input:checked) { background: rgba(0, 128, 128, 0.2); border-color: var(--vscode-accent-teal); color: #fff; }
+            .field-pill:hover { background: rgba(255,255,255,0.08); }
+
+            .btn-accent-gradient { background: var(--vscode-accent-gradient); border: none; color: #fff; box-shadow: var(--glow-accent); }
+            .btn-accent-gradient:hover { filter: brightness(1.1); box-shadow: 0 0 20px rgba(0, 71, 171, 0.6); color: #fff; }
+
+            .glass-stats-panel { position:absolute;top:16px;left:16px;z-index:1000;background:rgba(15, 23, 42, 0.8);backdrop-filter:blur(12px);padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);pointer-events:none;box-shadow:var(--glass-shadow); }
+
+            @media (max-width: 768px) {
+                #cmap-sidebar { position: absolute; left: 0; top: 0; bottom: 0; height: 100%; transform: translateX(-100%); width: 280px !important; min-width: 280px !important; }
+                #cmap-sidebar.show { transform: translateX(0); }
+            }
         </style>
     `;
 
@@ -197,6 +231,12 @@ export async function initCustomerMapView() {
     container.addEventListener('change', (e) => {
         if (e.target.classList.contains('cmap-field-toggle')) applyFiltersAndRender();
     });
+
+    // Mobile Toggle Events
+    const sidebar = document.getElementById('cmap-sidebar');
+    document.getElementById('cmap-mobile-toggle').onclick = () => sidebar.classList.add('show');
+    document.getElementById('cmap-close-sidebar').onclick = () => sidebar.classList.remove('show');
+
 
     // =====================  DATA LOADING  =====================
     await loadData();
@@ -354,9 +394,15 @@ export async function initCustomerMapView() {
             className: '',
             html: `
                 <svg width="28" height="36" viewBox="0 0 24 32">
-                    <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="${color}" stroke="#fff" stroke-width="1.5"/>
+                    <defs>
+                        <filter id="glow-${label}" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="1.5" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
+                    <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="${color}" stroke="#fff" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${color}88)"/>
                     <circle cx="12" cy="12" r="6" fill="#fff" opacity="0.9"/>
-                    <text x="12" y="15" text-anchor="middle" font-size="9" font-weight="900" fill="${color}" font-family="monospace">${label}</text>
+                    <text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="900" fill="${color}" font-family="monospace">${label}</text>
                 </svg>`,
             iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -36]
         });
@@ -438,11 +484,18 @@ export async function initCustomerMapView() {
         const panel = document.getElementById('cmap-stats-panel');
         if (!panel) return;
         panel.innerHTML = `
-            <div class="small fw-bold text-white mb-1"><i class="bi bi-broadcast me-2 text-accent"></i>${data.length} Data Terkunci</div>
-            <div class="d-flex gap-3 small text-white-50" style="font-size: 10px;">
-                <span>LAT: ${data[0]?.lat?.toFixed(4) || '-'}</span>
-                <span>LNG: ${data[0]?.lng?.toFixed(4) || '-'}</span>
+            <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+                <span class="pulse-dot"></span>
+                <span>${data.length} Nodes Aktif</span>
             </div>
+            <div style="display:flex;gap:12px;margin-top:4px;">
+                <div style="font-size:10px; color:var(--vscode-accent-teal);">LAT: ${data[0]?.lat?.toFixed(4) || '-'}</div>
+                <div style="font-size:10px; color:var(--vscode-accent-teal);">LNG: ${data[0]?.lng?.toFixed(4) || '-'}</div>
+            </div>
+            <style>
+                .pulse-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 10px #10b981; animation: pulse 2s infinite; }
+                @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+            </style>
         `;
     }
 }
