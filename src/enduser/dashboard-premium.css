@@ -1,0 +1,128 @@
+/* Customer Dashboard Premium Styles - MitraFlow */
+
+:root {
+    --dash-bg: #f1f5f9;
+    --dash-accent: #3b5bdb;
+    --dash-text: #1e293b;
+    --dash-muted: #64748b;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-blur: blur(20px);
+}
+
+body.dashboard-page {
+    font-family: 'DM Sans', sans-serif;
+    background-color: var(--dash-bg);
+    color: var(--dash-text);
+    margin: 0;
+    min-height: 100vh;
+}
+
+/* Background Shapes */
+.bg-shape {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: -1;
+    opacity: 0.4;
+    animation: floating 15s infinite alternate ease-in-out;
+}
+.shape-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background-color: #93c5fd; }
+.shape-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background-color: #c4b5fd; }
+
+@keyframes floating {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(40px, 60px) scale(1.1); }
+}
+
+.chat-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 120px;
+    position: relative;
+    z-index: 1;
+}
+
+.premium-header {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--glass-border);
+    border-radius: 0 0 2rem 2rem;
+    padding: 30px 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+}
+
+.chat-bubble {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 1.5rem;
+    padding: 20px;
+    margin: 0 20px 15px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--glass-border);
+    border-left: 6px solid var(--dash-accent);
+    animation: fadeInUp 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--glass-border);
+    border-radius: 2rem 2rem 0 0;
+    display: flex;
+    justify-content: space-around;
+    padding: 15px 10px 25px 10px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.03);
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--dash-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    gap: 4px;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.nav-item i {
+    font-size: 1.4rem;
+}
+
+.nav-item.active {
+    color: var(--dash-accent);
+}
+
+.nav-item.active i {
+    transform: scale(1.1);
+}
+
+.mitraflow-pill {
+    font-size: 0.65rem;
+    color: var(--dash-muted);
+    background: rgba(0,0,0,0.05);
+    padding: 4px 12px;
+    border-radius: 9999px;
+    display: inline-block;
+    margin-top: 5px;
+}

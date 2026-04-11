@@ -9,266 +9,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <style>
-        /* Modern Slate Theme Variables */
-        :root {
-            --vscode-bg: #f1f5f9;
-            --vscode-sidebar-bg: #f8fafc;
-            --vscode-header-bg: #e2e8f0;
-            --vscode-activitybar-bg: #cbd5e1;
-            --vscode-text: #475569;
-            --vscode-text-bright: #1e293b;
-            --vscode-accent: #3b5bdb;
-            --vscode-accent-hover: #2f4ac5;
-            --vscode-border: #cbd5e1;
-            --vscode-success: #16a34a;
-            --vscode-danger: #dc2626;
-            --vscode-warning: #d97706;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--vscode-bg);
-            color: var(--vscode-text);
-            overflow-x: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            position: relative;
-        }
-
-        /* Abstract Background Shapes for Glassmorphism Effect */
-        .bg-shape {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            z-index: -1;
-            opacity: 0.6;
-            animation: float 10s infinite alternate ease-in-out;
-        }
-        .shape-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background-color: #93c5fd; }
-        .shape-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background-color: #c4b5fd; }
-        .shape-3 { top: 30%; left: 20%; width: 40vw; height: 40vw; background-color: #e2e8f0; animation-delay: -5s; }
-
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(20px, 40px) scale(1.1); }
-        }
-
-        /* Glass Container */
-        .tracking-container {
-            width: 100%;
-            max-width: 480px;
-            background: rgba(255, 255, 255, 0.45);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 40px -10px rgba(30, 41, 59, 0.1);
-            overflow: hidden;
-            z-index: 1;
-        }
-
-        .tracking-header {
-            background: rgba(255, 255, 255, 0.3);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
-
-        .tracking-header h3 {
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: var(--vscode-text-bright);
-        }
-
-        .tracking-header p {
-            margin: 0;
-            font-size: 0.95rem;
-            color: var(--vscode-text);
-        }
-
-        .magic-bubble {
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 1.25rem;
-            padding: 24px;
-            margin: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            animation: slideUp 0.5s ease-out forwards;
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        @keyframes slideUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Timeline Styles */
-        .timeline {
-            position: relative;
-            padding-left: 30px;
-            margin-top: 20px;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 9px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: rgba(30, 41, 59, 0.1);
-        }
-
-        .timeline-step {
-            position: relative;
-            margin-bottom: 25px;
-            opacity: 0.5;
-            transition: all 0.3s ease;
-        }
-
-        .timeline-step:last-child {
-            margin-bottom: 0;
-        }
-
-        .timeline-step.active, 
-        .timeline-step.completed {
-            opacity: 1;
-        }
-
-        .timeline-step::before {
-            content: '';
-            position: absolute;
-            left: -26px;
-            top: 4px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--vscode-bg);
-            border: 2px solid rgba(30, 41, 59, 0.2);
-            z-index: 2;
-            transition: all 0.3s ease;
-        }
-
-        .timeline-step.completed::before {
-            background: var(--vscode-success);
-            border-color: var(--vscode-success);
-        }
-
-        .timeline-step.active::before {
-            background: transparent;
-            border: 3px solid var(--vscode-accent);
-            box-shadow: 0 0 0 4px rgba(59, 91, 219, 0.2);
-        }
-
-        .timeline-step h5 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-            color: var(--vscode-text-bright);
-        }
-
-        .timeline-step p {
-            font-size: 0.85rem;
-            color: var(--vscode-text);
-            margin: 0;
-        }
-
-        /* Glass Alerts */
-        .status-alert {
-            display: none;
-            border-radius: 1rem;
-            padding: 16px;
-            margin: 20px;
-            font-size: 0.95rem;
-            backdrop-filter: blur(10px);
-        }
-        
-        #alert-odp {
-            background: rgba(217, 119, 6, 0.1);
-            border: 1px solid rgba(217, 119, 6, 0.3);
-            color: #92400e;
-        }
-
-        #alert-cancel {
-            background: rgba(220, 38, 38, 0.1);
-            border: 1px solid rgba(220, 38, 38, 0.3);
-            color: #991b1b;
-        }
-
-        .status-alert i {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(30, 41, 59, 0.05);
-            font-size: 0.875rem;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .info-row .label { color: var(--vscode-text); }
-        .info-row .value { font-weight: 600; color: var(--vscode-text-bright); text-align: right; }
-
-        .refresh-btn {
-            background: rgba(255, 255, 255, 0.5);
-            border: 1px solid rgba(30, 41, 59, 0.1);
-            border-radius: 10px;
-            padding: 6px 14px;
-            font-size: 0.8rem;
-            color: var(--vscode-text);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .refresh-btn:hover {
-            background: rgba(255, 255, 255, 0.8);
-            color: var(--vscode-text-bright);
-        }
-
-        .scheduled-box {
-            background: rgba(22, 163, 74, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(22, 163, 74, 0.3);
-            border-radius: 1rem;
-            padding: 16px 20px;
-            margin: 0 20px 8px;
-            font-size: 0.9rem;
-            display: none;
-        }
-
-        .scheduled-box i { color: var(--vscode-success); }
-    </style>
+    <link rel="stylesheet" href="/src/styles.css">
+    <link rel="stylesheet" href="/src/enduser/tracking-premium.css">
 </head>
 
-<body>
+<body class="tracking-page">
 
     <div class="bg-shape shape-1"></div>
     <div class="bg-shape shape-2"></div>
     <div class="bg-shape shape-3"></div>
 
-    <div class="tracking-container">
+    <div class="tracking-card">
         <div class="tracking-header">
             <h3 id="ui-greeting">Halo!</h3>
             <p id="ui-address">Memuat data pendaftaran...</p>
         </div>
+
 
         <div id="loading" class="text-center p-5">
             <div class="spinner-border border-3" style="color: var(--vscode-accent);" role="status"></div>
@@ -282,31 +38,32 @@
         </div>
 
         <div id="tracking-content" class="d-none">
-            <div class="magic-bubble">
+            <div class="premium-bubble">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold" style="color: var(--vscode-text-bright);">Status Proses</span>
+                    <span class="fw-bold" style="color: var(--track-text-bright);">Status Proses</span>
                     <span id="ui-badge" class="badge rounded-pill bg-secondary px-3 py-2">Loading</span>
                 </div>
                 
-                <div class="timeline" id="ui-timeline">
-                    <div class="timeline-step" id="step-waiting">
+                <div class="modern-timeline" id="ui-timeline">
+                    <div class="timeline-node" id="step-waiting">
                         <h5>Antrian</h5>
                         <p>Pesanan Anda telah masuk dalam daftar antrian.</p>
                     </div>
-                    <div class="timeline-step" id="step-confirmed">
+                    <div class="timeline-node" id="step-confirmed">
                         <h5>Konfirmasi</h5>
                         <p>Pesanan telah dikonfirmasi oleh tim admin.</p>
                     </div>
-                    <div class="timeline-step" id="step-pending">
+                    <div class="timeline-node" id="step-pending">
                         <h5>Pending</h5>
                         <p>Menunggu jadwal ketersediaan teknisi.</p>
                     </div>
-                    <div class="timeline-step" id="step-active">
+                    <div class="timeline-node" id="step-active">
                         <h5>Selesai</h5>
                         <p>Proses instalasi telah selesai dilakukan.</p>
                     </div>
                 </div>
             </div>
+
 
             <div id="scheduled-box" class="scheduled-box">
                 <div class="d-flex align-items-center gap-2">
@@ -330,9 +87,9 @@
                 Pendaftaran ini telah dibatalkan. Jika Anda masih berminat, silakan hubungi Customer Service kami.
             </div>
 
-            <div class="magic-bubble" style="animation-delay: 0.15s;">
+            <div class="premium-bubble" style="animation-delay: 0.15s;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold" style="color: var(--vscode-text-bright);">Info Pendaftaran</span>
+                    <span class="fw-bold" style="color: var(--track-text-bright);">Info Pendaftaran</span>
                     <button id="refresh-btn" class="refresh-btn">
                         <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                     </button>
@@ -350,6 +107,9 @@
                     <span class="value" id="ui-updated-at">-</span>
                 </div>
             </div>
+
+            <div class="mitraflow-branding">Powered by MitraFlow</div>
+
 
             <div class="text-center p-3 pt-0">
                 <small id="ui-last-checked" style="color: var(--vscode-text);">—</small>

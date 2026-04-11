@@ -1,0 +1,68 @@
+/*
+ * themes.css — Smooth Theme Palettes
+ * Use Bootstrap's `data-bs-theme="dark|light"` for mode switching.
+ * Use `data-theme="palette-name"` for brand color switching.
+ */
+
+/* ──────────────────────────────────────────────────────────────
+   🌊 DEFAULT: SiFatih Core (Cobalt & Teal)
+────────────────────────────────────────────────────────────── */
+:root {
+    --brand-primary: #3b5bdb;
+    --brand-secondary: #2dd4bf;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   🌲 THEME: Forest Green
+────────────────────────────────────────────────────────────── */
+html[data-theme="forest"] {
+    --brand-primary: #16a34a;
+    --brand-secondary: #4ade80;
+}
+/* Tweaking dark mode background for Forest */
+html[data-theme="forest"][data-bs-theme="dark"] {
+    --app-bg: #052e16;
+    --app-surface: #14532d;
+}
+/* Tweaking light mode background for Forest */
+html[data-theme="forest"][data-bs-theme="light"] {
+    --app-bg: #f0fdf4;
+    --app-surface: #ffffff;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   🟣 THEME: Cosmic Violet
+────────────────────────────────────────────────────────────── */
+html[data-theme="cosmic"] {
+    --brand-primary: #7c3aed;
+    --brand-secondary: #c084fc;
+}
+html[data-theme="cosmic"][data-bs-theme="dark"] {
+    --app-bg: #1e1b4b;
+    --app-surface: #312e81;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   🔥 THEME: Ember Dark
+────────────────────────────────────────────────────────────── */
+html[data-theme="ember"] {
+    --brand-primary: #ea580c;
+    --brand-secondary: #fb923c;
+}
+html[data-theme="ember"][data-bs-theme="dark"] {
+    --app-bg: #431407;
+    --app-surface: #7c2d12;
+}
+
+/* Utility Class for Gradients */
+.bg-gradient-brand {
+    background: var(--brand-gradient) !important;
+    color: white !important;
+}
+
+.text-gradient-brand {
+    background: var(--brand-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}

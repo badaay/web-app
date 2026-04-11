@@ -1,42 +1,43 @@
-/* Customer Auth CSS - Modern & Friendly */
+/* Customer Auth CSS - Premium MitraFlow Design */
 :root {
-    --customer-bg-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
-    --customer-card-bg: rgba(255, 255, 255, 0.9);
-    --customer-text: #1f2937;
-    --customer-accent: #2563eb;
-    --customer-border: rgba(255, 255, 255, 0.3);
+    --customer-bg: radial-gradient(circle at 10% 20%, #0f172a 0%, #1e293b 100%);
+    --customer-card-bg: rgba(255, 255, 255, 0.05);
+    --customer-text: #f8fafc;
+    --customer-accent: #0ea5e9;
+    --customer-border: rgba(255, 255, 255, 0.1);
 }
 
 body.auth-page {
-    background: var(--customer-bg-gradient) !important;
+    background: var(--customer-bg) !important;
     background-attachment: fixed !important;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
     margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--customer-text);
 }
 
 .customer-login-card {
-    background-color: var(--customer-card-bg) !important;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: var(--customer-card-bg) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--customer-border) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-    max-width: 400px;
-    width: 100%;
-    padding: 40px;
-    animation: slideUp 0.5s ease-out;
+    border-radius: 24px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    max-width: 440px;
+    width: 90%;
+    padding: 48px;
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -44,57 +45,67 @@ body.auth-page {
 }
 
 .login-header h1 {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 800;
-    color: var(--customer-text);
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     text-align: center;
+    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .login-header p {
-    color: #6b7280;
-    font-size: 0.95rem;
-    margin-bottom: 32px;
+    color: #94a3b8;
+    font-size: 1rem;
+    margin-bottom: 40px;
     text-align: center;
 }
 
 .auth-input {
-    width: 100%;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    transition: all 0.2s;
-    background: white;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    border-radius: 14px !important;
+    padding: 14px 18px !important;
+    margin-bottom: 20px !important;
+}
+
+.auth-input::placeholder {
+    color: #64748b !important;
 }
 
 .auth-input:focus {
-    outline: none;
-    border-color: var(--customer-accent);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: var(--customer-accent) !important;
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15) !important;
 }
 
 .auth-btn {
-    width: 100%;
-    background-color: var(--customer-accent);
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-top: 8px;
+    background: linear-gradient(135deg, var(--customer-accent) 0%, #0284c7 100%) !important;
+    border-radius: 14px !important;
+    padding: 16px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3) !important;
+    transition: var(--transition-base) !important;
 }
 
 .auth-btn:hover {
-    background-color: #1d4ed8;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px) !important;
+    box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.4) !important;
+    filter: brightness(1.1);
 }
 
-.auth-btn:active {
-    transform: translateY(0);
+.mitraflow-footer {
+    position: fixed;
+    bottom: 2rem;
+    font-size: 0.75rem;
+    color: #475569;
+}
+
+.mitraflow-footer span {
+    color: #64748b;
+    font-weight: 600;
 }

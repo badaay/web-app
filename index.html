@@ -10,131 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <style>
-        :root {
-            --slate-50: #f8fafc;
-            --slate-100: #f1f5f9;
-            --slate-200: #e2e8f0;
-            --slate-600: #475569;
-            --slate-800: #1e293b;
-            --slate-900: #0f172a;
-            
-            /* SiFatih Core Brand Colors */
-            --sifatih-blue: #3B5BDB;
-            --sifatih-teal: #2DD4BF;
-            --sifatih-glow: #38BDF8;
-            --sifatih-dark: #0F172A;
-            --sifatih-gradient: linear-gradient(135deg, var(--sifatih-blue) 0%, var(--sifatih-teal) 100%);
-            --accent-light: #edf2ff;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--slate-50);
-            color: var(--slate-800);
-            overflow-x: hidden;
-        }
-
-        /* Typography & Utilities */
-        .text-slate { color: var(--slate-600) !important; }
-        .text-dark-slate { color: var(--slate-900) !important; }
-        .text-blue { color: var(--sifatih-blue) !important; }
-        .text-teal { color: var(--sifatih-teal) !important; }
-        .bg-accent-light { background-color: var(--accent-light) !important; }
-        
-        /* Text Gradient for Logo & Headings */
-        .text-gradient {
-            background: var(--sifatih-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* Main Gradient Button */
-        .btn-primary-custom {
-            background: var(--sifatih-gradient);
-            border: none;
-            color: white;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary-custom:hover {
-            opacity: 0.95;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(45, 212, 191, 0.3); /* Teal glow */
-            color: white;
-        }
-
-        /* Navbar */
-        .navbar-custom {
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--slate-200);
-        }
-        .navbar-custom .nav-link {
-            color: var(--slate-600);
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-        .navbar-custom .nav-link:hover, 
-        .navbar-custom .nav-link.active {
-            color: var(--sifatih-blue);
-        }
-
-        /* Hero Section */
-        .hero-section {
-            padding: 120px 0 80px;
-            background: linear-gradient(180deg, var(--slate-50) 0%, #ffffff 100%);
-        }
-
-        /* Cards General */
-        .hover-card-up {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: 1px solid var(--slate-200);
-            background: #ffffff;
-        }
-        .hover-card-up:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(15, 23, 42, 0.08);
-        }
-
-        /* Package Cards */
-        .package-card {
-            border-radius: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .package-card.popular {
-            border: 2px solid var(--sifatih-teal);
-        }
-        .popular-badge {
-            position: absolute;
-            top: 15px;
-            right: -35px;
-            background: var(--sifatih-teal);
-            color: var(--sifatih-dark);
-            padding: 5px 40px;
-            font-size: 0.8rem;
-            font-weight: 800;
-            transform: rotate(45deg);
-        }
-
-        /* Footer */
-        .footer-custom {
-            background-color: var(--sifatih-dark);
-            color: var(--slate-200);
-        }
-        .footer-custom a {
-            color: var(--slate-200);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .footer-custom a:hover {
-            color: var(--sifatih-teal);
-        }
-    </style>
+    <link rel="stylesheet" href="/src/styles.css">
+    <link rel="stylesheet" href="/src/landing.css">
 </head>
+
 
 <body class="d-flex flex-column min-vh-100">
 
@@ -178,21 +57,22 @@
                 </div>
             </div>
 
-            <span class="badge bg-accent-light text-blue px-3 py-2 rounded-pill mb-4 border border-primary border-opacity-25 fw-bold">
-                Jaringan Fiber Optik Tercepat 🚀
-            </span>
-            <h1 class="display-4 fw-bolder text-dark-slate mb-3">
+            <div class="hero-badge animate-fade-in-up">
+                <i class="bi bi-rocket-takeoff-fill me-2"></i> Jaringan Fiber Optik Tercepat
+            </div>
+            <h1 class="display-3 fw-bolder text-slate-900 mb-4 animate-fade-in-up" style="animation-delay: 0.1s">
                 Koneksi Tanpa Batas untuk <br><span class="text-gradient">Aktivitas Digitalmu</span>
             </h1>
-            <p class="lead text-slate mb-5 mx-auto" style="max-width: 650px; font-size: 1.1rem;">
-                Tingkatkan produktivitas rumah dan bisnis Anda dengan internet yang stabil, cepat, dan transparan. Tanpa FUP, tanpa biaya tersembunyi.
+            <p class="lead text-slate-600 mb-5 mx-auto animate-fade-in-up" style="max-width: 650px; font-size: 1.25rem; animation-delay: 0.2s">
+                Tingkatkan produktivitas rumah dan bisnis Anda dengan internet yang stabil, cepat, dan transparan.
             </p>
 
-            <div class="d-flex justify-content-center gap-3 flex-wrap">
-                <a href="#paket" class="btn btn-primary-custom btn-lg px-5 py-3 rounded-pill">
+            <div class="d-flex justify-content-center gap-3 flex-wrap animate-fade-in-up" style="animation-delay: 0.3s">
+                <a href="#paket" class="premium-btn px-5 py-3 fs-5">
                     Lihat Pilihan Paket
                 </a>
             </div>
+
 
             <div class="row justify-content-center mt-5 pt-4 border-top border-secondary border-opacity-10 mx-auto" style="max-width: 800px;">
                 <div class="col-4">
@@ -219,32 +99,33 @@
             </div>
             <div class="row g-4">
                 <div class="col-md-4">
-                    <div class="card hover-card-up h-100 p-4 rounded-4 text-center border-0 bg-slate-50">
-                        <div class="bg-accent-light rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
-                            <i class="bi bi-speedometer2 fs-1 text-blue"></i>
+                    <div class="glass-card h-100 p-4 text-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                            <i class="bi bi-speedometer2 fs-1 text-accent"></i>
                         </div>
-                        <h5 class="fw-bold text-dark-slate">Kecepatan Simetris</h5>
-                        <p class="text-slate small mb-0">Download dan upload sama cepatnya. Sangat cocok untuk meeting online dan konten kreator.</p>
+                        <h5 class="fw-bold text-slate-900">Kecepatan Simetris</h5>
+                        <p class="text-slate-600 small mb-0">Download dan upload sama cepatnya. Sangat cocok untuk meeting online dan konten kreator.</p>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card hover-card-up h-100 p-4 rounded-4 text-center border-0 bg-slate-50">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px; background-color: rgba(45, 212, 191, 0.1);">
-                            <i class="bi bi-infinity fs-1 text-teal"></i>
+                    <div class="glass-card h-100 p-4 text-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                            <i class="bi bi-infinity fs-1 text-secondary"></i>
                         </div>
-                        <h5 class="fw-bold text-dark-slate">100% Unlimited</h5>
-                        <p class="text-slate small mb-0">Bebas kuota tanpa penurunan kecepatan (No FUP). Streaming dan gaming sepuasnya tanpa khawatir.</p>
+                        <h5 class="fw-bold text-slate-900">100% Unlimited</h5>
+                        <p class="text-slate-600 small mb-0">Bebas kuota tanpa penurunan kecepatan (No FUP). Streaming dan gaming sepuasnya tanpa khawatir.</p>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card hover-card-up h-100 p-4 rounded-4 text-center border-0 bg-slate-50">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px; background-color: rgba(56, 189, 248, 0.1);">
-                            <i class="bi bi-headset fs-1" style="color: var(--sifatih-glow);"></i>
+                    <div class="glass-card h-100 p-4 text-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                            <i class="bi bi-headset fs-1 text-accent"></i>
                         </div>
-                        <h5 class="fw-bold text-dark-slate">Layanan Responsif</h5>
-                        <p class="text-slate small mb-0">Sistem tiket cerdas dengan teknisi lokal yang siap menuju lokasi Anda saat terjadi kendala.</p>
+                        <h5 class="fw-bold text-slate-900">Layanan Responsif</h5>
+                        <p class="text-slate-600 small mb-0">Sistem tiket cerdas dengan teknisi lokal yang siap menuju lokasi Anda saat terjadi kendala.</p>
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
@@ -255,62 +136,10 @@
                 <h2 class="fw-bold text-dark-slate">Pilih Paket Internet Anda</h2>
                 <p class="text-slate">Sesuaikan dengan kebutuhan digital di rumah atau bisnis Anda.</p>
             </div>
-            <div class="row g-4 justify-content-center">
-                <div class="col-lg-4 col-md-6">
-                    <div class="card package-card hover-card-up h-100 p-4 border-0 shadow-sm">
-                        <div class="text-center mb-4 border-bottom pb-4">
-                            <h5 class="text-slate fw-bold mb-1">SiFatih Basic</h5>
-                            <h2 class="display-5 fw-bolder text-dark-slate mb-0">20<span class="fs-5 text-slate fw-normal"> Mbps</span></h2>
-                            <p class="text-blue fw-bold fs-5 mt-2 mb-0">Rp 195.000<span class="fs-6 text-slate fw-normal">/bln</span></p>
-                        </div>
-                        <ul class="list-unstyled mb-4 text-slate">
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Cocok untuk 1-3 Perangkat</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Streaming HD Lancar</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> 100% Unlimited Fiber</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Peminjaman Router Gratis</li>
-                        </ul>
-                        <div class="mt-auto text-center">
-                            <a href="admin/add-psb.html?pkg=basic" class="btn btn-outline-secondary w-100 rounded-pill fw-bold py-2">Pilih Basic</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 col-md-6">
-                    <div class="card package-card popular hover-card-up h-100 p-4 shadow">
-                        <div class="popular-badge">Terlaris</div>
-                        <div class="text-center mb-4 border-bottom pb-4">
-                            <h5 class="text-gradient fw-bold mb-1">SiFatih Pro</h5>
-                            <h2 class="display-5 fw-bolder text-dark-slate mb-0">50<span class="fs-5 text-slate fw-normal"> Mbps</span></h2>
-                            <p class="text-blue fw-bold fs-5 mt-2 mb-0">Rp 275.000<span class="fs-6 text-slate fw-normal">/bln</span></p>
-                        </div>
-                        <ul class="list-unstyled mb-4 text-slate">
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Cocok untuk 4-7 Perangkat</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Streaming 4K Tanpa Buffering</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Latensi Rendah untuk Gaming</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Prioritas Dukungan Teknis</li>
-                        </ul>
-                        <div class="mt-auto text-center">
-                            <a href="admin/add-psb.html?pkg=pro" class="btn btn-primary-custom w-100 rounded-pill fw-bold py-2">Pilih Pro</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 col-md-6">
-                    <div class="card package-card hover-card-up h-100 p-4 border-0 shadow-sm">
-                        <div class="text-center mb-4 border-bottom pb-4">
-                            <h5 class="text-slate fw-bold mb-1">SiFatih Ultimate</h5>
-                            <h2 class="display-5 fw-bolder text-dark-slate mb-0">100<span class="fs-5 text-slate fw-normal"> Mbps</span></h2>
-                            <p class="text-blue fw-bold fs-5 mt-2 mb-0">Rp 450.000<span class="fs-6 text-slate fw-normal">/bln</span></p>
-                        </div>
-                        <ul class="list-unstyled mb-4 text-slate">
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Perangkat Tak Terbatas</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Upload File Besar Sekejap</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> IP Publik Statis (Opsional)</li>
-                            <li class="mb-2"><i class="bi bi-check2-circle text-teal me-2 fw-bold"></i> Gratis Smart Home Router</li>
-                        </ul>
-                        <div class="mt-auto text-center">
-                            <a href="admin/add-psb.html?pkg=ultimate" class="btn btn-outline-secondary w-100 rounded-pill fw-bold py-2">Pilih Ultimate</a>
-                        </div>
+            <div class="row g-4 justify-content-center" id="dynamic-package-container">
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading packages...</span>
                     </div>
                 </div>
             </div>
@@ -390,21 +219,28 @@
                 </div>
             </div>
             
-            <div class="border-top border-secondary border-opacity-25 pt-3 d-flex flex-column flex-md-row justify-content-between align-items-center">
+            <div class="border-top border-secondary border-opacity-25 pt-4 d-flex flex-column flex-md-row justify-content-between align-items-center">
                 <p class="mb-0 small opacity-50">&copy; 2026 SiFatih Internet Service. All Rights Reserved.</p>
                 
-                <div class="mt-2 mt-md-0">
-                    <a href="admin/login.html" class="small text-decoration-none opacity-50 hover-opacity-100" style="transition: opacity 0.2s;">
-                        <i class="bi bi-shield-lock me-1"></i>Admin Portal
+                <div class="mt-3 mt-md-0">
+                    <p class="small mb-0 branding-note">
+                        Platform Powered by <span>MitraFlow</span> &copy; 2026
+                    </p>
+                </div>
+
+                <div class="mt-3 mt-md-0">
+                    <a href="admin/login.html" class="small text-decoration-none opacity-50 hover-opacity-100 d-flex align-items-center" style="transition: opacity 0.2s;">
+                        <i class="bi bi-shield-lock me-2"></i>Admin Portal
                     </a>
                 </div>
             </div>
+
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // Handle success message from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('success') === 'true') {
@@ -417,6 +253,53 @@
                 ], { duration: 500, fill: 'forwards', easing: 'ease-out' });
 
                 window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            // DYNAMIC PACKAGES FETCH (TOP 3)
+            const packageContainer = document.getElementById('dynamic-package-container');
+            try {
+                const response = await fetch('/api/packages');
+                const { data } = await response.json();
+                
+                if (data && data.length > 0) {
+                    // Sort by price and take top 3
+                    const sorted = data.sort((a, b) => a.price - b.price).slice(0, 3);
+                    
+                    packageContainer.innerHTML = sorted.map((pkg, index) => {
+                        const isPopular = pkg.is_popular || index === 1; // Default second to popular if not specified
+                        const pkgSlug = pkg.name.toLowerCase().replace(/\s+/g, '-');
+                        
+                        return `
+                        <div class="col-lg-4 col-md-6">
+                            <div class="package-card ${isPopular ? 'popular shadow' : 'bg-white shadow-sm'} h-100 p-4">
+                                ${isPopular ? '<div class="popular-badge">Terlaris</div>' : ''}
+                                <div class="text-center mb-4 border-bottom pb-4">
+                                    <h5 class="${isPopular ? 'text-gradient' : 'text-slate-600'} fw-bold mb-1">${pkg.name}</h5>
+                                    <h2 class="display-5 fw-bolder text-slate-900 mb-0">${pkg.speed || '-'}<span class="fs-5 text-slate-600 fw-normal"> Mbps</span></h2>
+                                    <p class="text-accent fw-bold fs-5 mt-2 mb-0">Rp ${Number(pkg.price).toLocaleString('id-ID')}<span class="fs-6 text-slate-600 fw-normal">/bln</span></p>
+                                </div>
+                                <div class="package-features flex-grow-1">
+                                    <ul class="list-unstyled mb-4 text-slate-600">
+                                        ${(pkg.description || 'Layanan internet tanpa batas fiber optik untuk kenyamanan aktivitas digital Anda.').split('\n').map(feat => `
+                                            <li class="mb-2"><i class="bi bi-check2-circle text-secondary me-2 fw-bold"></i> ${feat}</li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+                                <div class="mt-auto text-center">
+                                    <a href="admin/add-psb.html?pkg=${pkgSlug}" class="${isPopular ? 'premium-btn' : 'btn btn-outline-secondary rounded-pill fw-bold py-2'} w-100">
+                                        Pilih ${pkg.name.split(' ').pop()}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                } else {
+                    packageContainer.innerHTML = '<div class="col-12 text-center text-slate-500 py-4">Belum ada paket tersedia saat ini.</div>';
+                }
+            } catch (err) {
+                console.error('Failed to fetch packages:', err);
+                packageContainer.innerHTML = '<div class="col-12 text-center text-danger py-4">Gagal memuat paket internet.</div>';
             }
         });
     </script>

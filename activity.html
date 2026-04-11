@@ -13,270 +13,23 @@
     <link rel="stylesheet" href="/src/admin/themes.css">
     <link rel="stylesheet" href="/src/enduser/dashboard.css">
 
-    <style>
-        /* Modern Slate Theme Variables */
-        :root {
-            --vscode-bg: #f1f5f9;
-            --vscode-sidebar-bg: #f8fafc;
-            --vscode-header-bg: #e2e8f0;
-            --vscode-activitybar-bg: #cbd5e1;
-            --vscode-text: #475569;
-            --vscode-text-bright: #1e293b;
-            --vscode-accent: #3b5bdb;
-            --vscode-accent-hover: #2f4ac5;
-            --vscode-border: #cbd5e1;
-            --vscode-success: #16a34a;
-            --vscode-danger: #dc2626;
-            --vscode-warning: #d97706;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--vscode-bg);
-            color: var(--vscode-text);
-            overflow-x: hidden;
-            min-height: 100vh;
-            margin: 0;
-        }
-
-        .chat-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding-bottom: 120px; /* Space for bottom nav */
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Solid Header */
-        .chat-header-banner {
-            background: #ffffff;
-            border-bottom: 1px solid var(--vscode-border);
-            border-radius: 0 0 2rem 2rem;
-            padding: 30px 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-            color: var(--vscode-text-bright);
-        }
-
-        .chat-header-banner h4 {
-            color: var(--vscode-accent);
-        }
-
-        #btn-refresh {
-            background: #f8fafc;
-            border: 1px solid var(--vscode-border);
-            color: var(--vscode-text);
-            transition: all 0.2s ease;
-        }
-
-        #btn-refresh:hover {
-            background: var(--vscode-accent);
-            color: white;
-            border-color: var(--vscode-accent);
-        }
-
-        /* Solid Bubbles & Cards */
-        .chat-bubble {
-            background: #ffffff;
-            border-radius: 1.25rem;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--vscode-border);
-            border-left: 5px solid var(--vscode-accent);
-            animation: slideUp 0.4s ease-out;
-            color: var(--vscode-text-bright);
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .loading-chat {
-            text-align: center;
-            padding: 2rem;
-            color: var(--vscode-text);
-        }
-
-        .btn-eksekusi {
-            width: 100%;
-            margin-top: 0.75rem;
-            border-radius: 0.75rem;
-            padding: 10px;
-            font-weight: 600;
-        }
-
-        .badge-status {
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .view-section h5 {
-            color: var(--vscode-text-bright);
-        }
-
-        /* Solid Bottom Navigation */
-        .chat-menu {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 600px;
-            background: #ffffff;
-            border-top: 1px solid var(--vscode-border);
-            border-radius: 1.5rem 1.5rem 0 0;
-            display: flex;
-            justify-content: space-around;
-            padding: 15px 10px 25px 10px;
-            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.03);
-            z-index: 100;
-        }
-
-        .chat-menu .menu-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--vscode-text);
-            font-size: 0.75rem;
-            font-weight: 500;
-            gap: 4px;
-            transition: all 0.2s ease;
-            flex: 1;
-        }
-
-        .chat-menu .menu-item i {
-            font-size: 1.3rem;
-            transition: transform 0.2s ease;
-        }
-
-        .chat-menu .menu-item.active {
-            color: var(--vscode-accent);
-        }
-
-        .chat-menu .menu-item.active i {
-            transform: scale(1.1);
-            font-weight: bold;
-        }
-
-        /* Solid Modal */
-        .modal-content {
-            background: #ffffff;
-            border: 1px solid var(--vscode-border);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-        }
-
-        .modal-title {
-            color: var(--vscode-text-bright);
-        }
-
-        .form-control, .form-select {
-            background-color: #f8fafc;
-            border: 1px solid var(--vscode-border);
-            color: var(--vscode-text-bright);
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: var(--vscode-accent);
-            box-shadow: 0 0 0 0.25rem rgba(59, 91, 219, 0.1);
-        }
-
-        /* Solid PWA Banner */
-        .pwa-install-banner {
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            background: rgba(15, 23, 42, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .pwa-install-banner.pwa-banner--visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .pwa-banner-inner {
-            background: #ffffff;
-            border-radius: 1.5rem;
-            padding: 40px 30px;
-            max-width: 400px;
-            width: 100%;
-            text-align: center;
-            color: var(--vscode-text-bright);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        .pwa-banner-icon {
-            width: 80px;
-            height: 80px;
-            background: var(--vscode-bg);
-            border: 1px solid var(--vscode-border);
-            border-radius: 1.25rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 24px;
-        }
-
-        .pwa-banner-icon i {
-            color: var(--vscode-accent);
-        }
-
-        .pwa-banner-copy {
-            margin-bottom: 30px;
-            line-height: 1.4;
-        }
-
-        .pwa-banner-copy .title { 
-            font-weight: 700; 
-            font-size: 1.5rem; 
-            margin-bottom: 10px; 
-            color: var(--vscode-text-bright);
-        }
-
-        .pwa-banner-copy .sub { 
-            font-size: 0.95rem; 
-            color: var(--vscode-text); 
-        }
-
-        .pwa-banner-btns button {
-            width: 100%;
-            padding: 14px;
-            font-size: 1.1rem;
-            background: var(--vscode-accent);
-            color: white;
-            border: none;
-            border-radius: 1rem;
-            transition: background 0.2s ease;
-        }
-
-        .pwa-banner-btns button:hover {
-            background: var(--vscode-accent-hover);
-        }
-    </style>
+    <link rel="stylesheet" href="/src/styles.css">
+    <link rel="stylesheet" href="/src/technician-premium.css">
 </head>
 
-<body>
-    <div class="chat-container">
-        <div class="chat-header-banner">
+<body class="activity-page">
+    <div class="activity-container">
+        <div class="tech-header">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h4 class="mb-0 fw-bold">Halo, <span id="tech-name">Teknisi</span></h4>
                 <button id="btn-refresh" class="btn btn-sm rounded-circle shadow-sm" title="Refresh">
                     <i class="bi bi-arrow-clockwise"></i>
                 </button>
             </div>
-            <p class="mb-0 small" style="color: var(--vscode-text);">ID Petugas: <span id="tech-id" class="fw-medium">FATIH-000</span></p>
+            <p class="mb-0 small" style="color: var(--tech-muted);">ID Petugas: <span id="tech-id" class="fw-medium">FATIH-000</span></p>
+            <div class="mitraflow-pill mt-2" style="font-size: 0.65rem; color: var(--tech-muted); background: rgba(0,0,0,0.05); padding: 2px 10px; border-radius: 10px; display: inline-block;">Powered by MitraFlow</div>
         </div>
+
 
         <div id="main-content" class="p-3">
             <div id="error-alert" class="alert alert-danger d-none shadow-sm rounded-4 border-danger mb-4 text-center">
@@ -474,24 +227,25 @@
         </div>
     </div>
 
-    <nav class="chat-menu">
-        <a href="#" class="menu-item active" data-target="view-tiket-hari-ini">
+    <nav class="tech-bottom-nav">
+        <a href="#" class="nav-item active" data-target="view-tiket-hari-ini">
             <i class="bi bi-calendar-check"></i>
             <span>Hari Ini</span>
         </a>
-        <a href="#" class="menu-item" data-target="view-tiket-baru">
+        <a href="#" class="nav-item" data-target="view-tiket-baru">
             <i class="bi bi-inbox"></i>
             <span>Tiket Baru</span>
         </a>
-        <a href="#" class="menu-item" data-target="view-tiket-aktif">
+        <a href="#" class="nav-item" data-target="view-tiket-aktif">
             <i class="bi bi-tools"></i>
             <span>Tiket Aktif</span>
         </a>
-        <a href="#" class="menu-item" data-target="view-registrasi">
+        <a href="#" class="nav-item" data-target="view-registrasi">
             <i class="bi bi-person-plus"></i>
             <span>Pendaftaran</span>
         </a>
     </nav>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/src/activity.js"></script>

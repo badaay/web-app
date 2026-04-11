@@ -451,8 +451,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         installDateEl.value = new Date().toISOString().split('T')[0];
     }
 
+    // Handle URL parameters for package pre-selection
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetPkgSlug = urlParams.get('pkg');
+
     // Load initial packages
     await loadPackages();
+
+    // Auto-select package if slug is provided
+    if (targetPkgSlug) {
+        const pkgCards = document.querySelectorAll('.package-card');
+        pkgCards.forEach(card => {
+            const pkgName = card.querySelector('.card-title').textContent.toLowerCase().replace(/\s+/g, '-');
+            if (pkgName === targetPkgSlug || pkgName.includes(targetPkgSlug)) {
+                card.click();
+            }
+        });
+    }
 
     function setPin(lat, lng) {
         document.getElementById('adv-cust-lat').value = lat.toFixed(7);

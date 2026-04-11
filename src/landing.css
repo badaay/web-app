@@ -1,0 +1,119 @@
+/* Landing Page Styles - Premium MitraFlow Design */
+
+.navbar-custom {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--slate-200);
+    transition: var(--transition-base);
+}
+
+.navbar-custom.scrolled {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    box-shadow: var(--shadow-premium);
+}
+
+.hero-section {
+    position: relative;
+    padding: 160px 0 100px;
+    background: radial-gradient(circle at 50% -20%, #e0f2fe 0%, #f8fafc 100%);
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: url('https://www.transparenttextures.com/patterns/cubes.png');
+    opacity: 0.03;
+    pointer-events: none;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.package-card {
+    transition: var(--transition-base);
+    border: 1px solid var(--slate-200);
+    border-radius: 1.5rem;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.package-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent);
+}
+
+.package-card.popular {
+    position: relative;
+    border: 2px solid var(--accent);
+    box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.1);
+}
+
+.popular-badge {
+    position: absolute;
+    top: 1.5rem;
+    right: -2rem;
+    background: var(--accent);
+    color: white;
+    padding: 0.25rem 3rem;
+    transform: rotate(45deg);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.footer-custom {
+    background: var(--primary);
+    color: var(--slate-300);
+    padding: 80px 0 40px;
+}
+
+.branding-note {
+    font-size: 0.75rem;
+    color: var(--slate-500);
+    text-align: center;
+    border-top: 1px solid var(--slate-800);
+    padding-top: 2rem;
+}
+
+.branding-note span {
+    color: var(--slate-400);
+    font-weight: 600;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+}

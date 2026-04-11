@@ -29,7 +29,10 @@
         <div class="sidebar" id="admin-sidebar">
             <div class="sidebar-header">
                 <i class="bi bi-shield-lock-fill text-accent me-2"></i>
-                <span class="fw-bold">SiFatih Admin</span>
+                <div class="d-flex flex-column">
+                    <span class="fw-bold lh-1">SiFatih Admin</span>
+                    <span class="text-white-50" style="font-size: 0.65rem; letter-spacing: 0.5px;">Powered by MitraFlow</span>
+                </div>
             </div>
             <div class="sidebar-nav">
                 <div class="px-4 py-2 small text-uppercase text-white-50 fw-bold"
@@ -228,14 +231,27 @@
                         <!-- Empty Placeholder Tabs -->
                         <div class="tab-pane fade" id="theme-pane" role="tabpanel" aria-labelledby="theme-tab">
                             <div class="card bg-vscode border-secondary shadow-sm">
-                                <div class="card-body text-center py-5">
-                                    <i class="bi bi-palette fs-1 text-white-50 d-block mb-3"></i>
-                                    <h5 class="text-white">Pengaturan Tema</h5>
-                                    <p class="text-white-50 mb-0">Konfigurasi tampilan (Dark/Light mode, warna kustom)
-                                        akan segera hadir.</p>
+                                <div class="card-body p-4">
+                                    <h5 class="text-white mb-4"><i class="bi bi-palette me-2 text-accent"></i>Personalisasi Tampilan</h5>
+                                    
+                                    <div class="row g-3" id="theme-selector-grid">
+                                        <!-- Themes will be injected here by theme.js -->
+                                        <div class="col-12 text-center py-5 text-white-50">
+                                            <div class="spinner-border spinner-border-sm me-2"></div>
+                                            Memuat daftar tema...
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-5 pt-4 border-top border-secondary">
+                                        <h6 class="text-white-50 mb-3">Informasi Sistem</h6>
+                                        <p class="small text-white-50">
+                                            Perubahan tema akan disimpan secara lokal di browser Anda. Beberapa elemen desain mungkin memerlukan reload halaman untuk diterapkan sepenuhnya.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
 
                         <div class="tab-pane fade" id="whatsapp-pane" role="tabpanel" aria-labelledby="whatsapp-tab">
                             <div id="whatsapp-module-root">

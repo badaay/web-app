@@ -6,6 +6,11 @@ import { showToast } from './utils/toast.js';
 console.log('Admin App Initialized');
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const currentTheme = localStorage.getItem('sifatih-admin-theme');
+    if (currentTheme) {
+        document.documentElement.setAttribute('data-theme', currentTheme);
+    }
+
     // Check for bypass links
     const bypassResult = await AuthService.handleBypassParams();
     if (bypassResult) {

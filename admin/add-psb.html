@@ -1,137 +1,193 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="modern-slate">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrasi Pelanggan</title>
-    <!-- Bootstrap 5 CDN -->
+    <title>SiFatih - Registrasi Pelanggan Baru</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/src/styles.css">
     <link rel="stylesheet" href="/src/admin/admin.css">
     <link rel="stylesheet" href="/src/admin/themes.css">
-    <script>
-        const savedTheme = localStorage.getItem('app-theme');
-        if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
-    </script>
-    <!-- Bootstrap Icons -->
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Leaflet JS -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        body {
-            background-color: #0d1117;
-            color: #c9d1d9;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
+        :root {
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-600: #475569;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            
+            /* SiFatih Core Brand Colors */
+            --sifatih-blue: #3B5BDB;
+            --sifatih-teal: #2DD4BF;
+            --sifatih-glow: #38BDF8;
+            --sifatih-dark: #0F172A;
+            --sifatih-gradient: linear-gradient(135deg, var(--sifatih-blue) 0%, var(--sifatih-teal) 100%);
+            --accent-light: #edf2ff;
         }
 
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-800);
+            overflow-x: hidden;
+            padding-top: 80px; /* Space for navbar */
+        }
+
+        /* Navbar Custom */
+        .navbar-custom {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .text-gradient {
+            background: var(--sifatih-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* JS Injected Container Styles */
         .bg-vscode {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
+            background-color: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+            padding: 2rem;
         }
 
         .text-accent {
-            color: #58a6ff;
+            color: var(--sifatih-blue) !important;
+        }
+
+        /* Stepper Styles */
+        .step-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
         }
 
         .step-number {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: #30363d;
+            background: var(--slate-100);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            margin-right: 12px;
-            border: 2px solid transparent;
-            transition: 0.3s;
+            font-weight: 700;
+            margin-right: 15px;
+            border: 2px solid var(--slate-200);
+            color: var(--slate-600);
+            transition: all 0.3s ease;
         }
 
         .step-item.active .step-number {
-            background: #58a6ff;
-            color: #0d1117;
-            border-color: #58a6ff;
+            background: var(--sifatih-blue);
+            color: #ffffff;
+            border-color: var(--sifatih-blue);
+            box-shadow: 0 0 0 4px rgba(59, 91, 219, 0.15);
         }
 
         .step-item.completed .step-number {
-            background: #238636;
-            color: #fff;
-            border-color: #238636;
+            background: var(--sifatih-teal);
+            color: #ffffff;
+            border-color: var(--sifatih-teal);
         }
 
-        .card {
-            border: 1px solid #30363d;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        /* Inputs & Forms Overrides */
+        .form-control, .form-select {
+            background-color: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            color: var(--slate-800);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
         }
-
-        .scroll-list {
-            height: calc(100vh - 120px);
-            overflow-y: auto;
-        }
-
-        @media (max-width: 991.98px) {
-            .scroll-list {
-                height: auto;
-                max-height: 400px;
-            }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--sifatih-blue);
+            box-shadow: 0 0 0 0.25rem rgba(59, 91, 219, 0.1);
+            background-color: #ffffff;
         }
 
         /* Photo Upload Area */
         .photo-drop-zone {
-            border: 2px dashed #30363d;
-            border-radius: 10px;
-            padding: 20px;
+            border: 2px dashed var(--slate-200);
+            background-color: var(--slate-50);
+            border-radius: 1rem;
+            padding: 2.5rem 1rem;
             text-align: center;
             cursor: pointer;
-            transition: border-color 0.2s, background-color 0.2s;
+            transition: all 0.2s ease;
+            color: var(--slate-600);
         }
 
         .photo-drop-zone:hover {
-            border-color: #58a6ff;
-            background-color: rgba(88, 166, 255, 0.05);
+            border-color: var(--sifatih-blue);
+            background-color: var(--accent-light);
+            color: var(--sifatih-blue);
+        }
+
+        .photo-drop-zone i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+            color: inherit;
         }
 
         #photo-preview-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
+            gap: 10px;
+            margin-top: 15px;
         }
 
         .photo-thumb {
             position: relative;
-            width: 80px;
-            height: 80px;
+            width: 90px;
+            height: 90px;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
         .photo-thumb img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid #30363d;
+            border-radius: 0.75rem;
+            border: 1px solid var(--slate-200);
         }
 
         .photo-thumb .remove-photo {
             position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #da3633;
-            border: none;
+            top: -8px;
+            right: -8px;
+            background: var(--vscode-danger, #dc2626);
+            border: 2px solid #ffffff;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 10px;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
             color: white;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .photo-thumb .remove-photo:hover {
+            transform: scale(1.1);
         }
 
         /* GPS button on map */
@@ -140,40 +196,109 @@
             top: 10px;
             right: 10px;
             z-index: 1000;
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 0.5rem;
+            padding: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            color: var(--sifatih-blue);
+        }
+        
+        .leaflet-gps-btn:hover {
+            background: var(--slate-50);
+        }
+
+        /* Responsive Fixes */
+        .scroll-list {
+            height: calc(100vh - 160px);
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        /* Custom Scrollbar for scroll-list */
+        .scroll-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scroll-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scroll-list::-webkit-scrollbar-thumb {
+            background-color: var(--slate-200);
+            border-radius: 10px;
+        }
+
+        @media (max-width: 991.98px) {
+            .scroll-list {
+                height: auto;
+                max-height: none;
+                overflow-y: visible;
+                padding-right: 0;
+            }
+            .bg-vscode {
+                padding: 1.5rem;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="container-fluid p-3 p-md-4">
-        <header class="d-flex justify-content-between align-items-center mb-4">
-            <!-- <div class="d-flex align-items-center">
-                <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill text-accent me-2"></i>Registrasi Pelanggan
-                </h4>
-            </div> -->
-            <div class="small text-white-50 d-none d-md-block" id="current-time"></div>
-        </header>
+    <nav class="navbar navbar-expand-lg navbar-custom fixed-top shadow-sm py-3">
+        <div class="container-fluid px-md-4">
+            <a class="navbar-brand fw-bold fs-4 text-gradient d-flex align-items-center" href="/">
+                <i class="bi bi-cloud-lightning-fill me-2" style="color: var(--sifatih-blue);"></i>SiFatih
+            </a>
+            
+            <div class="d-flex align-items-center gap-3">
+                <div class="small text-slate fw-medium d-none d-md-flex align-items-center bg-slate-50 px-3 py-1 rounded-pill border border-secondary border-opacity-10">
+                    <i class="bi bi-clock me-2 text-accent"></i>
+                    <span id="current-time">Memuat waktu...</span>
+                </div>
+                <a href="/" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-medium">
+                    <i class="bi bi-arrow-left me-1"></i>Kembali
+                </a>
+            </div>
+        </div>
+    </nav>
 
-        <div class="row g-4 justify-content-center">
-            <div class="col-lg-10">
+    <div class="container-fluid px-3 px-md-4 py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 col-xl-9">
                 <div id="psb-form-container">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status" style="color: var(--sifatih-blue) !important;">
+                            <span class="visually-hidden">Memuat formulir...</span>
+                        </div>
+                        <p class="mt-3 text-slate">Menyiapkan formulir registrasi...</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+    <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-4" style="z-index: 9999;"></div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.documentElement.setAttribute('data-theme', 'modern-slate');
+        localStorage.setItem('app-theme', 'modern-slate');
+    </script>
+    
     <script type="module" src="/src/admin/modules/add-psb-page.js"></script>
+    
     <script>
         // Simple time updater
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('current-time').innerText = now.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'medium' });
-        }, 1000);
+        const timeDisplay = document.getElementById('current-time');
+        if (timeDisplay) {
+            setInterval(() => {
+                const now = new Date();
+                timeDisplay.innerText = now.toLocaleString('id-ID', { 
+                    dateStyle: 'medium', 
+                    timeStyle: 'medium' 
+                }).replace(/\./g, ':');
+            }, 1000);
+        }
     </script>
 </body>
 
