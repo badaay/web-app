@@ -12,7 +12,7 @@
  * }
  */
 
-import { supabaseAdmin, verifyAuth, isFinance, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { supabaseAdmin, supabaseAdminB, verifyAuth, isFinance, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
 
 export const config = { runtime: 'edge' };
 
@@ -22,8 +22,8 @@ export default withCors(async function handler(req) {
     }
 
     try {
-        const { user, authError } = await verifyAuth(req);
-        if (authError) return errorResponse(authError, 401);
+        const { user, error: authError } = await verifyAuth(req);
+        if (authError || !user) return errorResponse(authError || 'Unauthorized', 401);
         if (!(await isFinance(user.id))) return errorResponse('Forbidden: Akses ditolak.', 403);
 
         const { period_month, period_year, overwrite = true } = await req.json();
@@ -64,8 +64,9 @@ export default withCors(async function handler(req) {
             });
         }
 
-        // 3. Insert or upsert (Supabase supports upsert)
-        const { data, error } = await supabaseAdmin
+        // 3. Upsert bills into Project B (Vault)
+        if (!supabaseAdminB) return errorResponse('Project B (Vault) not configured', 503);
+        const { data, error } = await supabaseAdminB
             .from('customer_bills')
             .upsert(billsToInsert, { 
                 onConflict: 'customer_id, period_date',

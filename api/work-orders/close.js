@@ -85,13 +85,14 @@ export default withCors(async function handler(req) {
     }
 
     // Update status and calculate points via PostgreSQL function (atomic)
+    // The RPC also fires trg_fn_award_points_to_vault → pushes points to Project B via FDW
     const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('close_work_order_with_points', {
       p_work_order_id: workOrderId,
       p_close_data: closeData
     });
 
-    if (updateError) {
-      return errorResponse(`Failed to close work order: ${updateError.message}`, 500);
+    if (rpcError) {
+      return errorResponse(`Failed to close work order: ${rpcError.message}`, 500);
     }
 
     // Check if this work order is linked to a PSB registration by checking if the customer is a prospect
@@ -144,37 +145,15 @@ export default withCors(async function handler(req) {
       }
     }
 
-    // Calculate and add points to all assigned technicians
+    // Update assignments to reflect points earned (for local reference)
     if (assignments.length > 0 && wo.master_queue_types?.base_point) {
       const basePoint = wo.master_queue_types.base_point;
-      
       for (const assignment of assignments) {
-          // In SIFATIH schema, leads get full, members get half/split, or we just award base_point for now
-          // For now give basePoint to all, or adapt to your specific logic.
-          const pointsToAdd = assignment.assignment_role === 'lead' ? basePoint : Math.floor(basePoint / 2);
-          
-          // Get current points
-          const { data: tech } = await supabaseAdmin
-            .from('employees')
-            .select('total_points')
-            .eq('id', assignment.employee_id)
-            .single();
-
-          if (tech) {
-              // Update employee total points
-              await supabaseAdmin
-                .from('employees')
-                .update({
-                  total_points: (tech.total_points || 0) + pointsToAdd
-                })
-                .eq('id', assignment.employee_id);
-                
-              // Update the assignment to reflect points earned
-              await supabaseAdmin
-                .from('work_order_assignments')
-                .update({ points_earned: pointsToAdd })
-                .eq('id', assignment.id);
-          }
+          const pointsToAdd = assignment.assignment_role === 'lead' ? basePoint : Math.floor(basePoint * 0.7);
+          await supabaseAdmin
+            .from('work_order_assignments')
+            .update({ points_earned: pointsToAdd })
+            .eq('id', assignment.id);
       }
     }
 

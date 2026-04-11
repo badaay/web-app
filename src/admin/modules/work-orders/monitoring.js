@@ -1,7 +1,7 @@
-// Installation monitoring modal and photo handling
-import { supabase } from '../../../api/supabase.js';
+import { supabase, supabaseB, getStorageUrl } from '../../../api/supabase.js';
 import { showToast } from '../../utils/toast.js';
 import { getSpinner } from '../../utils/ui-common.js';
+import { compressImage } from '../../utils/image-utils.js';
 
 /**
  * Show installation monitoring modal with photo upload
@@ -61,19 +61,40 @@ export async function showInstallationMonitoringModal(wo, onSave) {
     const photoInput = document.getElementById('monitor-photo-input');
     const photoPreview = document.getElementById('photo-preview');
 
+    // Show existing photos if any
+    if (monData.photos && Array.from(monData.photos).length > 0) {
+        monData.photos.forEach(pathOrUrl => {
+            const thumb = document.createElement('div');
+            thumb.className = 'col-auto';
+            thumb.innerHTML = `
+                <div class="position-relative" style="width:80px;height:80px;border-radius:4px;overflow:hidden;border:1px solid #444;">
+                    <img src="${pathOrUrl}" style="width:100%;height:100%;object-fit:cover;" class="wo-photo-item">
+                </div>
+            `;
+            photoPreview.appendChild(thumb);
+            
+            // If it's a path, resolve it
+            if (!pathOrUrl.startsWith('http')) {
+                getStorageUrl(pathOrUrl, 'proof_of_work', false).then(url => {
+                    thumb.querySelector('img').src = url;
+                });
+            }
+        });
+    }
+
     photoInput.addEventListener('change', (e) => {
-        photoPreview.innerHTML = '';
+        // We additive-ly show previews for new files
         Array.from(e.target.files).forEach(file => {
-            if (file.size > 5 * 1024 * 1024) {
-                showToast(`${file.name} terlalu besar (max 5MB)`, 'warning');
+            if (file.size > 10 * 1024 * 1024) { // Increased limit for compression
+                showToast(`${file.name} terlalu besar (max 10MB)`, 'warning');
                 return;
             }
             const reader = new FileReader();
             reader.onload = (event) => {
                 const thumb = document.createElement('div');
-                thumb.className = 'col-auto';
+                thumb.className = 'col-auto new-photo-preview';
                 thumb.innerHTML = `
-                    <div style="width:80px;height:80px;border-radius:4px;overflow:hidden;border:1px solid #444;">
+                    <div style="width:80px;height:80px;border-radius:4px;overflow:hidden;border:1px solid #0d6efd;">
                         <img src="${event.target.result}" style="width:100%;height:100%;object-fit:cover;">
                     </div>
                 `;
@@ -97,14 +118,34 @@ async function saveInstallationMonitoring(woId, monitoringId, photoFiles, onSave
     const form = document.getElementById('monitoring-form');
     const formData = new FormData(form);
 
-    const photoDataUrls = [];
+    const photoUrls = monData?.photos || [];
 
-    // Convert photo files to base64
+    // Compress and upload new photos
     if (photoFiles && photoFiles.length > 0) {
+        if (!supabaseB) throw new Error('Konfigurasi Storage Project B tidak tersedia.');
+
         for (let i = 0; i < photoFiles.length; i++) {
             const file = photoFiles[i];
-            const base64 = await fileToBase64(file);
-            photoDataUrls.push(base64);
+            const fileName = `wo_${woId}_${Date.now()}_${i}.jpg`;
+            
+            saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Kompresi ${i+1}/${photoFiles.length}...`;
+            const compressed = await compressImage(file, { maxWidth: 1200, quality: 0.8 });
+            
+            saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Upload ${i+1}/${photoFiles.length}...`;
+            const { data, error } = await supabaseB.storage
+                .from('proof_of_work')
+                .upload(`monitoring/${fileName}`, compressed);
+            
+            if (error) {
+                showToast(`Gagal upload foto: ${error.message}`, 'error');
+                continue;
+            }
+
+            const { data: { publicUrl } } = supabaseB.storage
+                .from('proof_of_work')
+                .getPublicUrl(data.path);
+            
+            photoUrls.push(publicUrl);
         }
     }
 
@@ -112,7 +153,7 @@ async function saveInstallationMonitoring(woId, monitoringId, photoFiles, onSave
         work_order_id: woId,
         status: formData.get('status'),
         notes: formData.get('notes'),
-        photos: photoDataUrls.length > 0 ? photoDataUrls : null,
+        photos: photoUrls.length > 0 ? photoUrls : null,
         updated_at: new Date().toISOString()
     };
 
