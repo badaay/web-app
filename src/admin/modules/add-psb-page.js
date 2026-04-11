@@ -1,4 +1,5 @@
-import { supabase } from '../../api/supabase.js';
+import { supabase, supabaseA, supabaseB } from '../../api/supabase.js';
+import { compressImage } from '../utils/image-utils.js';
 import { AuthService } from '../../api/auth-service.js';
 import { APP_BASE_URL } from '../../config.js';
 import { APP_CONFIG } from '../../api/config.js';
@@ -533,16 +534,44 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveBtn.disabled = true;
 
             try {
-                // Read files as base64 (if any)
-                const toBase64 = file => new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = error => reject(error);
-                });
+                const fileName = `${phone}_${Date.now()}`;
+                let photoKtpUrl = null;
+                let photoRumahUrl = null;
 
-                const photoKtpBase64 = fotoKtp ? await toBase64(fotoKtp) : null;
-                const photoRumahBase64 = fotoRumah ? await toBase64(fotoRumah) : null;
+                // 1. Process KTP (Project A - Core - Private)
+                if (fotoKtp) {
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Kompresi KTP...';
+                    const compressedKtp = await compressImage(fotoKtp, { maxWidth: 1000, quality: 0.7 });
+                    
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload KTP...';
+                    const { data: ktpData, error: ktpErr } = await supabaseA.storage
+                        .from('ktp_vault')
+                        .upload(`registrations/${fileName}_ktp.jpg`, compressedKtp);
+                    
+                    if (ktpErr) throw new Error('Gagal upload KTP: ' + ktpErr.message);
+                    photoKtpUrl = ktpData.path; 
+                }
+
+                // 2. Process Rumah (Project B - Vault - Public)
+                if (fotoRumah) {
+                    if (!supabaseB) throw new Error('Konfigurasi Storage Project B (Vault) belum tersedia.');
+
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Kompresi Foto Rumah...';
+                    const compressedHouse = await compressImage(fotoRumah, { maxWidth: 1200, quality: 0.8 });
+
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload Foto Rumah...';
+                    const { data: houseData, error: houseErr } = await supabaseB.storage
+                        .from('house_photos')
+                        .upload(`registrations/${fileName}_house.jpg`, compressedHouse);
+                    
+                    if (houseErr) throw new Error('Gagal upload Foto Rumah: ' + houseErr.message);
+                    
+                    const { data: { publicUrl } } = supabaseB.storage
+                        .from('house_photos')
+                        .getPublicUrl(houseData.path);
+                    
+                    photoRumahUrl = publicUrl;
+                }
 
                 const payload = {
                     name,
@@ -552,8 +581,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     packet: pkgName,
                     lat: parseFloat(lat),
                     lng: parseFloat(lng),
-                    photo_ktp: photoKtpBase64,
-                    photo_rumah: photoRumahBase64
+                    photo_ktp: photoKtpUrl,
+                    photo_rumah: photoRumahUrl
                 };
 
                 const response = await fetch('/api/customers/register', {

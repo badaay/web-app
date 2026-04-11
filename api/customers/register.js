@@ -104,6 +104,7 @@ export default withCors(async function handler(req) {
           title: 'Pemasangan Baru (PSB)',
           registration_date: new Date().toISOString().split('T')[0],
           alt_phone: phone,
+          photo_url: photo_rumah,
           ket: 'Paket: ' + packet,
           created_at: new Date().toISOString()
         }]);

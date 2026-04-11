@@ -1,4 +1,5 @@
-import { supabase, apiCall } from '../../api/supabase.js';
+import { supabase, supabaseA, supabaseB, apiCall, getStorageUrl } from '../../api/supabase.js';
+import { compressImage } from '../utils/image-utils.js';
 import { adminResetPassword, generatePassword } from '../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink, showSharedMap, createStandardMarker, getSpinner } from '../utils/ui-common.js';
 import { showToast } from '../utils/toast.js';
@@ -408,6 +409,20 @@ export async function initCustomers() {
 
             // Re-invalidate size to fix grey tiles in modal
             setTimeout(() => editMap.invalidateSize(), 300);
+
+            // Load images from Storage if they are paths
+            if (cust?.photo_ktp) {
+                getStorageUrl(cust.photo_ktp, 'ktp_vault', true).then(url => {
+                    const img = document.querySelector('#edit-ktp-preview-container img');
+                    if (img) img.src = url;
+                });
+            }
+            if (cust?.photo_rumah) {
+                getStorageUrl(cust.photo_rumah, 'house_photos', false).then(url => {
+                    const img = document.querySelector('#edit-house-preview-container img');
+                    if (img) img.src = url;
+                });
+            }
         }, 500);
 
         // Populate Packages
@@ -440,9 +455,11 @@ export async function initCustomers() {
             };
         }
 
-        // Media handlers (Base64)
-        let newPhotoKTP = cust?.photo_ktp || null;
-        let newPhotoHouse = cust?.photo_rumah || null;
+        // Media handlers (Storage)
+        let newPhotoKTPFile = null;
+        let newPhotoHouseFile = null;
+        let currentPhotoKTP = cust?.photo_ktp || null;
+        let currentPhotoHouse = cust?.photo_rumah || null;
 
         const setupFileHandler = (id, previewId, containerId, setter) => {
             const input = document.getElementById(id);
@@ -450,21 +467,20 @@ export async function initCustomers() {
             input.onchange = (e) => {
                 const file = e.target.files[0];
                 if (file) {
+                    setter(file);
                     const reader = new FileReader();
                     reader.onload = (event) => {
-                        const base64 = event.target.result;
-                        setter(base64);
                         const cont = document.getElementById(containerId);
                         cont.classList.remove('d-none');
-                        cont.querySelector('img').src = base64;
+                        cont.querySelector('img').src = event.target.result;
                     };
                     reader.readAsDataURL(file);
                 }
             };
         };
 
-        setupFileHandler('cust-ktp-file', 'edit-ktp-preview', 'edit-ktp-preview-container', (v) => newPhotoKTP = v);
-        setupFileHandler('cust-house-file', 'edit-house-preview', 'edit-house-preview-container', (v) => newPhotoHouse = v);
+        setupFileHandler('cust-ktp-file', 'edit-ktp-preview', 'edit-ktp-preview-container', (v) => newPhotoKTPFile = v);
+        setupFileHandler('cust-house-file', 'edit-house-preview', 'edit-house-preview-container', (v) => newPhotoHouseFile = v);
 
         saveBtn.onclick = async () => {
             const formData = {
@@ -481,8 +497,8 @@ export async function initCustomers() {
                 damping: document.getElementById('cust-damping').value.trim(),
                 lat: parseFloat(document.getElementById('cust-lat').value) || null,
                 lng: parseFloat(document.getElementById('cust-lng').value) || null,
-                photo_ktp: newPhotoKTP,
-                photo_rumah: newPhotoHouse,
+                photo_ktp: currentPhotoKTP,
+                photo_rumah: currentPhotoHouse,
                 email: document.getElementById('cust-email').value.trim() || (cust?.email && !cust?.email.includes(APP_CONFIG.AUTH_DOMAIN_SUFFIX) ? cust.email : null)
             };
 
@@ -493,7 +509,29 @@ export async function initCustomers() {
             saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
 
             try {
-                // 1. Update Password if set
+                // 1. Upload new photos if present
+                const fileName = `${formData.phone}_${Date.now()}`;
+
+                if (newPhotoKTPFile) {
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload KTP...';
+                    const compressed = await compressImage(newPhotoKTPFile, { maxWidth: 1000, quality: 0.7 });
+                    const { data, error } = await supabaseA.storage.from('ktp_vault').upload(`updates/${fileName}_ktp.jpg`, compressed);
+                    if (error) throw error;
+                    formData.photo_ktp = data.path;
+                }
+
+                if (newPhotoHouseFile) {
+                    if (!supabaseB) throw new Error('Konfigurasi Storage Project B tidak tersedia.');
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload Rumah...';
+                    const compressed = await compressImage(newPhotoHouseFile, { maxWidth: 1200, quality: 0.8 });
+                    const { data, error } = await supabaseB.storage.from('house_photos').upload(`updates/${fileName}_house.jpg`, compressed);
+                    if (error) throw error;
+                    
+                    const { data: { publicUrl } } = supabaseB.storage.from('house_photos').getPublicUrl(data.path);
+                    formData.photo_rumah = publicUrl;
+                }
+
+                // 2. Update Password if set
                 if (passInput.value.trim().length > 0) {
                     await adminResetPassword(cust.id, passInput.value.trim());
                     console.log("Password updated successfully");

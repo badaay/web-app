@@ -1,4 +1,5 @@
-import { supabase, apiCall } from './api/supabase.js';
+import { supabase, supabaseA, supabaseB, apiCall, getStorageUrl } from './api/supabase.js';
+import { compressImage } from './admin/utils/image-utils.js';
 import { APP_BASE_URL } from './config.js';
 import { APP_CONFIG } from './api/config.js';
 import { createGoogleMapsLink } from './utils/map.js';
@@ -148,19 +149,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Handle Photo Upload Preview
+    let photoExecFile = null;
     if (execPhoto) {
         execPhoto.addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
+                photoExecFile = file;
                 const reader = new FileReader();
                 reader.onload = function (evt) {
-                    currentPhotoBase64 = evt.target.result;
-                    execPhotoPreview.src = currentPhotoBase64;
+                    execPhotoPreview.src = evt.target.result;
                     photoPreviewContainer.classList.remove('d-none');
                 };
                 reader.readAsDataURL(file);
             } else {
-                currentPhotoBase64 = null;
+                photoExecFile = null;
                 photoPreviewContainer.classList.add('d-none');
                 execPhotoPreview.src = '';
             }
@@ -452,9 +454,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             execActualDate.value = monitoring.actual_date || '';
             execActivationDate.value = monitoring.activation_date || '';
             if (monitoring.photo_proof) {
-                currentPhotoBase64 = monitoring.photo_proof;
+                currentPhotoBase64 = monitoring.photo_proof; // Keep existing Base64 for preview
                 execPhotoPreview.src = currentPhotoBase64;
                 photoPreviewContainer.classList.remove('d-none');
+
+                // If it's a storage path, resolve it
+                if (!currentPhotoBase64.startsWith('data:image') && !currentPhotoBase64.startsWith('http')) {
+                    getStorageUrl(currentPhotoBase64, 'proof_of_work', false).then(url => {
+                        execPhotoPreview.src = url;
+                    });
+                }
             }
         } else {
             execMac.value = '';
@@ -553,7 +562,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (updateErr) throw updateErr;
 
-                // Upsert to installation_monitorings
+                // 1. Upload new photo proof if present
+                if (photoExecFile) {
+                    btnSaveExec.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Kompresi...`;
+                    const compressed = await compressImage(photoExecFile, { maxWidth: 1200, quality: 0.8 });
+                    
+                    btnSaveExec.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Uploading...`;
+                    const fileName = `wo_${currentExecutingWO.id}_${Date.now()}.jpg`;
+                    const { data, error } = await supabaseB.storage
+                        .from('proof_of_work')
+                        .upload(`activity/${fileName}`, compressed);
+                    
+                    if (error) throw error;
+                    
+                    const { data: { publicUrl } } = supabaseB.storage
+                        .from('proof_of_work')
+                        .getPublicUrl(data.path);
+                    
+                    currentPhotoBase64 = publicUrl;
+                }
+
                 const monitoringData = {
                     work_order_id: currentExecutingWO.id,
                     customer_id: currentExecutingWO.customer_id,
@@ -573,7 +601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     : null;
 
                 if (existingMonitoring) {
-                    monitoringData.id = existingMonitoring.id; // required for upsert to work correctly if bypassing unique constraint slightly, though work_order_id is unique so upsert works.
+                    monitoringData.id = existingMonitoring.id; 
                 }
 
                 const { error: monitorErr } = await supabase
@@ -643,16 +671,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const regPhotoKtp = document.getElementById('reg-cust-ktp');
     const previewRegKtp = document.getElementById('preview-reg-ktp');
-    let ktpBase64 = null;
+    let ktpRegFile = null;
     
     if (regPhotoKtp) {
         regPhotoKtp.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
+                ktpRegFile = file;
                 const reader = new FileReader();
                 reader.onload = (evt) => {
-                    ktpBase64 = evt.target.result;
-                    previewRegKtp.src = ktpBase64;
+                    previewRegKtp.src = evt.target.result;
                     previewRegKtp.classList.remove('d-none');
                 };
                 reader.readAsDataURL(file);
@@ -662,16 +690,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const regPhotoRumah = document.getElementById('reg-cust-rumah');
     const previewRegRumah = document.getElementById('preview-reg-rumah');
-    let rumahBase64 = null;
+    let rumahRegFile = null;
     
     if (regPhotoRumah) {
         regPhotoRumah.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
+                rumahRegFile = file;
                 const reader = new FileReader();
                 reader.onload = (evt) => {
-                    rumahBase64 = evt.target.result;
-                    previewRegRumah.src = rumahBase64;
+                    previewRegRumah.src = evt.target.result;
                     previewRegRumah.classList.remove('d-none');
                 };
                 reader.readAsDataURL(file);
@@ -706,18 +734,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             btnSaveReg.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
 
             try {
+                // 1. Upload Photos
+                const uploadName = `${phone}_${Date.now()}`;
+                let finalKtpPath = null;
+                let finalHouseUrl = null;
+
+                if (ktpRegFile) {
+                    btnSaveReg.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload KTP...';
+                    const compressed = await compressImage(ktpRegFile, { maxWidth: 1000, quality: 0.7 });
+                    const { data, error } = await supabaseA.storage.from('ktp_vault').upload(`technician/${uploadName}_ktp.jpg`, compressed);
+                    if (error) throw error;
+                    finalKtpPath = data.path;
+                }
+
+                if (rumahRegFile) {
+                    btnSaveReg.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload Rumah...';
+                    const compressed = await compressImage(rumahRegFile, { maxWidth: 1200, quality: 0.8 });
+                    const { data, error } = await supabaseB.storage.from('house_photos').upload(`technician/${uploadName}_house.jpg`, compressed);
+                    if (error) throw error;
+                    
+                    const { data: { publicUrl } } = supabaseB.storage.from('house_photos').getPublicUrl(data.path);
+                    finalHouseUrl = publicUrl;
+                }
+
                 // Default CUST role
                 const { data: roleData } = await supabase.from('roles').select('id').eq('code', 'CUST').single();
 
-                // 1. Insert Customer
+                // 2. Insert Customer
                 const { data: newCust, error: custErr } = await supabase.from('customers').insert([{
                     name, phone, address, 
                     packet: pkg,
                     lat: parseFloat(lat),
                     lng: parseFloat(lng),
                     role_id: roleData?.id || null,
-                    photo_ktp: ktpBase64,
-                    photo_rumah: rumahBase64
+                    photo_ktp: finalKtpPath,
+                    photo_rumah: finalHouseUrl
                 }]).select().single();
 
                 if (custErr) throw custErr;

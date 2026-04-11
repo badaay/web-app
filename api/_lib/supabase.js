@@ -11,9 +11,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.SUPABASE_URL_A;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY_A;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY_A;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing Supabase environment variables');
@@ -32,6 +32,24 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false }
 });
+
+// ---------------------------------------------------------------------------
+// Project B (Vault) client — for bills, payroll, financial_transactions, attendance
+// ---------------------------------------------------------------------------
+
+const supabaseUrlB     = process.env.SUPABASE_URL_B;
+const supabaseKeyB     = process.env.SUPABASE_SERVICE_ROLE_KEY_B;
+
+/**
+ * Admin client for Project B (Vault). Bypasses RLS.
+ * Use for: customer_bills, financial_transactions, payroll_*, attendance_*, overtime_*, technician_points_ledger.
+ * Returns null if Project B env vars are not configured.
+ */
+export const supabaseAdminB = (supabaseUrlB && supabaseKeyB)
+  ? createClient(supabaseUrlB, supabaseKeyB, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+  : null;
 
 // ---------------------------------------------------------------------------
 // Auth helpers

@@ -1,7 +1,8 @@
-import { supabase } from '../../api/supabase.js';
+import { supabase, supabaseA, supabaseB } from '../../api/supabase.js';
 import { generatePassword, generateCustomerCode, adminCreateCustomer } from '../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink } from '../utils/ui-common.js';
 import { showToast } from '../utils/toast.js';
+import { compressImage } from '../utils/image-utils.js';
 
 export async function initAddCustomerView() {
     const container = document.getElementById('add-customer-view-container');
@@ -168,8 +169,8 @@ export async function initAddCustomerView() {
     const lngInput = document.getElementById('adv-cust-lng');
 
     let currentCredentials = null;
-    let photoKTPBase64 = null;
-    let photoHouseBase64 = null;
+    let photoKTPFile = null;
+    let photoHouseFile = null;
 
     // Credentials logic
     if (btnGen) {
@@ -201,9 +202,9 @@ export async function initAddCustomerView() {
         inputEl.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
+                setter(file);
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    setter(event.target.result);
                     previewEl.src = event.target.result;
                     containerEl.classList.remove('d-none');
                 };
@@ -212,8 +213,8 @@ export async function initAddCustomerView() {
         };
     };
 
-    setupPhotoHandler(ktpFileInput, ktpPreview, ktpPreviewContainer, (val) => photoKTPBase64 = val);
-    setupPhotoHandler(houseFileInput, housePreview, housePreviewContainer, (val) => photoHouseBase64 = val);
+    setupPhotoHandler(ktpFileInput, ktpPreview, ktpPreviewContainer, (val) => photoKTPFile = val);
+    setupPhotoHandler(houseFileInput, housePreview, housePreviewContainer, (val) => photoHouseFile = val);
 
     // Dynamic Packages
     populatePackagesDropdown('adv-cust-package');
@@ -271,8 +272,8 @@ export async function initAddCustomerView() {
             address: document.getElementById('adv-cust-address').value.trim(),
             lat: parseFloat(latInput.value) || null,
             lng: parseFloat(lngInput.value) || null,
-            photo_ktp: photoKTPBase64,
-            photo_rumah: photoHouseBase64,
+            photo_ktp: null,
+            photo_rumah: null,
             customer_code: currentCredentials.code
         };
 
@@ -286,6 +287,27 @@ export async function initAddCustomerView() {
         btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Mendaftarkan...';
 
         try {
+            // 1. Upload Photos
+            const fileName = `${profileData.phone}_${Date.now()}`;
+            
+            if (photoKTPFile) {
+                btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload KTP...';
+                const compressed = await compressImage(photoKTPFile, { maxWidth: 1000, quality: 0.7 });
+                const { data, error } = await supabaseA.storage.from('ktp_vault').upload(`admin/${fileName}_ktp.jpg`, compressed);
+                if (error) throw error;
+                profileData.photo_ktp = data.path;
+            }
+
+            if (photoHouseFile) {
+                btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload Lokasi...';
+                const compressed = await compressImage(photoHouseFile, { maxWidth: 1200, quality: 0.8 });
+                const { data, error } = await supabaseB.storage.from('house_photos').upload(`admin/${fileName}_house.jpg`, compressed);
+                if (error) throw error;
+                
+                const { data: { publicUrl } } = supabaseB.storage.from('house_photos').getPublicUrl(data.path);
+                profileData.photo_rumah = publicUrl;
+            }
+
             const contactEmail = document.getElementById('adv-cust-email').value.trim();
 
             // 1. Create User via Admin API (Auth + Base Table Insert)
