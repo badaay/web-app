@@ -20,34 +20,20 @@ export async function initWorkOrders() {
     const workOrdersCard = document.getElementById('work-orders-list');
     if (!contentContainer || !workOrdersCard) return;
 
-    // Create the tabbed structure for work orders (Pemasangan and Perbaikan)
-    const tabsContainer = document.createElement('div');
-    tabsContainer.id = 'work-orders-tabs-container';
-    tabsContainer.innerHTML = `
-        <ul class="nav nav-tabs" id="woTypeTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="pemasangan-tab" data-bs-toggle="tab" data-bs-target="#pemasangan-panel" type="button" role="tab">Pemasangan</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="perbaikan-tab" data-bs-toggle="tab" data-bs-target="#perbaikan-panel" type="button" role="tab">Perbaikan</button>
-            </li>
-        </ul>
-        <div class="tab-content" id="woTypeTabsContent">
-            <div class="tab-pane fade show active" id="pemasangan-panel" role="tabpanel">
-                <div id="work-orders-list-pemasangan" class="mt-3"></div>
-            </div>
-            <div class="tab-pane fade" id="perbaikan-panel" role="tabpanel">
-                <div id="work-orders-list-perbaikan" class="mt-3"></div>
-            </div>
-        </div>
+    // Unified Kanban Board Container
+    const unifiedContainer = document.createElement('div');
+    unifiedContainer.id = 'work-orders-unified-container';
+    unifiedContainer.innerHTML = `
+        <div id="wo-active-hero-section" class="mb-4"></div>
+        <div id="wo-live-activity-section" class="mb-4"></div>
+        <div id="wo-main-kanban-board" class="mt-3"></div>
     `;
     
-    // Replace the card body content with the tabs container
+    // Replace the card body content with the unified container
     workOrdersCard.querySelector('.card-body').innerHTML = '';
-    workOrdersCard.querySelector('.card-body').appendChild(tabsContainer);
+    workOrdersCard.querySelector('.card-body').appendChild(unifiedContainer);
 
-    const listContainerPemasangan = document.getElementById('work-orders-list-pemasangan');
-    const listContainerPerbaikan = document.getElementById('work-orders-list-perbaikan');
+    const listContainerKanban = document.getElementById('wo-main-kanban-board');
 
     // Add action buttons to header
     let header = document.querySelector('.admin-header');
@@ -100,36 +86,29 @@ export async function initWorkOrders() {
         return;
     }
 
-    // Load initial data for both tabs
-    loadDataForTab(pemasanganTypeId, listContainerPemasangan);
-    loadDataForTab(perbaikanTypeId, listContainerPerbaikan);
+    // Make type mapping available globally for rendering swimlanes
+    window.woTypeMapping = {
+        pemasanganId: pemasanganTypeId,
+        perbaikanId: perbaikanTypeId
+    };
 
-    // Wire up tab events to reload data if needed (or just filter)
-    document.getElementById('pemasangan-tab').addEventListener('shown.bs.tab', () => {
-        loadDataForTab(pemasanganTypeId, listContainerPemasangan);
+    // Helper functions inside index to pass around state
+    window.reloadUnifiedKanban = () => {
+        loadDataUnified(listContainerKanban);
         renderTargetStatistics(pemasanganTypeId, perbaikanTypeId);
-    });
-    document.getElementById('perbaikan-tab').addEventListener('shown.bs.tab', () => {
-        loadDataForTab(perbaikanTypeId, listContainerPerbaikan);
-        renderTargetStatistics(pemasanganTypeId, perbaikanTypeId);
-    });
+        renderLiveActivityFeed();
+    };
+
+    // Load initial data for unified board
+    window.reloadUnifiedKanban();
 
 
     // Wire up action buttons
     document.getElementById('add-wo-btn').onclick = () => showWorkOrderModal(null, () => {
-        // Refresh the correct tab after adding
-        const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
-        const typeId = activeTab === 'pemasangan-tab' ? pemasanganTypeId : perbaikanTypeId;
-        
-        const container = activeTab === 'pemasangan-tab' 
-            ? document.getElementById('work-orders-list-pemasangan') 
-            : document.getElementById('work-orders-list-perbaikan');
-
-        loadDataForTab(typeId, container);
+        window.reloadUnifiedKanban();
     });
     document.getElementById('refresh-wo-btn').onclick = () => {
-        loadDataForTab(pemasanganTypeId, listContainerPemasangan);
-        loadDataForTab(perbaikanTypeId, listContainerPerbaikan);
+        window.reloadUnifiedKanban();
     };
 
     // Wire map button
@@ -145,9 +124,7 @@ export async function initWorkOrders() {
     // Render search bar
     renderSearchBar((query) => {
         currentSearch = query;
-        // We need to update both displays now
-        loadDataForTab(pemasanganTypeId, listContainerPemasangan);
-        loadDataForTab(perbaikanTypeId, listContainerPerbaikan);
+        window.reloadUnifiedKanban();
     });
 
     // [WO-005] Listen for confirmation requests from other modules (like dashboard)
@@ -208,45 +185,47 @@ async function renderTargetStatistics(pemasanganTypeId, perbaikanTypeId) {
 
         // Render statistics
         let html = `
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <div class="p-2 rounded bg-vscode-input text-center">
-                        <div class="small text-white-50">Menunggu</div>
-                        <div class="fw-bold fs-5 text-warning">${stats.waiting}</div>
+            <div class="mb-4">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="glass-header-pro text-center p-3 mb-0" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2);">
+                            <div class="small fw-semibold mb-1 text-warning">Menunggu</div>
+                            <div class="fs-4 fw-bold text-white lh-1">${stats.waiting}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-header-pro text-center p-3 mb-0" style="background: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.2);">
+                            <div class="small fw-semibold mb-1 text-info">Diproses</div>
+                            <div class="fs-4 fw-bold text-white lh-1">${stats.inProgress}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-header-pro text-center p-3 mb-0" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2);">
+                            <div class="small fw-semibold mb-1 text-success">Selesai</div>
+                            <div class="fs-4 fw-bold text-white lh-1">${stats.completed}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-header-pro text-center p-3 mb-0" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2);">
+                            <div class="small fw-semibold mb-1 text-danger">Leftover</div>
+                            <div class="fs-4 fw-bold text-white lh-1">${stats.leftOver}</div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-6">
-                    <div class="p-2 rounded bg-vscode-input text-center">
-                        <div class="small text-white-50">Diproses</div>
-                        <div class="fw-bold fs-5 text-info">${stats.inProgress}</div>
+                
+                <h6 class="small text-white-50 fw-bold mb-2 text-uppercase" style="letter-spacing: 1px;">Target Divisi</h6>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="kanban-pro-col text-center p-2 mb-0" style="background: rgba(15, 23, 42, 0.6);">
+                            <span class="small text-white-50 d-block mb-1">Pemasangan</span>
+                            <span class="fw-bold text-white fs-5 lh-1">${stats.pemasangan}</span>
+                        </div>
                     </div>
-                </div>
-                <div class="col-6">
-                    <div class="p-2 rounded bg-vscode-input text-center">
-                        <div class="small text-white-50">Selesai</div>
-                        <div class="fw-bold fs-5 text-success">${stats.completed}</div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="p-2 rounded bg-opacity-10 text-center border border-danger border-opacity-25">
-                        <div class="small text-danger">Leftover</div>
-                        <div class="fw-bold fs-5 text-danger">${stats.leftOver}</div>
-                    </div>
-                </div>
-            </div>
-            <hr class="border-secondary">
-            <div class="small text-white-50 fw-bold mb-2">Target Tipe Pekerjaan:</div>
-            <div class="row g-2">
-                <div class="col-6">
-                    <div class="p-2 rounded bg-vscode-input text-center">
-                        <div class="small">Pemasangan</div>
-                        <div class="fw-bold text-primary">${stats.pemasangan}</div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="p-2 rounded bg-vscode-input text-center">
-                        <div class="small">Perbaikan</div>
-                        <div class="fw-bold text-warning">${stats.perbaikan}</div>
+                    <div class="col-6">
+                        <div class="kanban-pro-col text-center p-2 mb-0" style="background: rgba(15, 23, 42, 0.6);">
+                            <span class="small text-white-50 d-block mb-1">Perbaikan</span>
+                            <span class="fw-bold text-white fs-5 lh-1">${stats.perbaikan}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -262,8 +241,12 @@ async function renderTargetStatistics(pemasanganTypeId, perbaikanTypeId) {
 /**
  * Helper to load and render data for a specific tab
  */
-function loadDataForTab(typeId, container) {
-    loadWorkOrders(container, typeId, (data) => {
+/**
+ * Helper to load and render comprehensive data
+ */
+function loadDataUnified(container) {
+    loadWorkOrders(container, null, (data) => {
+        allWorkOrders = data;
         const filtered = getFilteredOrders(data, 'All', currentSearch);
         renderWorkOrders(filtered, 
             (wo) => showWorkOrderActions(wo),
@@ -272,11 +255,70 @@ function loadDataForTab(typeId, container) {
         );
     });
 }
-
+    
 /**
- * Update display with current filter and search
+ * Render Live Technician Activity Feed
  */
-// This function is now replaced by loadDataForTab
+async function renderLiveActivityFeed() {
+    const section = document.getElementById('wo-live-activity-section');
+    if (!section) return;
+
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Fetch monitorings from today, joined with work order context
+        const { data: monitorings, error } = await supabase
+            .from('installation_monitorings')
+            .select(`
+                id, status, notes, created_at, work_order_id,
+                work_orders ( title, customers (name) )
+            `)
+            .gte('created_at', today)
+            .lte('created_at', today + 'T23:59:59')
+            .order('created_at', { ascending: false })
+            .limit(10);
+            
+        if (error) throw error;
+        
+        if (!monitorings || monitorings.length === 0) {
+            section.innerHTML = '';
+            return;
+        }
+        
+        let html = `
+            <h5 class="text-white mb-3 fw-bold" style="letter-spacing: -0.5px;">
+                <i class="bi bi-activity text-success me-2"></i>Aktivitas Harian Teknisi
+            </h5>
+            <div class="d-flex flex-nowrap overflow-x-auto pb-2 gap-3 kanban-scroll">
+        `;
+        
+        monitorings.forEach(m => {
+            const time = new Date(m.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            const customerName = m.work_orders?.customers?.name || 'Unknown';
+            const woTitle = m.work_orders?.title || 'WO';
+            
+            html += `
+                <div class="kanban-pro-card p-3 shadow-sm d-flex flex-column justify-content-between" style="min-width: 260px; max-width: 300px; border-left: 3px solid #10b981 !important;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">${m.status}</span>
+                        <span class="small fw-bold text-white-50"><i class="bi bi-clock me-1"></i>${time}</span>
+                    </div>
+                    <div class="fw-bold text-white mb-1 tracking-tight">${customerName}</div>
+                    <div class="small text-info mb-2"><i class="bi bi-tag-fill me-1"></i>${woTitle}</div>
+                    <div class="small text-white-50 border-top border-secondary border-opacity-25 pt-2 mt-auto lh-sm">
+                        ${m.notes || 'Status diperbarui'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        section.innerHTML = html;
+        
+    } catch (e) {
+        console.error('Failed to load activity feed', e);
+    }
+}
 
 /**
  * [WO-004] Show panel to quickly confirm a work order.
@@ -337,14 +379,7 @@ async function showAssignConfirmPanel(wo) {
         modal.hide();
         
         // Refresh data without full page reload
-        const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
-        const typeId = activeTab === 'pemasangan-tab' ? pemasanganTypeId : perbaikanTypeId;
-        
-        const container = activeTab === 'pemasangan-tab' 
-            ? document.getElementById('work-orders-list-pemasangan') 
-            : document.getElementById('work-orders-list-perbaikan');
-
-        loadDataForTab(typeId, container);
+        window.reloadUnifiedKanban();
     };
 
     // Remove any existing listener before adding a new one
@@ -404,9 +439,9 @@ async function showWorkOrderActions(wo) {
                 <div class="timeline-item position-relative mb-3">
                     <span class="position-absolute bg-primary rounded-circle" style="width: 10px; height: 10px; left: -20px; top: 5px;"></span>
                     <div class="small fw-bold text-white mb-1"><i class="bi bi-clock-history me-1"></i> ${date}</div>
-                    <div class="p-2 rounded bg-dark border border-secondary shadow-sm">
-                        <span class="badge bg-secondary mb-1">${m.status || 'Update'}</span>
-                        <div class="small mt-1 text-white-50">${m.notes || 'Diperbarui'}</div>
+                    <div class="glass-header-pro p-2 mb-0">
+                        <span class="badge bg-secondary mb-1 opacity-75">${m.status || 'Update'}</span>
+                        <div class="small mt-1 text-white">${m.notes || 'Diperbarui'}</div>
                     </div>
                 </div>
             `;
@@ -415,73 +450,76 @@ async function showWorkOrderActions(wo) {
     }
 
     body.innerHTML = `
-        <div class="wo-details-modal">
+        <div class="px-1 kanban-modal-wrapper">
             <!-- Header Banner -->
-            <div class="p-3 mb-3 rounded shadow-sm d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, rgba(13,110,253,0.1), rgba(13,110,253,0.05)); border: 1px solid var(--vscode-primary);">
-                <div>
-                    <h5 class="mb-1 text-white"><i class="bi bi-person-circle me-2 text-primary"></i>${wo.customers?.name || '-'}</h5>
-                    <div class="small text-white-50"><i class="bi bi-telephone me-1"></i> ${wo.customers?.phone || '-'}</div>
+            <div class="kanban-pro-col d-flex flex-column gap-2 mb-4 position-relative overflow-hidden" style="border-top: 4px solid ${getStatusColor(wo.status)};">
+                <div class="d-flex justify-content-between align-items-center position-relative z-index-1">
+                    <span class="badge shadow-sm px-2 py-1" style="background-color: ${getStatusColor(wo.status)}; color: #fff;">${getStatusDisplayText(wo.status)}</span>
+                    <span class="fw-bold text-info small"><i class="bi bi-tag-fill me-1"></i>${wo.title || 'PSB'}</span>
                 </div>
-                <div class="text-end">
-                    <span class="badge" style="background-color: ${getStatusColor(wo.status)};">${getStatusDisplayText(wo.status)}</span>
-                    <div class="small fw-bold text-info mt-1">${wo.title || 'PSB'}</div>
+                
+                <div class="mt-2 text-white position-relative z-index-1">
+                    <h4 class="mb-1 fw-bold fs-5 tracking-tight">${wo.customers?.name || '-'}</h4>
+                    <div class="text-white-50 small"><i class="bi bi-telephone text-primary me-2"></i>${wo.customers?.phone || '-'}</div>
                 </div>
             </div>
 
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
-                    <div class="card bg-vscode border-secondary shadow-sm h-100">
-                        <div class="card-body p-2 px-3 small">
-                            <span class="text-white-50 d-block mb-1">Paket Layanan:</span>
-                            <span class="fw-bold text-white">${wo.customers?.packet || 'Tidak ada'}</span>
-                            <hr class="my-1 border-secondary">
-                            <span class="text-white-50 d-block mb-1">Catatan (Ket):</span>
-                            <span class="text-white">${wo.ket || '-'}</span>
+                    <div class="kanban-pro-col h-100 p-3" style="background: rgba(15, 23, 42, 0.4);">
+                        <span class="text-white-50 d-block mb-3 small fw-semibold text-uppercase" style="letter-spacing:0.5px;">Detail Permintaan</span>
+                        
+                        <div class="d-flex flex-column gap-2">
+                            <div>
+                                <span class="badge text-bg-light fw-bold">${wo.customers?.packet || 'Tanpa Paket'}</span>
+                            </div>
+                            <div class="text-white-50 small pe-2 lh-base mt-2 pt-2 border-top border-secondary border-opacity-25" style="border-color: rgba(255,255,255,0.05) !important;">
+                                ${wo.ket || '-'}
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="card bg-vscode border-secondary shadow-sm h-100">
-                        <div class="card-body p-2 px-3 small">
-                            <span class="text-white-50 d-block mb-1">Tim Penugasan:</span>
-                            <div class="text-white">${teamHtml}</div>
-                        </div>
+                    <div class="kanban-pro-col h-100 p-3" style="background: rgba(15, 23, 42, 0.4);">
+                        <span class="text-white-50 d-block mb-3 small fw-semibold text-uppercase" style="letter-spacing:0.5px;">Personil Bertugas</span>
+                        <div class="text-white small">${teamHtml}</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab Navigation for Actions vs History -->
-            <ul class="nav nav-pills mb-3 nav-fill border-bottom border-secondary pb-2" id="woTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active btn-sm" id="actions-tab" data-bs-toggle="pill" data-bs-target="#actions-panel" type="button" role="tab">Aksi & Manajemen</button>
+            <!-- Tab Navigation (Simplified Pill Design) -->
+            <ul class="nav nav-pills mb-4 d-flex bg-dark rounded-pill p-1 shadow-sm border border-secondary border-opacity-25" id="woTabs" role="tablist">
+                <li class="nav-item flex-fill text-center" role="presentation">
+                    <button class="nav-link active rounded-pill w-100 fw-semibold transition-all" id="actions-tab" data-bs-toggle="pill" data-bs-target="#actions-panel" type="button" role="tab" style="font-size: 0.9rem;">Tindakan</button>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link btn-sm" id="history-tab" data-bs-toggle="pill" data-bs-target="#history-panel" type="button" role="tab">Riwayat Aktivitas</button>
+                <li class="nav-item flex-fill text-center" role="presentation">
+                    <button class="nav-link rounded-pill w-100 fw-semibold text-white-50 transition-all" id="history-tab" data-bs-toggle="pill" data-bs-target="#history-panel" type="button" role="tab" style="font-size: 0.9rem;">Riwayat Aktivitas</button>
                 </li>
             </ul>
 
             <div class="tab-content" id="woTabsContent">
                 <!-- Actions Panel -->
                 <div class="tab-pane fade show active" id="actions-panel" role="tabpanel">
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <button class="btn btn-outline-primary w-100 shadow-sm" id="action-edit-wo">
-                                <i class="bi bi-pencil d-block fs-5 mb-1"></i> <small>Edit Data</small>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <button class="btn btn-primary w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-monitor-wo" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6); border:none;">
+                                <i class="bi bi-graph-up fs-5"></i>
+                                <span class="fw-semibold">Pantau / Update</span>
                             </button>
                         </div>
-                        <div class="col-6">
-                            <button class="btn btn-outline-info w-100 shadow-sm" id="action-monitor-wo">
-                                <i class="bi bi-graph-up d-block fs-5 mb-1"></i> <small>Pantau / Update</small>
+                        <div class="col-12 col-md-6">
+                            <button class="btn btn-success w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-close-wo">
+                                <i class="bi bi-check-circle-fill fs-5"></i>
+                                <span class="fw-semibold">Tandai Selesai</span>
                             </button>
                         </div>
-                        <div class="col-6">
-                            <button class="btn btn-outline-success w-100 shadow-sm position-relative" id="action-close-wo">
-                                <i class="bi bi-check-circle d-block fs-5 mb-1"></i> <small>Selesaikan (Tutup)</small>
+                        <div class="col-12 border-top border-secondary border-opacity-25 mt-4 pt-3 d-flex gap-2 justify-content-end align-items-center">
+                            <span class="small text-white-50 me-auto">Opsi Lanjutan</span>
+                            <button class="btn btn-outline-light btn-sm px-3 rounded-pill" id="action-edit-wo">
+                                <i class="bi bi-pencil me-1"></i> Edit
                             </button>
-                        </div>
-                        <div class="col-6">
-                            <button class="btn btn-outline-danger w-100 shadow-sm" id="action-delete-wo">
-                                <i class="bi bi-trash d-block fs-5 mb-1"></i> <small>Batal/Hapus</small>
+                            <button class="btn btn-outline-danger btn-sm px-3 rounded-pill" id="action-delete-wo">
+                                <i class="bi bi-trash me-1"></i> Hapus
                             </button>
                         </div>
                     </div>
@@ -489,12 +527,21 @@ async function showWorkOrderActions(wo) {
 
                 <!-- History Panel -->
                 <div class="tab-pane fade" id="history-panel" role="tabpanel">
-                    <div class="bg-dark p-2 rounded shadow-inner" style="max-height: 250px; overflow-y: auto;">
+                    <div class="kanban-pro-col kanban-scroll p-4" style="max-height: 280px; overflow-y: auto; background: rgba(15,23,42,0.3);">
                         ${timelineHtml}
                     </div>
                 </div>
             </div>
         </div>
+        <style>
+            .hover-lift:hover {
+                transform: translateY(-2px);
+                filter: brightness(1.1);
+            }
+            .tracking-tight { letter-spacing: -0.5px; }
+            #woTabs .nav-link { color: #94a3b8; }
+            #woTabs .nav-link.active { background: #334155; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        </style>
     `;
 
     // document.getElementById('save-crud-btn').style.display = 'none';
@@ -503,12 +550,7 @@ async function showWorkOrderActions(wo) {
         modal.hide();
         showWorkOrderModal(wo, () => {
             // Refresh the correct tab after editing
-            const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
-            const typeId = wo.type_id; // Assuming wo object has type_id
-            const container = activeTab === 'pemasangan-tab' 
-                ? document.getElementById('work-orders-list-pemasangan') 
-                : document.getElementById('work-orders-list-perbaikan');
-            loadDataForTab(typeId, container);
+            window.reloadUnifiedKanban();
         });
     };
 
@@ -528,12 +570,7 @@ async function showWorkOrderActions(wo) {
             showToast('Antrian berhasil ditutup', 'success');
             modal.hide();
             // Refresh the correct tab
-            const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
-            const typeId = wo.type_id;
-            const container = activeTab === 'pemasangan-tab' 
-                ? document.getElementById('work-orders-list-pemasangan') 
-                : document.getElementById('work-orders-list-perbaikan');
-            loadDataForTab(typeId, container);
+            window.reloadUnifiedKanban();
         } catch (err) {
             showToast(`Error: ${err.message}`, 'error');
         }
@@ -547,12 +584,7 @@ async function showWorkOrderActions(wo) {
             showToast('Antrian berhasil dihapus', 'success');
             modal.hide();
             // Refresh the correct tab
-            const activeTab = document.querySelector('#woTypeTabs .nav-link.active').id;
-            const typeId = wo.type_id;
-            const container = activeTab === 'pemasangan-tab' 
-                ? document.getElementById('work-orders-list-pemasangan') 
-                : document.getElementById('work-orders-list-perbaikan');
-            loadDataForTab(typeId, container);
+            window.reloadUnifiedKanban();
         } catch (err) {
             showToast(`Error: ${err.message}`, 'error');
         }
