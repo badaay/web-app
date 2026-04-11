@@ -76,12 +76,15 @@ export async function initCustomerMapView() {
 
     // =====================  UI RENDER  =====================
     container.innerHTML = `
-        <div id="cmap-wrapper" class="glass-container" style="display:flex;height:calc(100vh - 130px);gap:0;border-radius:16px;overflow:hidden;border:1px solid var(--vscode-border);position:relative;">
+        <div id="cmap-wrapper" class="glass-container" style="display:flex;height:calc(100vh - 150px);gap:0;border-radius:16px;overflow:hidden;border:1px solid var(--vscode-border);position:relative;background:var(--vscode-bg);">
             
+            <!-- Sidebar Drawer Overlay (Mobile) -->
+            <div id="cmap-sidebar-overlay" class="d-md-none" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1045;display:none;backdrop-filter:blur(4px);"></div>
+
             <!-- Mobile Toggle -->
             <button id="cmap-mobile-toggle" class="btn btn-primary d-md-none position-absolute" 
-                    style="bottom:20px; right:20px; z-index:1100; border-radius:50%; width:50px; height:50px; box-shadow:var(--glow-accent); border:none; background:var(--vscode-accent-gradient);">
-                <i class="bi bi-filter"></i>
+                    style="bottom:80px; right:20px; z-index:1100; border-radius:50%; width:56px; height:56px; box-shadow:var(--glow-accent); border:none; background:var(--vscode-accent-gradient);">
+                <i class="bi bi-filter fs-4"></i>
             </button>
 
             <!-- Sidebar -->
@@ -206,11 +209,13 @@ export async function initCustomerMapView() {
             .btn-accent-gradient { background: var(--vscode-accent-gradient); border: none; color: #fff; box-shadow: var(--glow-accent); }
             .btn-accent-gradient:hover { filter: brightness(1.1); box-shadow: 0 0 20px rgba(0, 71, 171, 0.6); color: #fff; }
 
-            .glass-stats-panel { position:absolute;top:16px;left:16px;z-index:1000;background:rgba(15, 23, 42, 0.8);backdrop-filter:blur(12px);padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);pointer-events:none;box-shadow:var(--glass-shadow); }
+            .glass-stats-panel { position:absolute;top:60px;left:10px;z-index:1000;background:rgba(15, 23, 42, 0.85);backdrop-filter:blur(12px);padding:8px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);pointer-events:none;box-shadow:var(--glass-shadow); min-width:140px; }
 
             @media (max-width: 768px) {
-                #cmap-sidebar { position: absolute; left: 0; top: 0; bottom: 0; height: 100%; transform: translateX(-100%); width: 280px !important; min-width: 280px !important; }
+                #cmap-wrapper { height: calc(100vh - 160px) !important; margin: -10px !important; border-radius: 0 !important; border: none !important; }
+                #cmap-sidebar { position: fixed; left: 0; top: 0; bottom: 0; height: 100vh; transform: translateX(-100%); width: 300px !important; min-width: 300px !important; z-index: 1050; box-shadow: 20px 0 50px rgba(0,0,0,0.5); }
                 #cmap-sidebar.show { transform: translateX(0); }
+                .glass-stats-panel { top: 70px; left: 10px; padding: 6px 10px; }
             }
         </style>
     `;
@@ -234,8 +239,16 @@ export async function initCustomerMapView() {
 
     // Mobile Toggle Events
     const sidebar = document.getElementById('cmap-sidebar');
-    document.getElementById('cmap-mobile-toggle').onclick = () => sidebar.classList.add('show');
-    document.getElementById('cmap-close-sidebar').onclick = () => sidebar.classList.remove('show');
+    const overlay = document.getElementById('cmap-sidebar-overlay');
+    const toggleSidebar = (show) => {
+        sidebar.classList.toggle('show', show);
+        overlay.style.display = show ? 'block' : 'none';
+        if (mapInstance) setTimeout(() => mapInstance.invalidateSize(), 300);
+    };
+
+    document.getElementById('cmap-mobile-toggle').onclick = () => toggleSidebar(true);
+    document.getElementById('cmap-close-sidebar').onclick = () => toggleSidebar(false);
+    overlay.onclick = () => toggleSidebar(false);
 
 
     // =====================  DATA LOADING  =====================
@@ -350,6 +363,15 @@ export async function initCustomerMapView() {
 
             // Attach address search bar (top-left, dark theme, flies map on result)
             attachSearchBar('customer-map-full', mapInstance, { theme: 'dark' });
+
+            // CRITICAL: Robust resize handling for Leaflet (fixes small square bug)
+            const resizeObserver = new ResizeObserver(() => {
+                mapInstance.invalidateSize();
+            });
+            resizeObserver.observe(document.getElementById('cmap-wrapper'));
+            
+            // Initial poke
+            setTimeout(() => mapInstance.invalidateSize(), 500);
         }
 
         if (markersLayer) mapInstance.removeLayer(markersLayer);
@@ -366,7 +388,11 @@ export async function initCustomerMapView() {
 
         markersLayer.addTo(mapInstance);
         if (withCoords.length > 0 && mapInstance.getZoom() < 5) {
-            mapInstance.fitBounds(markersLayer.getBounds().pad(0.1));
+            setTimeout(() => {
+                if (mapInstance && markersLayer.getBounds().isValid()) {
+                    mapInstance.fitBounds(markersLayer.getBounds().pad(0.1));
+                }
+            }, 600);
         }
 
         updateStatsPanel(withCoords);
@@ -415,9 +441,9 @@ export async function initCustomerMapView() {
 
         legendCtrl.onAdd = () => {
             const div = L.DomUtil.create('div', 'legend-container');
-            div.style.cssText = 'background:rgba(255,255,255,0.95);box-shadow:0 0 15px rgba(0,0,0,0.1);padding:10px 14px;border-radius:8px;font-size:11px;border:1px solid #ccc;color:#333;margin-bottom:15px;';
+            div.style.cssText = 'background:rgba(15, 23, 42, 0.9);backdrop-filter:blur(8px);box-shadow:var(--glass-shadow);padding:12px;border-radius:12px;font-size:11px;border:1px solid rgba(255,255,255,0.1);color:#fff;margin-bottom:20px;min-width:140px;';
             
-            let html = `<div style="font-weight:700;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px;">Keterangan Warna</div>`;
+            let html = `<div style="font-weight:700;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:6px;color:var(--vscode-accent-teal);text-transform:uppercase;letter-spacing:0.5px;">Legenda</div>`;
 
             if (mode === 'type') {
                 html += queueTypesData.map(t => `
