@@ -1,18 +1,18 @@
 /**
- * seed_auth.js — Auth Users Seeder
+ * seed_auth.js — Auth Users Seeder (Dynamic DB-Driven)
  * ============================================================
- * Creates Supabase Auth users and links them to the correct roles
- * via the profiles table.
+ * Creates Supabase Auth users for all employees found in the 
+ * database and links them to the correct roles via the profiles table.
  *
  * REQUIREMENTS:
- *   - VITE_SUPABASE_SERVICE_ROLE_KEY must be set in .env
- *   - Run AFTER seed_complete.sql has been executed
+ *   - SUPABASE_SERVICE_ROLE_KEY_A must be set in .env
+ *   - Run AFTER project_a_core_schema.sql has been executed
  *   - Run with: node src/api/seed_auth.js
  *
  * WHAT IT DOES:
- *   1. Creates one auth user per role (test users)
- *   2. Updates the profile record (created by trigger) with the correct role
- *   3. Optionally links employee/customer record to the auth user ID
+ *   1. Fetches all employees from public.employees (excluding SA001)
+ *   2. Creates one auth user per employee
+ *   3. Synchronizes public.profiles with the correct role_id
  * ============================================================
  */
 
@@ -22,17 +22,17 @@ const path = require('path');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const serviceRoleKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+// Project A (Core) Configuration
+const supabaseUrl = process.env.SUPABASE_URL_A || process.env.VITE_SUPABASE_URL_A;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY_A;
 
 if (!supabaseUrl || !serviceRoleKey) {
     console.error('');
-    console.error('ERROR: Missing environment variables.');
-    console.error('  VITE_SUPABASE_URL            =', supabaseUrl ? '✅ set' : '❌ MISSING');
-    console.error('  VITE_SUPABASE_SERVICE_ROLE_KEY =', serviceRoleKey ? '✅ set' : '❌ MISSING');
+    console.error('ERROR: Missing environment variables for Project A.');
+    console.error('  SUPABASE_URL_A              =', supabaseUrl ? '✅ set' : '❌ MISSING');
+    console.error('  SUPABASE_SERVICE_ROLE_KEY_A =', serviceRoleKey ? '✅ set' : '❌ MISSING');
     console.error('');
-    console.error('Add VITE_SUPABASE_SERVICE_ROLE_KEY to your .env file.');
-    console.error('Find it in: Supabase Dashboard → Project Settings → API → service_role key');
+    console.error('Check your .env file.');
     process.exit(1);
 }
 
@@ -41,100 +41,24 @@ const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false }
 });
 
-// Auth domain suffix (must match src/api/config.js)
+// Configuration
 const AUTH_DOMAIN = '@sifatih.id';
-const TEST_PASSWORD = 'Test@12345678'; // Meets Supabase min requirements
-
-// ============================================================
-// TEST USER DEFINITIONS
-// One user per role — covers all access scenarios
-// ============================================================
-const TEST_USERS = [
-    {
-        email: `SA001${AUTH_DOMAIN}`,
-        password: TEST_PASSWORD,
-        roleCode: 'S_ADM',
-        fullName: 'Super Admin Test',
-        type: 'employee',
-        referenceId: 'SA001', // employee_id
-        description: 'System administrator — full access'
-    },
-    {
-        email: `202101001${AUTH_DOMAIN}`,
-        password: TEST_PASSWORD,
-        roleCode: 'OWNER',
-        fullName: 'Muhammad Rifqi Arifandi',
-        type: 'employee',
-        referenceId: '202101001',
-        description: 'Owner — read-all, approve-all'
-    },
-    {
-        email: `202509007${AUTH_DOMAIN}`,
-        password: TEST_PASSWORD,
-        roleCode: 'ADM',
-        fullName: 'Aulia Farida',
-        type: 'employee',
-        referenceId: '202509007',
-        description: 'Admin — day-to-day operations'
-    },
-    {
-        email: `202101002${AUTH_DOMAIN}`,
-        password: TEST_PASSWORD,
-        roleCode: 'TREASURER',
-        fullName: 'Sitti Sulaihah',
-        type: 'employee',
-        referenceId: '202101002',
-        description: 'Bendahara — finance monitoring'
-    },
-    {
-        email: `202408003${AUTH_DOMAIN}`,
-        password: TEST_PASSWORD,
-        roleCode: 'SPV_TECH',
-        fullName: 'Fungki Gunawan',
-        type: 'employee',
-        referenceId: '202408003',
-        description: 'SPV Teknisi — assign & monitor jobs'
-    },
-    {
-        email: `202512008${AUTH_DOMAIN}`,
-        password: TEST_PASSWORD,
-        roleCode: 'TECH',
-        fullName: 'Ali Wafa',
-        type: 'employee',
-        referenceId: '202512008',
-        description: 'Teknisi — field work, claim tickets'
-    },
-    {
-        email: `25094031501${AUTH_DOMAIN}`,
-        password: TEST_PASSWORD,
-        roleCode: 'CUST',
-        fullName: 'FATMAWATI',
-        type: 'customer',
-        referenceId: '25094031501', // customer_code
-        description: 'Customer — view own ticket/profile'
-    }
-];
+const DEFAULT_PASSWORD = 'Sifatih2026!'; 
+const EXCLUDE_EMPLOYEE_ID = 'SA001'; // Protect the superadmin
+const SUPERADMIN_ID = 'SA001';
+const SUPERADMIN_NAME = 'Super Administrator';
 
 // ============================================================
 // HELPERS
 // ============================================================
-async function getRoleId(roleCode) {
-    const { data, error } = await adminClient
-        .from('roles')
-        .select('id')
-        .eq('code', roleCode)
-        .single();
-    if (error) throw new Error(`Role not found: ${roleCode} — run seed_complete.sql first`);
-    return data.id;
-}
 
-async function createOrGetUser(email, password, fullName) {
+async function createOrGetUser(email, password, fullName, metadata = {}) {
     // Try to create
     const { data, error } = await adminClient.auth.admin.createUser({
         email,
         password,
-        email_confirm: true, // auto-confirm so no email verification needed
-        user_metadata: { full_name: fullName }
+        email_confirm: true,
+        user_metadata: { ...metadata, full_name: fullName }
     });
 
     if (error) {
@@ -144,7 +68,14 @@ async function createOrGetUser(email, password, fullName) {
             if (listError) throw listError;
             const existing = users.find(u => u.email === email);
             if (!existing) throw new Error(`User ${email} exists but cannot be retrieved`);
-            console.log(`  ↳ Already exists, using existing user: ${email}`);
+            
+            // Update metadata/password just in case
+            await adminClient.auth.admin.updateUserById(existing.id, {
+                password: password,
+                user_metadata: { ...existing.user_metadata, ...metadata, full_name: fullName }
+            });
+
+            console.log(`  ↳ Already exists, updated existing user: ${email}`);
             return existing;
         }
         throw error;
@@ -153,35 +84,81 @@ async function createOrGetUser(email, password, fullName) {
 }
 
 async function linkProfile(userId, roleId) {
-    // handle_new_user trigger creates the profile, but with default role.
-    // We override it with the correct role here.
     const { error } = await adminClient
         .from('profiles')
         .upsert({ id: userId, role_id: roleId }, { onConflict: 'id' });
     if (error) throw error;
 }
 
-async function linkEmployee(userId, employeeId) {
-    const { error } = await adminClient
-        .from('employees')
-        .update({ id: userId })
-        .eq('employee_id', employeeId);
-    // NOTE: This updates the UUID of the employee row to match auth user.
-    // Only works if no FK children reference employees.id yet.
-    if (error) {
-        console.warn(`  ↳ Could not sync employee.id for ${employeeId}: ${error.message}`);
-        console.warn(`  ↳ This is OK — employee is still linked via email/employee_id`);
+// ============================================================
+// SPECIAL: SUPERADMIN SEEDER
+// ============================================================
+
+async function seedSuperAdmin() {
+    console.log(`[SYS] Seeding Superadmin: ${SUPERADMIN_ID}...`);
+
+    const email = `${SUPERADMIN_ID}${AUTH_DOMAIN}`;
+
+    // 1. Get OWNER role_id
+    const { data: role, error: roleError } = await adminClient
+        .from('roles')
+        .select('id, name')
+        .eq('code', 'OWNER')
+        .single();
+
+    if (roleError) {
+        console.error('  ❌ Failed to fetch OWNER role. Make sure schema is applied.');
+        throw roleError;
     }
+
+    // 2. Create/Update auth user
+    const authUser = await createOrGetUser(email, DEFAULT_PASSWORD, SUPERADMIN_NAME, {
+        employee_id: SUPERADMIN_ID,
+        role: 'OWNER'
+    });
+    console.log(`  ✅ Auth user: ${authUser.id}`);
+
+    // 3. Link profile directly
+    await linkProfile(authUser.id, role.id);
+    console.log(`  ✅ Profile linked → role: Owner (Superadmin)`);
+    
+    return { 
+        name: SUPERADMIN_NAME, 
+        id: SUPERADMIN_ID, 
+        email, 
+        role: 'Owner (Superadmin)', 
+        status: 'OK' 
+    };
 }
 
-async function linkCustomer(userId, customerCode) {
-    const { error } = await adminClient
-        .from('customers')
-        .update({ id: userId })
-        .eq('customer_code', customerCode);
-    if (error) {
-        console.warn(`  ↳ Could not sync customer.id for ${customerCode}: ${error.message}`);
-    }
+/**
+ * seedFinanceAdmin()
+ * Special admin with finance access
+ */
+async function seedFinanceAdmin() {
+    console.log(`[SYS] Seeding Finance Admin: ADM001...`);
+
+    const email = `ADM001${AUTH_DOMAIN}`;
+    
+    // 1. Get ADM role_id
+    const { data: role } = await adminClient.from('roles').select('id').eq('code', 'ADM').single();
+
+    const authUser = await createOrGetUser(email, DEFAULT_PASSWORD, 'Admin Finance', {
+        employee_id: 'ADM001',
+        role: 'ADM'
+    });
+    console.log(`  ✅ Auth user: ${authUser.id}`);
+
+    await linkProfile(authUser.id, role.id);
+    console.log(`  ✅ Profile linked → role: Admin (Finance)`);
+
+    return { 
+        name: 'Admin Finance', 
+        id: 'ADM001', 
+        email, 
+        role: 'Admin (Finance)', 
+        status: 'OK' 
+    };
 }
 
 // ============================================================
@@ -190,86 +167,120 @@ async function linkCustomer(userId, customerCode) {
 async function main() {
     console.log('');
     console.log('================================================');
-    console.log('  SiFatih — Auth Users Seeder');
-    console.log('  Password for ALL test users:', TEST_PASSWORD);
+    console.log('  SiFatih — Dynamic Auth Seeder');
+    console.log('  Mode: Production/Testing (Excluding Superadmin)');
     console.log('================================================');
     console.log('');
 
-    const results = [];
+    try {
+        // 0. Seed Special Accounts (Auth only)
+        const saResult = await seedSuperAdmin();
+        const admResult = await seedFinanceAdmin();
+        const results = [saResult, admResult];
+        console.log('');
 
-    for (const user of TEST_USERS) {
-        console.log(`[${user.roleCode}] ${user.email}`);
-        console.log(`  Description: ${user.description}`);
+        // 1. Fetch employees to seed
+        console.log(`Fetching employees from ${supabaseUrl}...`);
+        const { data: employees, error: empError } = await adminClient
+            .from('employees')
+            .select('*, roles(code, name)')
+            .neq('employee_id', EXCLUDE_EMPLOYEE_ID);
 
-        try {
-            // 1. Get role ID
-            const roleId = await getRoleId(user.roleCode);
-
-            // 2. Create auth user
-            const authUser = await createOrGetUser(user.email, user.password, user.fullName);
-            console.log(`  ✅ Auth user: ${authUser.id}`);
-
-            // 3. Link profile with correct role (override trigger default)
-            await linkProfile(authUser.id, roleId);
-            console.log(`  ✅ Profile linked → role: ${user.roleCode}`);
-
-            // 4. Optionally sync the DB row ID to match auth user ID
-            if (user.type === 'employee') {
-                await linkEmployee(authUser.id, user.referenceId);
-                console.log(`  ✅ Employee row synced (employee_id: ${user.referenceId})`);
-            } else if (user.type === 'customer') {
-                await linkCustomer(authUser.id, user.referenceId);
-                console.log(`  ✅ Customer row synced (customer_code: ${user.referenceId})`);
-            }
-
-            results.push({ ...user, authId: authUser.id, status: 'OK' });
-        } catch (err) {
-            console.error(`  ❌ FAILED: ${err.message}`);
-            results.push({ ...user, status: 'FAILED', error: err.message });
+        if (empError) throw empError;
+        if (!employees || employees.length === 0) {
+            console.log('No employees found to seed (or all excluded).');
+            return;
         }
 
+        console.log(`Found ${employees.length} employees to process.`);
         console.log('');
-    }
 
-    // ============================================================
-    // SUMMARY TABLE
-    // ============================================================
-    console.log('================================================');
-    console.log('  SEED SUMMARY');
-    console.log('================================================');
-    console.log('');
-    console.log(
-        'Role'.padEnd(12),
-        'Login Shortcode'.padEnd(18),
-        'Email'.padEnd(32),
-        'Status'
-    );
-    console.log('-'.repeat(80));
-    for (const r of results) {
-        const shortcode = r.referenceId;
+        for (const emp of employees) {
+            const email = emp.email || `${emp.employee_id}${AUTH_DOMAIN}`;
+            const roleCode = emp.roles?.code || 'TECH';
+            const roleName = emp.roles?.name || 'Teknisi';
+
+            console.log(`[${roleCode}] ${emp.name} <${email}>`);
+
+            try {
+                // 2. Create/Update auth user
+                const authUser = await createOrGetUser(email, DEFAULT_PASSWORD, emp.name, {
+                    employee_id: emp.employee_id,
+                    role: roleCode
+                });
+                console.log(`  ✅ Auth user: ${authUser.id}`);
+
+                // 3. Link profile with correct role_id from employee table
+                if (emp.role_id) {
+                    await linkProfile(authUser.id, emp.role_id);
+                    console.log(`  ✅ Profile linked → role: ${roleName}`);
+                } else {
+                    console.warn(`  ⚠️  Warning: Employee missing role_id. Skipping profile sync.`);
+                }
+
+                results.push({ 
+                    name: emp.name, 
+                    id: emp.employee_id, 
+                    email, 
+                    role: roleName, 
+                    status: 'OK' 
+                });
+            } catch (err) {
+                console.error(`  ❌ FAILED: ${err.message}`);
+                results.push({ 
+                    name: emp.name, 
+                    id: emp.employee_id, 
+                    email, 
+                    role: roleName, 
+                    status: 'FAILED', 
+                    error: err.message 
+                });
+            }
+            console.log('');
+        }
+
+        // ============================================================
+        // SUMMARY TABLE
+        // ============================================================
+        console.log('================================================');
+        console.log('  SEED SUMMARY');
+        console.log('================================================');
+        console.log('');
         console.log(
-            r.roleCode.padEnd(12),
-            shortcode.padEnd(18),
-            r.email.padEnd(32),
-            r.status === 'OK' ? '✅ OK' : `❌ ${r.error}`
+            'Name'.padEnd(25),
+            'ID'.padEnd(12),
+            'Role'.padEnd(15),
+            'Status'
         );
-    }
-    console.log('');
-    console.log('Password for all users:', TEST_PASSWORD);
-    console.log('Login at: /web-app/admin/login.html');
-    console.log('  Use shortcode (e.g. SA001) or full email');
-    console.log('');
+        console.log('-'.repeat(70));
+        for (const r of results) {
+            console.log(
+                r.name.substring(0, 24).padEnd(25),
+                r.id.padEnd(12),
+                r.role.padEnd(15),
+                r.status === 'OK' ? '✅ OK' : `❌ ${r.error}`
+            );
+        }
+        console.log('');
+        console.log('Default Password:', DEFAULT_PASSWORD);
+        console.log('Login at: /admin/login');
+        console.log('');
 
-    const failed = results.filter(r => r.status !== 'OK');
-    if (failed.length > 0) {
-        console.error(`⚠️  ${failed.length} user(s) failed. Check errors above.`);
+        const failed = results.filter(r => r.status !== 'OK');
+        if (failed.length > 0) {
+            console.error(`⚠️  ${failed.length} user(s) failed. Check details above.`);
+            process.exit(1);
+        } else {
+            console.log(`🎉 All ${results.length} employee accounts seeded successfully.`);
+        }
+
+    } catch (err) {
+        console.error('Fatal error:', err.message);
         process.exit(1);
-    } else {
-        console.log(`🎉 All ${results.length} test users seeded successfully.`);
     }
 }
 
 main().catch(err => {
-    console.error('Fatal error:', err.message);
+    console.error('Unhandled Rejection:', err);
     process.exit(1);
 });

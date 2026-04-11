@@ -105,7 +105,7 @@ INSERT INTO public.app_settings (setting_key, setting_value, setting_group, desc
   ('maps_default_zoom',   '12',                        'map',        'Zoom level peta default'),
   ('psb_require_ktp',     'true',                      'workflow',   'Wajib upload foto KTP saat PSB'),
   ('wo_auto_assign',      'false',                     'workflow',   'Auto-assign work order ke teknisi tersedia'),
-  ('FONNTE_TOKEN',        '',                          'whatsapp',   'API token from fonnte.com dashboard'),
+  ('FONNTE_TOKEN',        'ym2qun7QSnJ7a1nEYRQF',      'whatsapp',    'API token from fonnte.com dashboard'),
   ('FONNTE_DAILY_LIMIT',  '500',                       'whatsapp',   'Max WhatsApp messages allowed per day'),
   ('FONNTE_WARN_THRESHOLD', '0.80',                    'whatsapp',   'Fraction of daily limit that triggers admin warning'),
   ('FONNTE_SENT_TODAY',   '0',                         'whatsapp',   'Rolling daily message counter, reset each day'),
