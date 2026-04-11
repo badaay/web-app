@@ -41,7 +41,7 @@ export async function initDashboard() {
                 <div class="col-md-6 col-lg-4">
                     <div class="card bg-vscode border-0 h-100 shadow-sm hover-scale transition-300 pointer-cursor" 
                          id="quick-wo-btn"
-                         style="border-radius: 12px; border-left: 4px solid #ffca28 !important;">
+                         style="border-radius: 12px; border-left: 4px solid var(--vscode-warning) !important;">
                         <div class="card-body p-4 d-flex align-items-center">
                             <div class="rounded-3 bg-warning bg-opacity-10 p-3 me-3">
                                 <i class="bi bi-file-earmark-plus text-warning fs-3"></i>
@@ -57,7 +57,7 @@ export async function initDashboard() {
                 <div class="col-md-6 col-lg-4">
                     <div class="card bg-vscode border-0 h-100 shadow-sm hover-scale transition-300 pointer-cursor" 
                          id="quick-map-btn"
-                         style="border-radius: 12px; border-left: 4px solid #29b6f6 !important;">
+                         style="border-radius: 12px; border-left: 4px solid var(--vscode-accent) !important;">
                         <div class="card-body p-4 d-flex align-items-center">
                             <div class="rounded-3 bg-info bg-opacity-10 p-3 me-3">
                                 <i class="bi bi-pin-map text-info fs-3"></i>
@@ -221,7 +221,7 @@ async function loadTodayQueue() {
                     </div>
                     <div class="d-flex align-items-center text-nowrap">
                         <div class="text-end me-3 d-none d-sm-block">
-                            <span class="badge" style="background-color:${statusColor}; color:#fff;">${statusText}</span>
+                            <span class="badge" style="background-color:${statusColor}; color:var(--vscode-text-bright);">${statusText}</span>
                             <br>
                             <small class="text-white-50">${employee?.name || 'Belum ditugaskan'}</small>
                         </div>

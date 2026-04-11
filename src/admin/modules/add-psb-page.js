@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const errNode = document.createElement('div');
         errNode.className = 'custom-inline-error mt-1 fw-bold shadow';
-        errNode.style.background = '#da3633';
-        errNode.style.color = '#fff';
+        errNode.style.background = 'var(--vscode-danger)';
+        errNode.style.color = 'var(--vscode-text-bright)';
         errNode.style.padding = '6px 12px';
         errNode.style.borderRadius = '6px';
         errNode.style.fontSize = '0.8rem';
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="col-md-7">
                                 <label class="form-label text-white-50 small mb-2">Pilih Titik Lokasi di Peta</label>
                                 <div class="position-relative">
-                                    <div id="location-picker-map" class="rounded border border-secondary shadow-sm" style="height: 350px; background: #1e1e1e; z-index: 1;"></div>
+                                    <div id="location-picker-map" class="rounded border border-secondary shadow-sm" style="height: 350px; background: var(--vscode-bg); z-index: 1;"></div>
                                     <button type="button" id="btn-get-location" class="btn btn-sm btn-dark border-secondary position-absolute" style="top: 315px; right: 5px; z-index: 1000;">
                                         <i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya
                                     </button>
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     <div class="card-body">
                         <!-- Selected Package Summary Card -->
-                        <div class="card bg-gradient border-primary mb-4 shadow" id="summary-package-card" style="display:none; background: linear-gradient(145deg, rgba(13,110,253,0.1) 0%, rgba(0,0,0,0) 100%);">
+                        <div class="card bg-gradient border-primary mb-4 shadow" id="summary-package-card" style="display:none; background: linear-gradient(145deg, color-mix(in srgb, var(--vscode-accent) 15%, transparent) 0%, transparent 100%);">
                             <div class="card-body py-3 px-4">
                                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                     <div>
@@ -533,57 +533,44 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveBtn.disabled = true;
 
             try {
-                // 1. Set default role to 'Customer'
-                const { data: roleData } = await supabase.from('roles').select('id').eq('code', 'CUST').single();
-                const role_id = roleData ? roleData.id : null;
+                // Read files as base64 (if any)
+                const toBase64 = file => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
 
-                const customerPayload = {
-                    name: name,
+                const photoKtpBase64 = fotoKtp ? await toBase64(fotoKtp) : null;
+                const photoRumahBase64 = fotoRumah ? await toBase64(fotoRumah) : null;
+
+                const payload = {
+                    name,
+                    phone,
+                    alt_phone: altPhone,
                     address: finalAddress,
-                    phone: phone,
                     packet: pkgName,
-                    install_date: installDate || null,
                     lat: parseFloat(lat),
                     lng: parseFloat(lng),
-                    role_id: role_id,
-                    email: email || null  // optional contact email; auth account created later on installation confirm
+                    photo_ktp: photoKtpBase64,
+                    photo_rumah: photoRumahBase64
                 };
 
-                // 2. Insert customer row only — Auth credentials are created later
-                //    when admin confirms the installation is done (pemasangan selesai).
-                const { data: newCust, error: custErr } = await supabase
-                    .from('customers')
-                    .insert([customerPayload])
-                    .select()
-                    .single();
+                const response = await fetch('/api/customers/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-                if (custErr) {
-                    if (custErr.message && custErr.message.toLowerCase().includes('unique')) {
-                        throw new Error('Nomor telepon/email ini sudah terdaftar. Silakan gunakan nomor lain.');
-                    }
-                    throw custErr;
+                const resData = await response.json();
+
+                if (!response.ok) {
+                   throw new Error(resData.error || 'Pendaftaran gagal');
                 }
 
-                // 3. Insert into work_orders (Antrian PSB)
-                if (newCust && newCust.id) {
-                    // Fetch PSB queue type id
-                    const { data: psbType } = await supabase.from('master_queue_types').select('id').eq('name', 'PSB').single();
-                    const { error: woErr } = await supabase.from('work_orders').insert([{
-                            customer_id: newCust.id,
-                        type_id: psbType?.id || null,
-                        status: 'waiting', // New default status
-                        source: 'customer', // Mark source
-                        title: 'Pemasangan Baru (PSB)',
-                        registration_date: new Date().toISOString().split('T')[0],
-                        referral_name: '',
-                        ket: 'Paket: ' + pkgName,
-                        created_at: new Date().toISOString()
-                    }]);
-                    if (woErr) console.warn("Notice: Gagal membuat antrian PSB otomatis:", woErr.message);
-                }
-
-                showToast('success', 'Registrasi Pelanggan berhasil diselesaikan! Data masuk ke Antrian.');
-                window.location.href = APP_BASE_URL + '/?success=true';
+                showToast('success', 'Registrasi berhasil! Beralih ke halaman tracking...');
+                // Redirect to Tracking portal
+                window.location.href = APP_BASE_URL + '/enduser/tracking.html?token=' + resData.data.secret_token;
 
             } catch (err) {
                 showToast('error', 'Gagal memproses pendaftaran: ' + err.message);

@@ -97,6 +97,24 @@ CREATE TABLE IF NOT EXISTS public.customers (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 7.1 PSB Registrations (Prospects)
+CREATE TABLE IF NOT EXISTS public.psb_registrations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    alt_phone TEXT,
+    address TEXT NOT NULL,
+    packet TEXT,
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION,
+    photo_ktp TEXT,
+    photo_rumah TEXT,
+    secret_token UUID UNIQUE DEFAULT gen_random_uuid(),
+    status TEXT DEFAULT 'waiting',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 8. App Settings
 CREATE TABLE IF NOT EXISTS public.app_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -180,6 +198,36 @@ CREATE TABLE IF NOT EXISTS public.notification_queue (
     error_msg    TEXT,
     ref_id       UUID,
     created_at   TIMESTAMPTZ DEFAULT now()
+);
+
+-- 13. Financial Transactions (Ledger)
+CREATE TABLE IF NOT EXISTS public.financial_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+    category TEXT NOT NULL,
+    description TEXT NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    payment_method TEXT,
+    reference_id TEXT, -- e.g., bill_id, employee_id for salary
+    created_by UUID REFERENCES auth.users(id), -- Foreign key to the user who created the transaction.
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 14. Payment Methods
+CREATE TABLE IF NOT EXISTS public.payment_methods (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT UNIQUE NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 15. Expense Categories
+CREATE TABLE IF NOT EXISTS public.expense_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- IV. FUNCTIONS & TRIGGERS
@@ -276,11 +324,16 @@ ALTER TABLE public.internet_packages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.psb_registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.installation_monitorings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_bills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.financial_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expense_categories ENABLE ROW LEVEL SECURITY;
 
 -- 2. Policies
 -- Roles: Public Select
@@ -302,6 +355,7 @@ CREATE POLICY "Allow admin insert for app_settings" ON public.app_settings FOR I
 CREATE POLICY "Allow admin delete for app_settings" ON public.app_settings FOR DELETE USING (is_admin_class());
 
 -- Generic Public/Permissive Policies (Can be tightened later per business logic)
+CREATE POLICY "Enable all for anyone" ON public.psb_registrations FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for anyone" ON public.customers FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for anyone" ON public.inventory_items FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for anyone" ON public.internet_packages FOR ALL USING (true) WITH CHECK (true);
@@ -328,6 +382,10 @@ CREATE POLICY "assignments_update" ON public.work_order_assignments
 CREATE POLICY "assignments_delete" ON public.work_order_assignments
   FOR DELETE USING (has_any_role(ARRAY['S_ADM', 'OWNER']));
 
+-- Customer Bills: Admin/Treasurer full access; public select for invoice portal
+CREATE POLICY "bills_select_admin" ON public.customer_bills FOR SELECT USING (is_admin_class() OR has_role('TREASURER'));
+CREATE POLICY "bills_modify_admin" ON public.customer_bills FOR ALL USING (is_admin_class() OR has_role('TREASURER')) WITH CHECK (is_admin_class() OR has_role('TREASURER'));
+CREATE POLICY "bills_select_public" ON public.customer_bills FOR SELECT USING (true); -- Public can read IF they know the token (secured at API/Search level)
 -- Notification Queue: Admin only
 CREATE POLICY "notif_queue_admin_all" ON public.notification_queue
     FOR ALL
@@ -339,9 +397,11 @@ CREATE POLICY "notif_queue_admin_all" ON public.notification_queue
 CREATE INDEX IF NOT EXISTS idx_work_orders_status ON public.work_orders(status);
 CREATE INDEX IF NOT EXISTS idx_work_orders_customer_id ON public.work_orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_work_orders_employee_id ON public.work_orders(employee_id);
-        CREATE INDEX IF NOT EXISTS idx_wo_assignments_work_order_id ON public.work_order_assignments(work_order_id);
-        CREATE INDEX IF NOT EXISTS idx_wo_assignments_employee_id ON public.work_order_assignments(employee_id);
-
+CREATE INDEX IF NOT EXISTS idx_wo_assignments_work_order_id ON public.work_order_assignments(work_order_id);
+CREATE INDEX IF NOT EXISTS idx_wo_assignments_employee_id ON public.work_order_assignments(employee_id);
+CREATE INDEX IF NOT EXISTS idx_bills_customer_id ON public.customer_bills(customer_id);
+CREATE INDEX IF NOT EXISTS idx_bills_status ON public.customer_bills(status);
+CREATE INDEX IF NOT EXISTS idx_bills_token ON public.customer_bills(secret_token);
 CREATE INDEX IF NOT EXISTS idx_notif_queue_dispatch
     ON public.notification_queue (status, priority, scheduled_at)
     WHERE status = 'pending';
@@ -385,5 +445,52 @@ VALUES
         'whatsapp',
         'JSON map of message_type → device label. All default to "main" (single device). Edit in Settings to reassign when additional devices are added.')
 ON CONFLICT (setting_key) DO NOTHING;
-  
-  
+
+-- Seed Payment Methods
+INSERT INTO public.payment_methods (name) VALUES
+('Cash'), ('Bank Transfer'), ('QRIS')
+ON CONFLICT (name) DO NOTHING;
+
+-- Seed Expense Categories
+INSERT INTO public.expense_categories (name, description) VALUES
+('Gaji Karyawan', 'Pembayaran gaji bulanan karyawan'),
+('Operasional Kantor', 'Biaya rutin kantor seperti listrik, air, internet'),
+('Pembelian Stok', 'Pembelian perangkat dan material untuk instalasi'),
+('Transportasi', 'Biaya bensin dan transportasi teknisi'),
+('Lain-lain', 'Pengeluaran lain-lain yang tidak terduga')
+ON CONFLICT (name) DO NOTHING;
+
+-- 6. Get Financial Summary
+CREATE OR REPLACE FUNCTION public.get_financial_summary(start_date DATE, end_date DATE)
+RETURNS JSON AS $$
+DECLARE
+    result JSON;
+BEGIN
+    SELECT json_build_object(
+        'total_income', COALESCE((SELECT SUM(amount) FROM public.financial_transactions WHERE type = 'income' AND transaction_date BETWEEN start_date AND end_date), 0),
+        'total_expense', COALESCE((SELECT SUM(amount) FROM public.financial_transactions WHERE type = 'expense' AND transaction_date BETWEEN start_date AND end_date), 0),
+        'income_by_category', COALESCE((
+            SELECT json_object_agg(category, total)
+            FROM (
+                SELECT category, SUM(amount) as total
+                FROM public.financial_transactions
+                WHERE type = 'income' AND transaction_date BETWEEN start_date AND end_date
+                GROUP BY category
+            ) s
+        ), '{}'::json),
+        'expense_by_category', COALESCE((
+            SELECT json_object_agg(category, total)
+            FROM (
+                SELECT category, SUM(amount) as total
+                FROM public.financial_transactions
+                WHERE type = 'expense' AND transaction_date BETWEEN start_date AND end_date
+                GROUP BY category
+            ) s
+        ), '{}'::json)
+    ) INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+

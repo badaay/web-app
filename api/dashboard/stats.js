@@ -1,21 +1,7 @@
-/**
- * GET /api/dashboard/stats
- *
- * Returns aggregated dashboard statistics in a single request,
- * replacing 4+ individual client-side queries.
- *
- * Response:
- * {
- *   "totalCustomers": 123,
- *   "activeWorkOrders": 12,
- *   "activeEmployees": 8,
- *   "totalPackages": 5,
- *   "workOrdersByStatus": { "waiting": 3, "confirmed": 4, "open": 5, "closed": 111 },
- *   "topTechnicians": [{ "name": "...", "total_points": 500 }, ...]
- * }
- */
-
 import { supabaseAdmin, verifyAuth, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+
+// GET /api/dashboard/stats - Returns aggregated dashboard statistics
+// Response: { totalCustomers, activeWorkOrders, activeEmployees, totalPackages, workOrdersByStatus, topTechnicians }
 
 export const config = { runtime: 'edge' };
 

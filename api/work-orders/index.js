@@ -14,7 +14,7 @@
  *   "title"          : "PSB",
  *   "customer_id"    : "uuid",
  *   "employee_id"    : "uuid|null",
- *   "package_id"     : "uuid|null",
+ *   // package_id removed
  *   "ket"            : "notes",
  *   "payment_status" : "pending|paid"
  * }
@@ -41,8 +41,8 @@ export default withCors(async function handler(req) {
       let query = supabaseAdmin
         .from('work_orders')
         .select(
-          `*, customers(name, address, phone, lat, lng),
-           employees!employee_id(name, employee_id),
+          `*, customers(name, address, phone, lat, lng, packet),
+           work_order_assignments(assignment_role, employees(name)),
            master_queue_types(name, color, icon, base_point)`,
           { count: 'exact' }
         )
@@ -70,7 +70,7 @@ export default withCors(async function handler(req) {
       if (!adminUser) return errorResponse('Forbidden: Admin access required', 403);
 
       const body = await req.json();
-      const { type_id, title, customer_id, employee_id, package_id, ket, payment_status } = body;
+      const { type_id, title, customer_id, employee_id, ket, payment_status } = body;
 
       if (!type_id || !title) {
         return errorResponse('type_id and title are required', 400);
@@ -84,7 +84,6 @@ export default withCors(async function handler(req) {
           status: 'waiting',
           customer_id: customer_id || null,
           employee_id: employee_id || null,
-          package_id: package_id || null,
           ket: ket || null,
           payment_status: payment_status || 'pending',
           created_at: new Date().toISOString(),

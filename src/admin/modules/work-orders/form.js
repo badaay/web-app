@@ -59,7 +59,7 @@ async function showTypePickerModal(modal) {
         });
     });
 
-    document.getElementById('save-crud-btn').style.display = 'none';
+    // document.getElementById('save-crud-btn').style.display = 'none';
 }
 
 /**
@@ -70,15 +70,13 @@ async function showTypeSpecificForm(typeId, typeName, modal) {
     body.innerHTML = getSpinner('Memuat Form...');
 
     // Fetch lookup data in parallel
-    const [customersResp, employeesResp, packagesResp] = await Promise.all([
+    const [customersResp, employeesResp] = await Promise.all([
         supabase.from('customers').select('id, name, phone, address'),
-        supabase.from('employees').select('id, name'),
-        supabase.from('internet_packages').select('id, name, price')
+        supabase.from('employees').select('id, name')
     ]);
 
     const customers = customersResp.data || [];
     const employees = employeesResp.data || [];
-    const packages = packagesResp.data || [];
 
     const fields = getTypeFields(typeId);
 
@@ -105,17 +103,7 @@ async function showTypeSpecificForm(typeId, typeName, modal) {
         `;
     }
 
-    if (fields.package) {
-        formHtml += `
-            <div class="mb-3">
-                <label class="form-label">Paket Layanan *</label>
-                <select class="form-select form-select-sm" name="package_id" required>
-                    <option value="">-- Pilih Paket --</option>
-                    ${packages.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
-                </select>
-            </div>
-        `;
-    }
+    // Package logic removed since work_orders no longer stores package_id
 
     if (fields.employee) {
         formHtml += `
@@ -164,7 +152,7 @@ function getTypeFields(typeId) {
     // Map based on type ID or hardcode logic
     return {
         customer: true,      // All types need customer
-        package: typeId === '1' || typeId === '4', // PSB or Upgrade
+        package: false,      // Removed as work_orders doesn't have package_id
         employee: false       // Optional for now
     };
 }
@@ -181,7 +169,6 @@ async function saveTypeSpecificWorkOrder(modal) {
         title: formData.get('type_name'),
         customer_id: formData.get('customer_id') || null,
         employee_id: formData.get('employee_id') || null,
-        package_id: formData.get('package_id') || null,
         ket: formData.get('ket'),
         payment_status: formData.get('payment_status'),
     };
@@ -203,15 +190,13 @@ async function saveTypeSpecificWorkOrder(modal) {
  * Render full editable form (for edit mode)
  */
 async function renderFullWorkOrderForm(wo) {
-    const [customersResp, employeesResp, packagesResp] = await Promise.all([
+    const [customersResp, employeesResp] = await Promise.all([
         supabase.from('customers').select('id, name, phone, address'),
-        supabase.from('employees').select('id, name'),
-        supabase.from('internet_packages').select('id, name, price')
+        supabase.from('employees').select('id, name')
     ]);
 
     const customers = customersResp.data || [];
     const employees = employeesResp.data || [];
-    const packages = packagesResp.data || [];
 
     const body = document.getElementById('crudModalBody');
     body.innerHTML = `
@@ -248,13 +233,7 @@ async function renderFullWorkOrderForm(wo) {
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Paket</label>
-                <select class="form-select form-select-sm" name="package_id">
-                    <option value="">-- Pilih --</option>
-                    ${packages.map(p => `<option value="${p.id}" ${wo.package_id === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
-                </select>
-            </div>
+            <!-- Package selection removed -> stored on customer/registration instead -->
 
             <div class="mb-3">
                 <label class="form-label">Keterangan</label>
@@ -288,7 +267,6 @@ async function saveFullWorkOrder(woId, modal) {
         status: formData.get('status'),
         customer_id: formData.get('customer_id') || null,
         employee_id: formData.get('employee_id') || null,
-        package_id: formData.get('package_id') || null,
         ket: formData.get('ket'),
         payment_status: formData.get('payment_status'),
     };

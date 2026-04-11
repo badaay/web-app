@@ -4,7 +4,7 @@
  * Ref: pre-planning/07-integration-points.md
  */
 
-import { verifyAuth, isAdmin, jsonResponse, errorResponse, withCors, supabaseAdmin } from '../../../_lib/supabase.js';
+import { verifyAuth, isAdmin, jsonResponse, errorResponse, withCors, supabaseAdmin } from '../../_lib/supabase.js';
 
 export const config = { runtime: 'edge' };
 

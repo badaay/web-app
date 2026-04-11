@@ -21,9 +21,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // initMap();
 
     document.getElementById('login-btn').addEventListener('click', async () => {
-        const email = document.getElementById('email').value;
+        const phone = document.getElementById('phone').value;
         const password = document.getElementById('password').value;
-        const { data, error } = await AuthService.login(email, password);
+        const { data, error } = await AuthService.loginCustomerPhone(phone, password);
         if (error) {
             alert('Login gagal: ' + error.message);
             console.error('Error logging in:', error.message);
