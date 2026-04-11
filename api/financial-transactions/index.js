@@ -6,7 +6,7 @@
  *
  * Accessible only by finance-related roles (S_ADM, OWNER, TREASURER).
  */
-import { supabaseAdmin, verifyAuth, withCors, jsonResponse, errorResponse, hasRole } from '../_lib/supabase.js';
+import { supabaseAdmin, supabaseAdminB, verifyAuth, withCors, jsonResponse, errorResponse, hasRole } from '../_lib/supabase.js';
 
 export const config = { runtime: 'edge' };
 
@@ -35,7 +35,9 @@ async function handleGet(req, user) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    let query = supabaseAdmin
+    if (!supabaseAdminB) return errorResponse('Project B (Vault) not configured', 503);
+
+    let query = supabaseAdminB
         .from('financial_transactions')
         .select(`
             *,
@@ -83,7 +85,9 @@ async function handlePost(req, user) {
             return errorResponse('Amount must be a positive number.', 400);
         }
 
-        const { data, error } = await supabaseAdmin
+        if (!supabaseAdminB) return errorResponse('Project B (Vault) not configured', 503);
+
+        const { data, error } = await supabaseAdminB
             .from('financial_transactions')
             .insert({
                 transaction_date: transaction_date || new Date().toISOString().split('T')[0],

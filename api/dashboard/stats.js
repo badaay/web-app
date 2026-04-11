@@ -36,7 +36,7 @@ export default withCors(async function handler(req) {
         .from('work_orders')
         .select('status'),
       supabaseAdmin
-        .from('employees')
+        .from('v_technician_performance')
         .select('name, total_points')
         .order('total_points', { ascending: false })
         .limit(5),

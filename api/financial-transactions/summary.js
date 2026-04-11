@@ -5,7 +5,7 @@
  *
  * Accessible only by finance-related roles (S_ADM, OWNER, TREASURER).
  */
-import { supabaseAdmin, verifyAuth, withCors, jsonResponse, errorResponse, hasRole } from '../_lib/supabase.js';
+import { supabaseAdmin, verifyAuth, withCors, jsonResponse, errorResponse, isFinance } from '../_lib/supabase.js';
 
 export const config = { runtime: 'edge' };
 
@@ -13,9 +13,9 @@ export default withCors(async function handler(req) {
     const { user, error: authError } = await verifyAuth(req);
     if (authError) return errorResponse(authError, 401);
 
-    const isFinanceUser = await hasRole(user.id, ['S_ADM', 'OWNER', 'TREASURER']);
+    const isFinanceUser = await isFinance(user.id);
     if (!isFinanceUser) {
-        return errorResponse('Forbidden: Access is restricted to finance roles.', 403);
+        return errorResponse('Forbidden: Access is restricted to finance roles (Admins, Owner, or Treasurer).', 403);
     }
 
     if (req.method === 'GET') {

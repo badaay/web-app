@@ -13,7 +13,7 @@
  * - period_month: number
  */
 
-import { supabaseAdmin, verifyAuth, isFinance, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { supabaseAdmin, supabaseAdminB, verifyAuth, isFinance, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
 
 export const config = { runtime: 'edge' };
 
@@ -35,7 +35,9 @@ export default withCors(async function handler(req) {
         const periodYear = url.searchParams.get('period_year');
         const periodMonth = url.searchParams.get('period_month');
 
-        let query = supabaseAdmin
+        if (!supabaseAdminB) return errorResponse('Project B (Vault) not configured', 503);
+
+        let query = supabaseAdminB
             .from('customer_bills')
             .select(`
                 *,
