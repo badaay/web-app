@@ -24,7 +24,6 @@ export async function initWorkOrders() {
     const unifiedContainer = document.createElement('div');
     unifiedContainer.id = 'work-orders-unified-container';
     unifiedContainer.innerHTML = `
-        <div id="wo-active-hero-section" class="mb-4"></div>
         <div id="wo-live-activity-section" class="mb-4"></div>
         <div id="wo-main-kanban-board" class="mt-3"></div>
     `;
@@ -111,15 +110,7 @@ export async function initWorkOrders() {
         window.reloadUnifiedKanban();
     };
 
-    // Wire map button
-    const mapBtn = document.getElementById('map-button-wo');
-    if (mapBtn) {
-        mapBtn.onclick = () => {
-            const filtered = getFilteredOrders(allWorkOrders, currentFilter, currentSearch);
-            exposeMapGlobal(filtered, currentFilter);
-            window.showAllPSBMap();
-        };
-    }
+
 
     // Render search bar
     renderSearchBar((query) => {
@@ -183,50 +174,42 @@ async function renderTargetStatistics(pemasanganTypeId, perbaikanTypeId) {
         // Cache the stats
         cachedTargetStats = stats;
 
-        // Render statistics
         let html = `
-            <div class="mb-4">
-                <div class="row g-2 mb-3">
-                    <div class="col-6">
-                        <div class="glass-header-pro text-center p-3 mb-0" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2);">
-                            <div class="small fw-semibold mb-1 text-warning">Menunggu</div>
-                            <div class="fs-4 fw-bold text-white lh-1">${stats.waiting}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="glass-header-pro text-center p-3 mb-0" style="background: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.2);">
-                            <div class="small fw-semibold mb-1 text-info">Diproses</div>
-                            <div class="fs-4 fw-bold text-white lh-1">${stats.inProgress}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="glass-header-pro text-center p-3 mb-0" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2);">
-                            <div class="small fw-semibold mb-1 text-success">Selesai</div>
-                            <div class="fs-4 fw-bold text-white lh-1">${stats.completed}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="glass-header-pro text-center p-3 mb-0" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2);">
-                            <div class="small fw-semibold mb-1 text-danger">Leftover</div>
-                            <div class="fs-4 fw-bold text-white lh-1">${stats.leftOver}</div>
-                        </div>
+            <div class="row g-3">
+                <div class="col-6 col-sm-3 mt-0">
+                    <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
+                        <div class="small fw-semibold mb-1" style="color: #f59e0b;">Menunggu</div>
+                        <div class="h4 fw-bold text-white mb-0 lh-1">${stats.waiting}</div>
                     </div>
                 </div>
-                
-                <h6 class="small text-white-50 fw-bold mb-2 text-uppercase" style="letter-spacing: 1px;">Target Divisi</h6>
-                <div class="row g-2">
-                    <div class="col-6">
-                        <div class="kanban-pro-col text-center p-2 mb-0" style="background: rgba(15, 23, 42, 0.6);">
-                            <span class="small text-white-50 d-block mb-1">Pemasangan</span>
-                            <span class="fw-bold text-white fs-5 lh-1">${stats.pemasangan}</span>
-                        </div>
+                <div class="col-6 col-sm-3 mt-0">
+                    <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
+                        <div class="small fw-semibold mb-1" style="color: #0ea5e9;">Diproses</div>
+                        <div class="h4 fw-bold text-white mb-0 lh-1">${stats.inProgress}</div>
                     </div>
-                    <div class="col-6">
-                        <div class="kanban-pro-col text-center p-2 mb-0" style="background: rgba(15, 23, 42, 0.6);">
-                            <span class="small text-white-50 d-block mb-1">Perbaikan</span>
-                            <span class="fw-bold text-white fs-5 lh-1">${stats.perbaikan}</span>
-                        </div>
+                </div>
+                <div class="col-6 col-sm-3 mt-0">
+                    <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
+                        <div class="small fw-semibold mb-1" style="color: #10b981;">Selesai</div>
+                        <div class="h4 fw-bold text-white mb-0 lh-1">${stats.completed}</div>
                     </div>
+                </div>
+                <div class="col-6 col-sm-3 mt-0">
+                    <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
+                        <div class="small fw-semibold mb-1" style="color: #ef4444;">Leftover</div>
+                        <div class="h4 fw-bold text-white mb-0 lh-1">${stats.leftOver}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-4 mt-3 pb-1 border-top border-secondary border-opacity-25 pt-2">
+                <div class="text-center">
+                    <span class="small text-white-50 d-block mb-1">Target Pemasangan</span>
+                    <span class="fw-bold text-white fs-6 lh-1">${stats.pemasangan}</span>
+                </div>
+                <div class="text-center" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1rem;">
+                    <span class="small text-white-50 d-block mb-1">Target Perbaikan</span>
+                    <span class="fw-bold text-white fs-6 lh-1">${stats.perbaikan}</span>
                 </div>
             </div>
         `;

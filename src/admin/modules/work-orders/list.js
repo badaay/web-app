@@ -87,23 +87,46 @@ export function renderSearchBar(onSearch) {
     
     const searchWrapper = document.createElement('div');
     searchWrapper.id = 'wo-search-bar';
-    searchWrapper.className = 'mb-3 d-flex gap-2 align-items-center';
+    searchWrapper.className = 'mb-4';
     searchWrapper.innerHTML = `
-        <div class="input-group input-group-sm" style="max-width:320px;">
-            <span class="input-group-text bg-vscode-header border-0 text-white-50"><i class="bi bi-search"></i></span>
-            <input id="wo-search-input" type="text" class="form-control" placeholder="Cari nama pelanggan, petugas, ket...">
+        <div class="d-flex align-items-center gap-2 p-1 bg-dark bg-opacity-50 rounded-pill border border-secondary border-opacity-25 shadow-sm" style="max-width: 400px; transition: all 0.3s ease;">
+            <div class="ps-3 text-white-50">
+                <i class="bi bi-search"></i>
+            </div>
+            <input id="wo-search-input" type="text" 
+                class="form-control form-control-sm border-0 bg-transparent text-white shadow-none py-2" 
+                placeholder="Cari pelanggan, teknisi, atau keterangan..."
+                style="font-size: 0.9rem;">
+            <button class="btn btn-link btn-sm text-white-50 p-2 me-1 hover-scale d-none" id="wo-clear-search">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
-        <button class="btn btn-sm btn-outline-secondary" id="wo-clear-search"><i class="bi bi-x"></i></button>
+        <style>
+            #wo-search-bar input::placeholder { color: rgba(255,255,255,0.3); }
+            #wo-search-bar > div:focus-within {
+                border-color: var(--vscode-accent) !important;
+                background: rgba(0,0,0,0.7) !important;
+                box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.2) !important;
+            }
+        </style>
     `;
     searchBarContainer.appendChild(searchWrapper);
 
     const searchInput = document.getElementById('wo-search-input');
     const clearBtn = document.getElementById('wo-clear-search');
 
-    searchInput.addEventListener('input', (e) => onSearch(e.target.value.toLowerCase()));
+    searchInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (val) clearBtn.classList.remove('d-none');
+        else clearBtn.classList.add('d-none');
+        onSearch(val.toLowerCase());
+    });
+    
     clearBtn.addEventListener('click', () => {
         searchInput.value = '';
+        clearBtn.classList.add('d-none');
         onSearch('');
+        searchInput.focus();
     });
 }
 
@@ -168,13 +191,13 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                 transition: opacity 0.3s ease;
             }
             .kanban-pro-card:hover {
-                transform: translateY(-4px) scale(1.02) !important;
-                box-shadow: 0 12px 30px -8px rgba(0, 71, 171, 0.4) !important;
-                border-color: rgba(20, 184, 166, 0.3) !important;
-                background: rgba(30, 41, 59, 0.8) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 8px 20px -6px rgba(0, 71, 171, 0.3) !important;
+                border-color: rgba(20, 184, 166, 0.2) !important;
+                background: rgba(30, 41, 59, 0.9) !important;
             }
             .kanban-pro-card:hover::before {
-                opacity: 1;
+                opacity: 0.8;
             }
             .tech-gradient-badge {
                 background: linear-gradient(135deg, #0047AB 0%, #14b8a6 100%);
@@ -225,7 +248,7 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
         document.head.appendChild(style);
     }
 
-    const heroContainer = document.getElementById('wo-active-hero-section');
+    const heroContainer = document.getElementById('wo-target-today-section');
     if (heroContainer) heroContainer.innerHTML = '';
 
     if (filteredOrders.length === 0) {
@@ -247,8 +270,7 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
     const mainKanbanColumns = [
         { id: 'waiting', title: '🟡 Menunggu', statuses: ['waiting'], width: '320px' },
         { id: 'progress', title: '🔵 Diproses', statuses: ['confirmed', 'open', 'pending'], width: '320px' },
-        { id: 'issues', title: '🔴 Kendala', statuses: ['odp_full', 'cancelled', 'kendala'], width: '320px' },
-        { id: 'closed', title: '🟢 Selesai', statuses: ['closed'], width: '320px' }
+        { id: 'issues', title: '🔴 Kendala', statuses: ['odp_full', 'cancelled', 'kendala'], width: '320px' }
     ];
 
     const createCardHtml = (wo) => `
@@ -307,8 +329,8 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                             </span>
                             <span class="badge bg-primary rounded-pill px-3 py-2 shadow-sm">${todayOrders.length}</span>
                         </div>
-                        <div class="p-3 kanban-scroll" style="max-height: 400px; overflow-y: auto;">
-                            ${todayOrders.length === 0 ? '<div class="text-center p-4 small text-muted border border-secondary border-opacity-25 rounded" style="border-style: dashed !important;">Tidak ada antrian hari ini.</div>' : todayOrders.map(createCardHtml).join('')}
+                        <div class="p-3 kanban-scroll d-flex flex-nowrap overflow-x-auto gap-3" style="max-height: auto;">
+                            ${todayOrders.length === 0 ? '<div class="text-center p-4 small text-muted border border-secondary border-opacity-25 rounded w-100" style="border-style: dashed !important;">Tidak ada antrian hari ini.</div>' : todayOrders.map(wo => `<div style="min-width: 300px; flex-shrink: 0;">${createCardHtml(wo).replace('mb-3', 'mb-0')}</div>`).join('')}
                         </div>
                     </div>
                 </div>
@@ -320,8 +342,8 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                             </span>
                             <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm">${leftoverOrders.length}</span>
                         </div>
-                        <div class="p-3 kanban-scroll" style="max-height: 400px; overflow-y: auto;">
-                            ${leftoverOrders.length === 0 ? '<div class="text-center p-4 small text-muted border border-secondary border-opacity-25 rounded" style="border-style: dashed !important;">Bersih! Tidak ada penumpukan.</div>' : leftoverOrders.map(createCardHtml).join('')}
+                        <div class="p-3 kanban-scroll d-flex flex-nowrap overflow-x-auto gap-3" style="max-height: auto;">
+                            ${leftoverOrders.length === 0 ? '<div class="text-center p-4 small text-muted border border-secondary border-opacity-25 rounded w-100" style="border-style: dashed !important;">Bersih! Tidak ada penumpukan.</div>' : leftoverOrders.map(wo => `<div style="min-width: 300px; flex-shrink: 0;">${createCardHtml(wo).replace('mb-3', 'mb-0')}</div>`).join('')}
                         </div>
                     </div>
                 </div>
