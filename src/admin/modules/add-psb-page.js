@@ -1,4 +1,4 @@
-import { supabase, supabaseA, supabaseB } from '../../api/supabase.js';
+import { apiCall, supabase, supabaseA, supabaseB } from '../../api/supabase.js';
 import { compressImage } from '../utils/image-utils.js';
 import { AuthService } from '../../api/auth-service.js';
 import { APP_BASE_URL } from '../../config.js';
@@ -60,42 +60,104 @@ document.addEventListener('DOMContentLoaded', async () => {
                 from { opacity: 0; transform: translateY(-5px); }
                 to { opacity: 1; transform: translateY(0); }
             }
-            .package-card:hover {
-                transform: translateY(-5px) !important;
-                border-color: #58a6ff !important;
-                box-shadow: 0 8px 24px rgba(88, 166, 255, 0.2) !important;
+            .pkg-card-premium {
+                background: #ffffff;
+                border: 1px solid #e2e8f0; 
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                border-radius: 1.25rem;
+                overflow: hidden;
+                position: relative;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
             }
-            .package-card:hover .package-body {
-                background-color: rgba(88, 166, 255, 0.05);
+            .pkg-card-premium::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0; height: 3px;
+                background: linear-gradient(90deg, #0047AB, #2DD4BF);
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .pkg-card-premium:hover {
+                transform: translateY(-6px);
+                border-color: #cbd5e1;
+                box-shadow: 0 20px 25px -5px rgba(0,0,0,0.08), 0 10px 10px -5px rgba(0,0,0,0.04);
+            }
+            .pkg-card-premium:hover::before {
+                opacity: 1;
+            }
+            .pkg-card-premium.selected {
+                border-color: #0047AB;
+                background: #f8fafc;
+                box-shadow: 0 0 0 2px #0047AB inset, 0 20px 25px -5px rgba(0,71,171,0.1);
+                transform: scale(1.02);
+            }
+            .pkg-card-premium.selected::before {
+                opacity: 1;
+                height: 4px;
+            }
+            .pkg-icon-wrapper {
+                width: 64px;
+                height: 64px;
+                border-radius: 1rem;
+                background: #f1f5f9;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1.5rem auto;
+                border: 1px solid #e2e8f0;
+                color: #0047AB;
+                transition: all 0.3s ease;
+            }
+            .pkg-card-premium.selected .pkg-icon-wrapper {
+                background: linear-gradient(135deg, #0047AB, #2DD4BF);
+                color: white;
+                border: none;
+                box-shadow: 0 10px 20px rgba(0, 71, 171, 0.2);
+            }
+            .pkg-speed-badge {
+                background: #f1f5f9;
+                border: 1px solid #e2e8f0;
+                padding: 0.35rem 1rem;
+                border-radius: 2rem;
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: #475569;
+                letter-spacing: 0.5px;
+                transition: all 0.3s ease;
+            }
+            .pkg-card-premium.selected .pkg-speed-badge {
+                background: rgba(45, 212, 191, 0.1);
+                border-color: rgba(45, 212, 191, 0.3);
+                color: #0047AB;
             }
         </style>
         <div class="row mb-4">
             <div class="col-12 text-center">
-                <h3 class="text-white mb-2"><i class="bi bi-person-plus text-primary me-2"></i>Registrasi Pelanggan</h3>
-                <p class="text-white-50">Lengkapi form di bawah untuk mendaftar layanan Pemasangan Baru.</p>
+                <h3 class="text-slate-900 fw-bold mb-2" style="color: #0f172a;"><i class="bi bi-person-plus text-primary me-2"></i>Registrasi Pelanggan</h3>
+                <p class="text-slate-500" style="color: #64748b;">Lengkapi form di bawah untuk mendaftar layanan Pemasangan Baru.</p>
             </div>
         </div>
 
         <!-- STEPPER INDICATORS -->
         <div class="d-flex mb-4 justify-content-center flex-wrap gap-2 gap-md-4">
             <div class="step-indicator active d-flex align-items-center" id="ind-step-1">
-                <div class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">1</div>
-                <span class="small fw-bold text-white">Pilih Paket</span>
+                <div class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.2);">1</div>
+                <span class="small fw-bold text-dark">Pilih Paket</span>
             </div>
             <div class="step-indicator opacity-50 d-flex align-items-center" id="ind-step-2">
-                <div class="step-num bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">2</div>
-                <span class="small fw-bold text-white">Lokasi</span>
+                <div class="step-num bg-light border text-secondary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">2</div>
+                <span class="small fw-bold text-secondary">Lokasi</span>
             </div>
             <div class="step-indicator opacity-50 d-flex align-items-center" id="ind-step-3">
-                <div class="step-num bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">3</div>
-                <span class="small fw-bold text-white">Biodata</span>
+                <div class="step-num bg-light border text-secondary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">3</div>
+                <span class="small fw-bold text-secondary">Biodata</span>
             </div>
         </div>
 
         <!-- LOADING OVERLAY -->
         <div id="step-loading" class="d-none text-center py-5">
             <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
-            <p class="text-white-50 mt-3">Sedang memproses...</p>
+            <p class="text-secondary mt-3">Sedang memproses...</p>
         </div>
     `;
 
@@ -104,14 +166,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div id="step-1" class="step-section">
 
                         <div class="row g-3" id="package-cards-container">
-                            <div class="col-12 text-center text-white-50 py-4"><div class="spinner-border spinner-border-sm me-2"></div> Memuat opsi paket...</div>
+                            <div class="col-12 text-center text-secondary py-4"><div class="spinner-border spinner-border-sm me-2 text-primary"></div> Memuat opsi paket...</div>
                         </div>
                         <input type="hidden" id="selected-package-name" required>
                         <input type="hidden" id="selected-package-price">
                         <input type="hidden" id="selected-package-speed">
 
                 <div class="text-end">
-                    <button type="button" class="btn btn-primary px-4 py-2 fw-bold transition-transform" id="btn-next-2">
+                    <button type="button" class="btn btn-primary px-4 py-2 fw-bold transition-transform shadow-sm" id="btn-next-2">
                         Selanjutnya <i class="bi bi-arrow-right ms-2"></i>
                     </button>
                 </div>
@@ -121,21 +183,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const getRenderStep2 = () => `
             <!-- ====== STEP 2: LOKASI PEMASANGAN ====== -->
             <div id="step-2" class="step-section d-none">
-                <div class="card bg-vscode border-secondary mb-4 shadow-sm">
-                    <div class="card-header border-secondary bg-dark bg-opacity-50 pt-3 pb-2">
-                        <h5 class="mb-0 text-white"><span class="badge bg-primary rounded-circle me-2 px-2 py-1">2</span> Instalasi / Lokasi Pemasangan</h5>
+                <div class="card bg-vscode border-0 mb-4 shadow-sm" style="border-radius: 1.25rem;">
+                    <div class="card-header border-bottom bg-white pt-3 pb-2" style="border-top-left-radius: 1.25rem; border-top-right-radius: 1.25rem;">
+                        <h5 class="mb-0 text-dark fw-bold"><span class="badge bg-primary rounded-circle me-2 px-2 py-1">2</span> Instalasi / Lokasi Pemasangan</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body bg-white rounded-bottom" style="border-bottom-left-radius: 1.25rem; border-bottom-right-radius: 1.25rem;">
                         <div class="row g-4 d-flex align-items-stretch">
                             <div class="col-md-7">
-                                <label class="form-label text-white-50 small mb-2">Pilih Titik Lokasi di Peta</label>
+                                <label class="form-label text-secondary small mb-2 fw-medium">Pilih Titik Lokasi di Peta</label>
                                 <div class="position-relative">
-                                    <div id="location-picker-map" class="rounded border border-secondary shadow-sm" style="height: 350px; background: var(--vscode-bg); z-index: 1;"></div>
-                                    <button type="button" id="btn-get-location" class="btn btn-sm btn-dark border-secondary position-absolute" style="top: 315px; right: 5px; z-index: 1000;">
-                                        <i class="bi bi-geo-alt-fill text-accent me-1"></i> Lokasi Saya
+                                    <div id="location-picker-map" class="rounded border shadow-sm" style="height: 350px; background: #f8fafc; z-index: 1;"></div>
+                                    <button type="button" id="btn-get-location" class="btn btn-sm btn-white border shadow-sm position-absolute" style="top: 315px; right: 5px; z-index: 1000; background: white;">
+                                        <i class="bi bi-geo-alt-fill text-primary me-1"></i> Lokasi Saya
                                     </button>
                                 </div>
-                                <p class="text-white-50 mt-2 mb-0" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i> Klik pada peta untuk menentukan koordinat pasti lokasi pemasangan.</p>
+                                <p class="text-secondary mt-2 mb-0" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i> Klik pada peta untuk menentukan koordinat pasti lokasi pemasangan.</p>
                                 
                                 <!-- HIDDEN LAT LONG -->
                                 <div class="d-none">
@@ -143,10 +205,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <input type="number" step="any" id="adv-cust-lng" required>
                                 </div>
                             </div>
-                            <div class="col-md-5 d-flex flex-column bg-dark bg-opacity-25 p-3 rounded border border-secondary">
+                            <div class="col-md-5 d-flex flex-column bg-light p-3 rounded border">
                                 <div class="mb-3 flex-grow-1">
-                                    <label class="form-label text-white fw-medium small mb-2">Detail Alamat Pemasangan</label>
-                                    <textarea class="form-control bg-dark text-white border-secondary h-100" id="adv-cust-address" style="min-height: 120px;" placeholder="Tuliskan alamat lengkap... (Nama Jalan, Blok, No Rumah, RT/RW, Patokan)" required></textarea>
+                                    <label class="form-label text-dark fw-medium small mb-2">Detail Alamat Pemasangan</label>
+                                    <textarea class="form-control bg-white text-dark border h-100" id="adv-cust-address" style="min-height: 120px;" placeholder="Tuliskan alamat lengkap... (Nama Jalan, Blok, No Rumah, RT/RW, Patokan)" required></textarea>
                                 </div>
                             </div>
                         </div>
@@ -156,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button type="button" class="btn btn-outline-secondary px-4 py-2" id="btn-back-1">
                         <i class="bi bi-arrow-left me-2"></i> Kembali
                     </button>
-                    <button type="button" class="btn btn-primary px-4 py-2 fw-bold transition-transform" id="btn-next-3">
+                    <button type="button" class="btn btn-primary px-4 py-2 fw-bold transition-transform shadow-sm" id="btn-next-3">
                         Selanjutnya <i class="bi bi-arrow-right ms-2"></i>
                     </button>
                 </div>
@@ -166,23 +228,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const getRenderStep3 = () => `
             <!-- ====== STEP 3: BIODATA DIRI ====== -->
             <div id="step-3" class="step-section d-none">
-                <div class="card bg-vscode border-secondary mb-4 shadow-sm">
-                    <div class="card-header border-secondary bg-dark bg-opacity-50 pt-3 pb-2">
-                        <h5 class="mb-0 text-white"><span class="badge bg-primary rounded-circle me-2 px-2 py-1">3</span> Biodata Diri</h5>
+                <div class="card bg-vscode border-0 mb-4 shadow-sm" style="border-radius: 1.25rem;">
+                    <div class="card-header border-bottom bg-white pt-3 pb-2" style="border-top-left-radius: 1.25rem; border-top-right-radius: 1.25rem;">
+                        <h5 class="mb-0 text-dark fw-bold"><span class="badge bg-primary rounded-circle me-2 px-2 py-1">3</span> Biodata Diri</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body bg-white rounded-bottom">
                         <!-- Selected Package Summary Card -->
-                        <div class="card bg-gradient border-primary mb-4 shadow" id="summary-package-card" style="display:none; background: linear-gradient(145deg, color-mix(in srgb, var(--vscode-accent) 15%, transparent) 0%, transparent 100%);">
+                        <div class="card bg-light border-primary border-opacity-50 mb-4 shadow-sm" id="summary-package-card" style="display:none; border-radius: 1rem;">
                             <div class="card-body py-3 px-4">
                                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                     <div>
-                                        <span class="text-white-50 small d-block mb-1">Paket yang dipilih:</span>
-                                        <h5 class="text-white mb-0 d-inline-block" id="summary-pkg-name">-</h5>
-                                        <span class="badge bg-info text-dark ms-2 align-bottom" id="summary-pkg-speed">-</span>
+                                        <span class="text-secondary small d-block mb-1 fw-medium">Paket yang dipilih:</span>
+                                        <h5 class="text-dark fw-bold mb-0 d-inline-block" id="summary-pkg-name">-</h5>
+                                        <span class="badge bg-primary text-white ms-2 align-bottom" id="summary-pkg-speed">-</span>
                                     </div>
                                     <div class="text-end">
-                                        <span class="text-white-50 small d-block mb-1">Estimasi Biaya</span>
-                                        <h4 class="text-success mb-0" id="summary-pkg-price">-</h4>
+                                        <span class="text-secondary small d-block mb-1 fw-medium">Estimasi Biaya</span>
+                                        <h4 class="text-primary fw-bold mb-0" id="summary-pkg-price">-</h4>
                                     </div>
                                 </div>
                             </div>
@@ -190,46 +252,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label text-white-50 small">Nama Lengkap</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" id="adv-cust-name" placeholder="Sesuai KTP" required>
+                                <label class="form-label text-secondary small fw-medium">Nama Lengkap</label>
+                                <input type="text" class="form-control bg-white text-dark border" id="adv-cust-name" placeholder="Sesuai KTP" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-white-50 small">Email</label>
-                                <input type="email" class="form-control bg-dark text-white border-secondary" id="adv-cust-email" placeholder="email@contoh.com">
+                                <label class="form-label text-secondary small fw-medium">Email</label>
+                                <input type="email" class="form-control bg-white text-dark border" id="adv-cust-email" placeholder="email@contoh.com">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-white-50 small">No. Handphone / WhatsApp</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" id="adv-cust-phone" placeholder="08xxxxxxxxxx" required>
+                                <label class="form-label text-secondary small fw-medium">No. Handphone / WhatsApp</label>
+                                <input type="text" class="form-control bg-white text-dark border" id="adv-cust-phone" placeholder="08xxxxxxxxxx" required>
                                 <div id="phone-duplicate-msg" class="small mt-1 d-none"></div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-white-50 small">No. HP Alternatif</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" id="adv-cust-alt-phone" placeholder="Keluarga / Kerabat (Opsional)">
+                                <label class="form-label text-secondary small fw-medium">No. HP Alternatif</label>
+                                <input type="text" class="form-control bg-white text-dark border" id="adv-cust-alt-phone" placeholder="Keluarga / Kerabat (Opsional)">
                             </div>
                             <div class="col-12 mt-4">
-                                <h6 class="text-white mb-3 border-bottom border-secondary pb-2">Dokumen Pendukung</h6>
+                                <h6 class="text-dark fw-bold mb-3 border-bottom pb-2">Dokumen Pendukung</h6>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-white-50 small">Upload Foto Rumah <span class="text-danger">*</span></label>
-                                <div class="photo-drop-zone" id="drop-zone-rumah" onclick="document.getElementById('adv-cust-foto-rumah').click()">
-                                    <i class="bi bi-house-door fs-2 text-white-50 mb-2 d-block"></i>
-                                    <span class="small text-white-50">Klik untuk upload foto rumah</span>
+                                <label class="form-label text-secondary small fw-medium">Upload Foto Rumah <span class="text-danger">*</span></label>
+                                <div class="photo-drop-zone bg-light border border-light-subtle rounded-3" id="drop-zone-rumah" onclick="document.getElementById('adv-cust-foto-rumah').click()">
+                                    <i class="bi bi-house-door fs-2 text-primary opacity-75 mb-2 d-block"></i>
+                                    <span class="small text-secondary fw-medium">Klik untuk upload foto rumah</span>
                                     <input type="file" id="adv-cust-foto-rumah" class="d-none" accept="image/*">
                                 </div>
                                 <div id="preview-rumah" class="mt-2 text-center" style="display:none;">
-                                    <img src="" class="img-thumbnail bg-dark border-secondary mb-2" style="max-height: 200px; width: 100%; object-fit: cover; border-radius: 8px;">
+                                    <img src="" class="img-thumbnail bg-white border mb-2" style="max-height: 200px; width: 100%; object-fit: cover; border-radius: 8px;">
                                     <button type="button" class="btn btn-sm btn-outline-danger w-100" id="btn-remove-rumah"><i class="bi bi-trash"></i> Hapus Foto Rumah</button>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-white-50 small">Upload Foto KTP <span class="text-danger">*</span></label>
-                                <div class="photo-drop-zone" id="drop-zone-ktp" onclick="document.getElementById('adv-cust-foto-ktp').click()">
-                                    <i class="bi bi-person-vcard fs-2 text-white-50 mb-2 d-block"></i>
-                                    <span class="small text-white-50">Klik untuk upload foto KTP</span>
+                                <label class="form-label text-secondary small fw-medium">Upload Foto KTP <span class="text-danger">*</span></label>
+                                <div class="photo-drop-zone bg-light border border-light-subtle rounded-3" id="drop-zone-ktp" onclick="document.getElementById('adv-cust-foto-ktp').click()">
+                                    <i class="bi bi-person-vcard fs-2 text-primary opacity-75 mb-2 d-block"></i>
+                                    <span class="small text-secondary fw-medium">Klik untuk upload foto KTP</span>
                                     <input type="file" id="adv-cust-foto-ktp" class="d-none" accept="image/*">
                                 </div>
                                 <div id="preview-ktp" class="mt-2 text-center" style="display:none;">
-                                    <img src="" class="img-thumbnail bg-dark border-secondary mb-2" style="max-height: 200px; width: 100%; object-fit: cover; border-radius: 8px;">
+                                    <img src="" class="img-thumbnail bg-white border mb-2" style="max-height: 200px; width: 100%; object-fit: cover; border-radius: 8px;">
                                     <button type="button" class="btn btn-sm btn-outline-danger w-100" id="btn-remove-ktp"><i class="bi bi-trash"></i> Hapus Foto KTP</button>
                                 </div>
                             </div>
@@ -241,7 +303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button type="button" class="btn btn-outline-secondary px-4 py-2" id="btn-back-2">
                         <i class="bi bi-arrow-left me-2"></i> Kembali
                     </button>
-                    <button type="button" class="btn btn-success btn-lg px-5 py-2 fw-bold shadow-sm transition-transform" id="save-adv-customer-btn">
+                    <button type="button" class="btn btn-primary btn-lg px-5 py-2 fw-bold shadow transition-transform" id="save-adv-customer-btn" style="background: linear-gradient(135deg, #0047AB, #2DD4BF); border: none;">
                         <i class="bi bi-check-circle-fill me-2"></i> Selesaikan Registrasi
                     </button>
                 </div>
@@ -553,39 +615,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let photoKtpUrl = null;
                 let photoRumahUrl = null;
 
-                // 1. Process KTP (Project A - Core - Private)
+                // Helper to convert Blob to Base64 string
+                const blobToBase64 = (blob) => new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+
+                // 1. Process KTP (Compress and convert to base64)
                 if (fotoKtp) {
                     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Kompresi KTP...';
                     const compressedKtp = await compressImage(fotoKtp, { maxWidth: 1000, quality: 0.7 });
-                    
-                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload KTP...';
-                    const { data: ktpData, error: ktpErr } = await supabaseA.storage
-                        .from('ktp_vault')
-                        .upload(`registrations/${fileName}_ktp.jpg`, compressedKtp);
-                    
-                    if (ktpErr) throw new Error('Gagal upload KTP: ' + ktpErr.message);
-                    photoKtpUrl = ktpData.path; 
+                    photoKtpUrl = await blobToBase64(compressedKtp);
                 }
 
-                // 2. Process Rumah (Project B - Vault - Public)
+                // 2. Process Rumah (Compress and convert to base64)
                 if (fotoRumah) {
-                    if (!supabaseB) throw new Error('Konfigurasi Storage Project B (Vault) belum tersedia.');
-
                     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Kompresi Foto Rumah...';
                     const compressedHouse = await compressImage(fotoRumah, { maxWidth: 1200, quality: 0.8 });
-
-                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Upload Foto Rumah...';
-                    const { data: houseData, error: houseErr } = await supabaseB.storage
-                        .from('house_photos')
-                        .upload(`registrations/${fileName}_house.jpg`, compressedHouse);
-                    
-                    if (houseErr) throw new Error('Gagal upload Foto Rumah: ' + houseErr.message);
-                    
-                    const { data: { publicUrl } } = supabaseB.storage
-                        .from('house_photos')
-                        .getPublicUrl(houseData.path);
-                    
-                    photoRumahUrl = publicUrl;
+                    photoRumahUrl = await blobToBase64(compressedHouse);
                 }
 
                 const payload = {
@@ -627,30 +675,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadPackages() {
     const container = document.getElementById('package-cards-container');
-    const { data, error } = await supabase.from('internet_packages').select('*').order('price', { ascending: true });
+    let data = [];
+    try {
+        const result = await apiCall('/packages');
+        if (result && result.data) data = result.data;
+    } catch (err) {
+        console.error("Failed to load packages", err);
+    }
 
-    if (error || !data || data.length === 0) {
+    if (!data || data.length === 0) {
         container.innerHTML = '<div class="col-12 text-center text-white-50 my-4">Belum ada paket tersedia di database.</div>';
         return;
     }
 
     container.innerHTML = data.map(pkg => `
-        <div class="col-md-4 col-sm-6 mb-3">
-            <div class="card bg-dark border border-secondary package-card h-100 shadow-sm transition-all" 
-                 style="cursor: pointer; transition: all 0.2s;" 
+        <div class="col-md-4 col-sm-6 mb-4">
+            <div class="pkg-card-premium h-100" 
+                 style="cursor: pointer;" 
                  onclick="window.selectPackage('${pkg.name}', '${pkg.speed || ''}', '${pkg.price}', this)">
-                <div class="card-body package-body text-center d-flex flex-column p-4" style="transition: all 0.2s;">
-                    <div class="mb-3">
-                        <i class="bi bi-wifi fs-1 text-primary opacity-75"></i>
+                <div class="card-body text-center d-flex flex-column p-4 p-xl-5">
+                    <div class="pkg-icon-wrapper">
+                        <i class="bi bi-wifi fs-2"></i>
                     </div>
-                    <h4 class="card-title text-white fw-bold mb-1">${pkg.name}</h4>
-                    <span class="badge bg-secondary text-white mx-auto mb-3 px-3 py-1 rounded-pill">${pkg.speed || 'Up to...'}</span>
-                    <p class="card-text small text-white-50 flex-grow-1">${pkg.description || 'Pilihan tepat untuk kebutuhan internet Anda.'}</p>
-                    <hr class="border-secondary mb-3">
-                    <h4 class="text-success mb-0 d-flex flex-column">
-                        <span class="fs-6 text-white-50 fw-normal">Biaya / bulan</span>
-                        <div class="mt-1">Rp ${Number(pkg.price).toLocaleString('id-ID')}</div>
-                    </h4>
+                    <h4 class="card-title text-dark fw-bolder mb-3" style="letter-spacing: -0.5px; color: #0f172a !important;">${pkg.name}</h4>
+                    <div class="mb-4">
+                        <span class="pkg-speed-badge">${pkg.speed || 'Up to...'}</span>
+                    </div>
+                    <p class="small flex-grow-1" style="color: #64748b; line-height: 1.6;">${pkg.description || 'Pilihan tepat untuk kebutuhan internet Anda, stabil dan andal.'}</p>
+                    <div class="mt-4 pt-4" style="border-top: 1px solid #e2e8f0;">
+                        <span class="d-block" style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Biaya Berlangganan</span>
+                        <div class="fs-4 fw-bold" style="color: #0047AB;">Rp ${Number(pkg.price).toLocaleString('id-ID')}</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -659,21 +714,11 @@ async function loadPackages() {
 
 window.selectPackage = function (name, speed, price, el) {
     // UI Selection
-    document.querySelectorAll('.package-card').forEach(c => {
-        c.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
-        c.classList.add('border-secondary');
-        c.querySelector('.card-title').classList.remove('text-primary');
-        c.querySelector('.card-title').classList.add('text-white');
-        c.style.transform = 'scale(1)';
-        c.style.boxShadow = 'none';
+    document.querySelectorAll('.pkg-card-premium').forEach(c => {
+        c.classList.remove('selected');
     });
 
-    el.classList.remove('border-secondary');
-    el.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
-    el.querySelector('.card-title').classList.remove('text-white');
-    el.querySelector('.card-title').classList.add('text-primary');
-    el.style.transform = 'scale(1.02)';
-    el.style.boxShadow = '0 0 15px rgba(13,110,253,0.3)';
+    el.classList.add('selected');
 
     // Hidden inputs
     document.getElementById('selected-package-name').value = name;
