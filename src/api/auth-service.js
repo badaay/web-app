@@ -132,35 +132,6 @@ export const AuthService = {
         return { data: { session } };
     },
 
-    /**
-     * Handle Bypass login via URL parameters
-     * Used for magic links / technician direct access
-     */
-    async handleBypassParams() {
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        const type = params.get('type');
-
-        if (token && type === 'bypass') {
-            try {
-                // Decode token (expected format: base64(email:password))
-                const decoded = atob(token);
-                const [email, password] = decoded.split(':');
-                if (email && password) {
-                    const { data, error } = await this.login(email, password);
-                    if (!error) {
-                        // Clean up URL
-                        const newUrl = window.location.pathname;
-                        window.history.replaceState({}, document.title, newUrl);
-                        return data;
-                    }
-                }
-            } catch (e) {
-                console.warn('Invalid bypass token');
-            }
-        }
-        return null;
-    },
 
     /**
      * Unified Sign Out

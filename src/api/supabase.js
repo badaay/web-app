@@ -50,22 +50,39 @@ export async function getStorageUrl(pathOrUrl, bucket = 'house_photos', isPrivat
  * @returns {Promise<any>}
  */
 export async function apiCall(endpoint, options = {}) {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    const response = await fetch(`/api${endpoint}`, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
-            ...options.headers
-        },
-        ...options
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-        throw new Error(data.error || 'API call failed');
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // Guard: Prevent mutation without session
+        const isMutation = ['POST', 'PATCH', 'DELETE', 'PUT'].includes(options.method?.toUpperCase());
+        if (isMutation && !session) {
+            throw new Error('Unauthorized: Session required for data mutation');
+        }
+
+        // Ensure path starts with / and doesn't double /api
+        const path = endpoint.startsWith('/api') ? endpoint : `/api${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+        
+        console.log(`[API] calling ${path}...`);
+
+        const response = await fetch(path, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
+                ...options.headers
+            },
+            ...options
+        });
+        
+        const data = await response.json().catch(() => ({ error: 'Invalid JSON response from server' }));
+        
+        if (!response.ok) {
+            console.error(`[API] error ${response.status} for ${path}:`, data.error || data);
+            throw new Error(data.error || `API call failed with status ${response.status}`);
+        }
+        
+        return data;
+    } catch (err) {
+        console.error(`[API] catch for ${endpoint}:`, err);
+        throw err;
     }
-    
-    return data;
 }

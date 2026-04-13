@@ -5,18 +5,68 @@ import { showToast } from './utils/toast.js';
 
 console.log('Admin App Initialized');
 
+const MENU_SCHEMA = [
+    {
+        group: 'Menu Utama',
+        roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH', 'TREASURER'],
+        items: [
+            { id: 'dashboard', label: 'Dashboard', icon: 'bi-speedometer2', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH', 'TREASURER'] },
+            { id: 'work-orders-content', label: 'Antrian PSB', icon: 'bi-file-earmark-text', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] },
+            { id: 'customer-map-view-content', label: 'MAP View', icon: 'bi-pin-map', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] }
+        ]
+    },
+    {
+        group: 'Master Data',
+        roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'],
+        items: [
+            { id: 'employees-content', label: 'Karyawan', icon: 'bi-person-vcard', roles: ['S_ADM', 'OWNER', 'ADM'] },
+            { id: 'customers-content', label: 'Pelanggan', icon: 'bi-people', roles: ['S_ADM', 'OWNER', 'ADM'] },
+            { id: 'inventory-content', label: 'Inventaris', icon: 'bi-box-seam', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] },
+            { id: 'packages-content', label: 'Paket Layanan', icon: 'bi-tags', roles: ['S_ADM', 'OWNER', 'ADM'] },
+            { id: 'queue-types-content', label: 'Tipe & Point', icon: 'bi-ticket-detailed', roles: ['S_ADM', 'OWNER', 'ADM'] }
+        ]
+    },
+    {
+        group: 'Analitik & Performa',
+        roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'],
+        items: [
+            { id: 'reports-content', label: 'Laporan', icon: 'bi-bar-chart-line', roles: ['S_ADM', 'OWNER', 'ADM'] },
+            { id: 'performance-content', label: 'Performa', icon: 'bi-lightning-charge', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] }
+        ]
+    },
+    {
+        group: 'Payroll & HR',
+        roles: ['S_ADM', 'OWNER', 'TREASURER'],
+        items: [
+            { id: 'attendance-content', label: 'Kehadiran', icon: 'bi-calendar-check', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
+            { id: 'overtime-content', label: 'Lembur', icon: 'bi-clock-history', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
+            { id: 'payroll-content', label: 'Payroll', icon: 'bi-cash-stack', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
+        ]
+    },
+    {
+        group: 'Keuangan',
+        roles: ['S_ADM', 'OWNER', 'TREASURER'],
+        items: [
+            { id: 'billing-content', label: 'Tagihan', icon: 'bi-receipt-cutoff', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
+            { id: 'financial-reports-content', label: 'Lap. Keuangan', icon: 'bi-graph-up', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
+            { id: 'financial-ledger-content', label: 'Buku Besar', icon: 'bi-book', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
+        ]
+    },
+    {
+        group: 'Sistem',
+        roles: ['S_ADM', 'OWNER'],
+        items: [
+            { id: 'settings-module', label: 'Settings', icon: 'bi-gear', roles: ['S_ADM', 'OWNER'] }
+        ]
+    }
+];
+
 document.addEventListener('DOMContentLoaded', async () => {
     const currentTheme = localStorage.getItem('sifatih-admin-theme');
     if (currentTheme) {
         document.documentElement.setAttribute('data-theme', currentTheme);
     }
 
-    // Check for bypass links
-    const bypassResult = await AuthService.handleBypassParams();
-    if (bypassResult) {
-        location.reload();
-        return;
-    }
 
     const isLoginPage = window.location.pathname.includes('/admin/login');
     const isDashboardPage = window.location.pathname.endsWith('/admin/') || window.location.pathname.endsWith('/admin/index.html') || window.location.pathname.endsWith('/admin');
@@ -149,11 +199,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             sidebarOverlay.addEventListener('click', toggleSidebar);
         }
 
-        // Initialize modules and navigation
-        initNavigation(roleFeature, masterDataContainer, settingsContainer);
-        
         // Sidebar Module Search
         initSidebarSearch();
+
+        // 1. Render Dynamic Sidebar
+        renderSidebar(guardRole);
+
+        // 2. Initialize navigation (Now called AFTER sidebar is rendered)
+        initNavigation(roleFeature, masterDataContainer, settingsContainer);
 
         // Logout handlers
         const logoutHandler = async () => {
@@ -164,6 +217,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         const btnSidebar = document.getElementById('nav-logout-btn-sidebar');
         if (btnHeader) btnHeader.onclick = logoutHandler;
         if (btnSidebar) btnSidebar.onclick = logoutHandler;
+    }
+
+    function renderSidebar(roleCode) {
+        const sidebarNav = document.querySelector('.sidebar-nav');
+        if (!sidebarNav) return;
+
+        // Clear existing nav except logout button
+        const logoutBtn = document.getElementById('nav-logout-btn-sidebar');
+        sidebarNav.innerHTML = '';
+
+        MENU_SCHEMA.forEach(group => {
+            // Check if user has access to this group
+            if (!group.roles.includes(roleCode)) return;
+
+            // Filter items in group by role
+            const allowedItems = group.items.filter(item => item.roles.includes(roleCode));
+            if (allowedItems.length === 0) return;
+
+            // Create Group Header
+            const groupEl = document.createElement('div');
+            groupEl.className = 'nav-group';
+            groupEl.innerHTML = `
+                <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
+                     style="font-size: 0.65rem; letter-spacing: 1.5px;">${group.group}</div>
+            `;
+
+            // Create Items
+            allowedItems.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'nav-item-custom nav-module-link';
+                btn.setAttribute('data-module', item.id);
+                btn.innerHTML = `<i class="bi ${item.icon}"></i> ${item.label}`;
+                groupEl.appendChild(btn);
+            });
+
+            sidebarNav.appendChild(groupEl);
+        });
+
+        // Add logout button back
+        if (logoutBtn) {
+            sidebarNav.appendChild(logoutBtn);
+        }
+
+        // --- Also Update Mobile Nav ---
+        const mobileNav = document.querySelector('.admin-mobile-nav');
+        if (mobileNav) {
+            mobileNav.innerHTML = '';
+            // Only take top 4 items for mobile nav
+            const allItems = MENU_SCHEMA.flatMap(g => g.items).filter(i => i.roles.includes(roleCode)).slice(0, 4);
+            allItems.forEach(item => {
+                const a = document.createElement('a');
+                a.href = '#';
+                a.className = 'menu-item';
+                a.setAttribute('data-module', item.id);
+                a.innerHTML = `<i class="bi ${item.icon}"></i> <span>${item.label}</span>`;
+                mobileNav.appendChild(a);
+            });
+        }
     }
 
     function initNavigation(roleFeature, masterDataContainer, settingsContainer) {
@@ -281,6 +392,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function initModule(targetId) {
+        // RBAC Access Guard
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('roles(code)')
+                .eq('id', session.user.id)
+                .single();
+            
+            const roleCode = profile?.roles?.code;
+            
+            // Check if targetId is allowed for this role
+            const allAllowedItems = MENU_SCHEMA.flatMap(g => g.items).filter(i => i.roles.includes(roleCode));
+            const isAllowed = allAllowedItems.some(i => i.id === targetId) || 
+                             ['dashboard', 'theme-pane', 'whatsapp-pane', 'notifications-pane', 'scheduling-pane', 'payments-pane', 'settings-content', 'roles-content', 'packages-content', 'inventory-content', 'queue-types-content'].includes(targetId);
+
+            // Special exception for superadmins and owners
+            const isGodRole = roleCode === 'S_ADM' || roleCode === 'OWNER';
+
+            if (!isAllowed && !isGodRole) {
+                console.warn(`Access denied for module ${targetId} and role ${roleCode}`);
+                showToast('error', 'Akses Ditolak: Anda tidak memiliki izin untuk modul ini.');
+                // Trigger navigation back to dashboard
+                document.dispatchEvent(new CustomEvent('navigate', { detail: 'dashboard' }));
+                return;
+            }
+        } catch (err) {
+            console.error('RBAC Guard Error:', err);
+        }
+
         try {
             if (targetId === 'dashboard') {
                 const { initDashboard } = await import('./modules/dashboard.js');

@@ -107,8 +107,7 @@ CREATE TABLE IF NOT EXISTS public.psb_registrations (
     packet TEXT,
     lat DOUBLE PRECISION,
     lng DOUBLE PRECISION,
-    photo_ktp TEXT,
-    photo_rumah TEXT,
+    photo_rumah TEXT, -- Storage path
     secret_token UUID UNIQUE DEFAULT gen_random_uuid(),
     status TEXT DEFAULT 'waiting',
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -354,14 +353,41 @@ CREATE POLICY "Allow admin update for app_settings" ON public.app_settings FOR U
 CREATE POLICY "Allow admin insert for app_settings" ON public.app_settings FOR INSERT WITH CHECK (is_admin_class());
 CREATE POLICY "Allow admin delete for app_settings" ON public.app_settings FOR DELETE USING (is_admin_class());
 
--- Generic Public/Permissive Policies (Can be tightened later per business logic)
-CREATE POLICY "Enable all for anyone" ON public.psb_registrations FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for anyone" ON public.customers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for anyone" ON public.inventory_items FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for anyone" ON public.internet_packages FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for anyone" ON public.work_orders FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for anyone" ON public.installation_monitorings FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for anyone" ON public.master_queue_types FOR ALL USING (true) WITH CHECK (true);
+-- Generic Public/Permissive Policies (Tightened)
+-- PSB Registrations: Anyone can insert; Admins can see all; Public can see own by secret_token
+CREATE POLICY "psb_insert_public" ON public.psb_registrations FOR INSERT WITH CHECK (true);
+CREATE POLICY "psb_select_own"    ON public.psb_registrations FOR SELECT USING (true); -- Filtered at app level by token
+CREATE POLICY "psb_admin_all"    ON public.psb_registrations FOR ALL USING (is_admin_class());
+
+-- Customers: Admin full access; Customer view own
+CREATE POLICY "customers_admin_all" ON public.customers FOR ALL USING (is_admin_class());
+CREATE POLICY "customers_view_own"  ON public.customers FOR SELECT USING (auth.uid() = id);
+
+-- Inventory & Packages: Admin modify; Authenticated read
+CREATE POLICY "inventory_admin_all" ON public.inventory_items FOR ALL USING (is_admin_class());
+CREATE POLICY "inventory_read_all"  ON public.inventory_items FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "packages_admin_all"  ON public.internet_packages FOR ALL USING (is_admin_class());
+CREATE POLICY "packages_read_all"   ON public.internet_packages FOR SELECT USING (true);
+
+-- Work Orders: Admin/SPV full; Tech assigned; Customer own
+CREATE POLICY "wo_admin_all" ON public.work_orders FOR ALL USING (is_admin_class() OR has_role('SPV_TECH'));
+CREATE POLICY "wo_tech_view" ON public.work_orders FOR SELECT USING (
+    employee_id = auth.uid() 
+    OR id IN (SELECT work_order_id FROM public.work_order_assignments WHERE employee_id = auth.uid())
+);
+CREATE POLICY "wo_tech_update" ON public.work_orders FOR UPDATE USING (
+    employee_id = auth.uid() 
+    OR id IN (SELECT work_order_id FROM public.work_order_assignments WHERE employee_id = auth.uid())
+);
+CREATE POLICY "wo_cust_view" ON public.work_orders FOR SELECT USING (customer_id = auth.uid());
+
+-- Installation Monitorings: Admin/SPV full; Tech assigned
+CREATE POLICY "monitor_admin_all" ON public.installation_monitorings FOR ALL USING (is_admin_class() OR has_role('SPV_TECH'));
+CREATE POLICY "monitor_tech_all"  ON public.installation_monitorings FOR ALL USING (employee_id = auth.uid());
+
+-- Master Queue Types: Read for all authenticated; Admin modify
+CREATE POLICY "queue_types_admin_all" ON public.master_queue_types FOR ALL USING (is_admin_class());
+CREATE POLICY "queue_types_read_all"  ON public.master_queue_types FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Work Order Assignments: TECH can manage own rows; admin/SPV see all
 CREATE POLICY "assignments_select" ON public.work_order_assignments
