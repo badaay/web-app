@@ -178,26 +178,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     const eidFromSession = activitySession.user?.email
         ? activitySession.user.email.split('@')[0]
         : null;
-    const employeeId = eidFromUrl || eidFromSession;
-
-    if (!employeeId) {
-        showError('Akses ditolak. Format URL tidak valid atau kode teknisi tidak ditemukan. Mengalihkan ke halaman login...');
-        setTimeout(() => {
-            window.location.href = APP_BASE_URL + '/admin/login';
-        }, 3000);
-        return;
-    }
+    const employeeId = (eidFromUrl || eidFromSession)?.trim();
 
     // 2. Load Technician Info
     try {
-        const { data: tech, error: techErr } = await supabase
-            .from('employees')
-            .select('*')
-            .eq('employee_id', employeeId)
-            .single();
+        let tech, techErr;
 
-        if (techErr || !tech) {
-            showError(`Data teknisi dengan ID ${employeeId} tidak ditemukan.`);
+        if (eidFromUrl) {
+           // 1. Ensure the ID from the URL is stripped of quotes and whitespace
+            const rawEid = eidFromUrl || "";
+            const cleanEid = rawEid.replace(/['"]+/g, '').trim(); 
+
+            console.log('cleanEid', cleanEid);
+            console.log('eidFromUrl', eidFromUrl);
+            // 2. Perform the query
+            ({ data: tech, error: techErr } = await supabaseA
+                .from('employees')
+                .select('name, employee_id, id')
+                .eq('employee_id', cleanEid)
+                .maybeSingle());
+
+            if (techErr) {
+                console.error("Lookup error:", techErr.message);
+            }
+            console.log('tech', tech);
+            console.log('techErr', techErr);
+        } else {
+            // Default: load the current logged-in user's employee record
+            ({ data: tech, error: techErr } = await supabaseA
+                .from('employees')
+                .select('*')
+                .eq('id', activitySession.user.id)
+                .maybeSingle());
+        }
+
+
+        if (techErr) {
+            console.error('Error fetching tech:', techErr);
+            showError('Gagal mengambil data teknisi: ' + techErr.message);
+            return;
+        }
+
+        if (!tech) {
+            showError(`Data teknisi dengan ID ${employeeId || 'anda'} tidak ditemukan. SIlakan hubungi Admin untuk sinkronisasi data profile.`);
             return;
         }
 
@@ -232,7 +255,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .select(`
                 *,
                 customers ( name, address, phone, lat, lng ),
-                installation_monitorings (*),
+                installation_monitorings!work_order_id (*),
                 employees!employee_id ( name ),
                 master_queue_types(name, color, icon),
                 work_order_assignments ( id, employee_id, assignment_role, points_earned, employees(name) )
