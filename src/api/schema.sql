@@ -153,17 +153,15 @@ CREATE TABLE IF NOT EXISTS public.work_orders (
 -- 10. Installation Monitorings
 CREATE TABLE IF NOT EXISTS public.installation_monitorings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    work_order_id UUID REFERENCES public.work_orders(id) UNIQUE,
+    work_order_id UUID NOT NULL REFERENCES public.work_orders(id) ON DELETE CASCADE UNIQUE,
     customer_id UUID REFERENCES public.customers(id),
     employee_id UUID REFERENCES public.employees(id),
-    planned_date DATE,
-    actual_date DATE,
-    activation_date DATE,
-    photo_proof TEXT,
+    status TEXT DEFAULT 'not_started' CHECK (status IN ('not_started', 'in_progress', 'completed')),
+    notes TEXT,
+    photos JSONB DEFAULT '[]'::jsonb, -- Array of image URLs/paths
     mac_address TEXT,
     sn_modem TEXT,
     cable_label TEXT,
-    notes TEXT,
     is_confirmed BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()

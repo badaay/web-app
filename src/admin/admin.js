@@ -256,12 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             sidebarOverlay.addEventListener('click', toggleSidebar);
         }
 
-        // Rebuild sidebar based on role
-        rebuildSidebar(guardRole);
-
-        // Initialize modules and navigation
-        initNavigation(roleFeature, masterDataContainer, settingsContainer);
-        
         // Sidebar Module Search
         initSidebarSearch();
 
