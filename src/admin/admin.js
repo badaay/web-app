@@ -5,6 +5,64 @@ import { showToast } from './utils/toast.js';
 
 console.log('Admin App Initialized');
 
+const ROLE_PERMISSIONS = {
+    'S_ADM': '*',
+    'OWNER': '*',
+    'ADM': [
+        'dashboard', 
+        'work-orders-content', 
+        'customer-map-view-content', 
+        'employees-content', 
+        'customers-content', 
+        'add-customer-view-content',
+        'inventory-content', 
+        'packages-content', 
+        'queue-types-content', 
+        'reports-content', 
+        'performance-content',
+        'attendance-content',
+        'overtime-content',
+        'billing-content',
+        'theme-pane',
+        'whatsapp-pane',
+        'notifications-pane'
+    ],
+    'TREASURER': [
+        'dashboard',
+        'employees-content',
+        'customers-content',
+        'reports-content',
+        'performance-content',
+        'attendance-content',
+        'overtime-content',
+        'payroll-content',
+        'billing-content',
+        'financial-reports-content',
+        'financial-ledger-content',
+        'payments-pane'
+    ],
+    'SPV_TECH': [
+        'dashboard', 
+        'work-orders-content', 
+        'customer-map-view-content', 
+        'inventory-content', 
+        'queue-types-content', 
+        'reports-content', 
+        'performance-content',
+        'theme-pane'
+    ]
+};
+
+function hasPermission(role, moduleId) {
+    if (!role) return false;
+    const permissions = ROLE_PERMISSIONS[role];
+    if (permissions === '*') return true;
+    if (Array.isArray(permissions)) {
+        return permissions.includes(moduleId);
+    }
+    return false;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const currentTheme = localStorage.getItem('sifatih-admin-theme');
     if (currentTheme) {
@@ -149,6 +207,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             sidebarOverlay.addEventListener('click', toggleSidebar);
         }
 
+        // Rebuild sidebar based on role
+        rebuildSidebar(guardRole);
+
         // Initialize modules and navigation
         initNavigation(roleFeature, masterDataContainer, settingsContainer);
         
@@ -164,6 +225,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         const btnSidebar = document.getElementById('nav-logout-btn-sidebar');
         if (btnHeader) btnHeader.onclick = logoutHandler;
         if (btnSidebar) btnSidebar.onclick = logoutHandler;
+
+        // Hash-based navigation support with guards
+        window.addEventListener('hashchange', () => {
+            const target = window.location.hash.replace('#', '');
+            if (target) {
+                document.dispatchEvent(new CustomEvent('navigate', { detail: target }));
+            }
+        });
+
+        // Check initial hash
+        const initialHash = window.location.hash.replace('#', '');
+        if (initialHash && initialHash !== 'dashboard') {
+            setTimeout(() => {
+                document.dispatchEvent(new CustomEvent('navigate', { detail: initialHash }));
+            }, 500);
+        }
+    }
+
+    function rebuildSidebar(role) {
+        const navItems = document.querySelectorAll('.nav-item-custom[data-module], .admin-mobile-nav .menu-item[data-module]');
+        const navGroups = document.querySelectorAll('.nav-group');
+
+        navItems.forEach(item => {
+            const module = item.getAttribute('data-module');
+            if (module && module !== 'dashboard' && !hasPermission(role, module)) {
+                item.remove(); // Remove instead of hide to prevent DOM inspection recovery
+            }
+        });
+
+        // Hide empty groups
+        navGroups.forEach(group => {
+            const itemsInGroup = group.querySelectorAll('.nav-item-custom');
+            if (itemsInGroup.length === 0) {
+                group.remove();
+            }
+        });
+
+        // Also handle mobile nav if needed
+        const mobileNavItems = document.querySelectorAll('.admin-mobile-nav .menu-item[data-module]');
+        mobileNavItems.forEach(item => {
+            const module = item.getAttribute('data-module');
+            if (module && module !== 'dashboard' && !hasPermission(role, module)) {
+                item.remove();
+            }
+        });
     }
 
     function initNavigation(roleFeature, masterDataContainer, settingsContainer) {
@@ -281,6 +387,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function initModule(targetId) {
+        // Auth Guard check
+        const { data: sessionData } = await AuthService.getSession();
+        const role = sessionData?.session?.user?.id ? await (async () => {
+            const { data: p } = await supabase.from('profiles').select('roles(code)').eq('id', sessionData.session.user.id).single();
+            return p?.roles?.code;
+        })() : null;
+
+        if (targetId !== 'dashboard' && !hasPermission(role, targetId)) {
+            console.warn(`Unauthorized access attempt to module: ${targetId}`);
+            window.location.href = APP_BASE_URL + '/admin/403-forbidden.html';
+            return;
+        }
+
         try {
             if (targetId === 'dashboard') {
                 const { initDashboard } = await import('./modules/dashboard.js');

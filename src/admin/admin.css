@@ -198,7 +198,7 @@ code, .font-monospace {
 
 /* Chat-Style Bubbles (Cards) */
 .card {
-    background: var(--glass-bg) !important;
+    background: var(--vscode-bg) !important;
     backdrop-filter: blur(10px) !important;
     border: 1px solid var(--glass-border) !important;
     border-radius: var(--radius-bubble) !important;
