@@ -105,3 +105,152 @@ body.activity-page {
     color: var(--tech-muted);
     opacity: 0.8;
 }
+
+/* UI-UX PRO MAX: Premium Ticket Card */
+.ticket-premium-card {
+    background: white;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.03);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+}
+
+.ticket-premium-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+}
+
+.card-header-glass {
+    padding: 15px 20px;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px dashed rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+}
+
+.type-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.card-type-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    font-weight: 700;
+}
+
+.card-title-text {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--tech-text);
+}
+
+.status-pill-minimal {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.status-success { background: #dcfce7; color: #166534; }
+.status-info { background: #e0f2fe; color: #0369a1; }
+.status-warning { background: #fef3c7; color: #92400e; }
+.status-secondary { background: #f1f5f9; color: #475569; }
+
+.card-body-content {
+    padding: 20px;
+}
+
+.customer-strip {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 1rem;
+}
+
+.avatar-sm {
+    width: 28px;
+    height: 28px;
+    background: #e2e8f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.description-plate {
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 0.75rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border-left: 3px solid #f59e0b;
+}
+
+.btn-wa-minimal {
+    display: inline-block;
+    color: #059669;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 4px 10px;
+    border: 1px solid #10b981;
+    border-radius: 20px;
+    transition: all 0.2s;
+}
+
+.btn-wa-minimal:hover {
+    background: #059669;
+    color: white;
+}
+
+.btn-tech-primary {
+    background: #3b5bdb;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(59, 91, 219, 0.3);
+}
+
+.btn-tech-accent {
+    background: #0d9488;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+.btn-tech-primary:hover, .btn-tech-accent:hover {
+    transform: scale(1.05);
+    color: white;
+}
+
+.timeline-mode {
+    border-left: 4px solid #e2e8f0;
+    border-radius: 0.5rem 1.5rem 1.5rem 0.5rem;
+}
+
+.is-closed {
+    opacity: 0.7;
+    filter: grayscale(0.5);
+}
