@@ -511,76 +511,76 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             if (targetId === 'dashboard') {
-                const { initDashboard } = await import('./modules/dashboard.js');
+                const { initDashboard } = await import('./modules/main/dashboard.js');
                 initDashboard();
             } else if (targetId === 'employees-content') {
-                const { initEmployees } = await import('./modules/employees.js');
+                const { initEmployees } = await import('./modules/master/employees.js');
                 initEmployees();
             } else if (targetId === 'customers-content') {
-                const { initCustomers } = await import('./modules/customers.js');
+                const { initCustomers } = await import('./modules/master/customers.js');
                 initCustomers();
             } else if (targetId === 'add-customer-view-content') {
-                const { initAddCustomerView } = await import('./modules/add-customer-view.js');
+                const { initAddCustomerView } = await import('./modules/customers/add-customer-view.js');
                 initAddCustomerView();
             } else if (targetId === 'settings-content') {
-                const { initSettings } = await import('./modules/settings.js');
+                const { initSettings } = await import('./modules/system/settings.js');
                 initSettings();
             } else if (targetId === 'roles-content') {
-                const { initRoles } = await import('./modules/roles.js');
+                const { initRoles } = await import('./modules/system/roles.js');
                 initRoles();
             } else if (targetId === 'packages-content') {
-                const { initPackages } = await import('./modules/packages.js');
+                const { initPackages } = await import('./modules/master/packages.js');
                 initPackages();
             } else if (targetId === 'inventory-content') {
-                const { initInventory } = await import('./modules/inventory.js');
+                const { initInventory } = await import('./modules/master/inventory.js');
                 initInventory();
             } else if (targetId === 'queue-types-content') {
-                const { initQueueTypes } = await import('./modules/queue-types.js');
+                const { initQueueTypes } = await import('./modules/master/queue-types.js');
                 initQueueTypes();
             } else if (targetId === 'reports-content') {
-                const { initReports } = await import('./modules/reports.js');
+                const { initReports } = await import('./modules/analytics/reports.js');
                 initReports();
             } else if (targetId === 'performance-content') {
-                const { initPerformance } = await import('./modules/performance.js');
+                const { initPerformance } = await import('./modules/analytics/performance.js');
                 initPerformance();
             } else if (targetId === 'work-orders-content') {
-                const { initWorkOrders } = await import('./modules/work-orders/index.js');
+                const { initWorkOrders } = await import('./modules/main/work-orders/index.js');
                 initWorkOrders();
             } else if (targetId === 'customer-map-view-content') {
-                const { initCustomerMapView } = await import('./modules/customer-map-view.js');
+                const { initCustomerMapView } = await import('./modules/customers/customer-map-view.js');
                 initCustomerMapView();
             } else if (targetId === 'theme-pane') {
-                const { initTheme } = await import('./modules/theme.js');
+                const { initTheme } = await import('./modules/system/theme.js');
                 initTheme();
             } else if (targetId === 'whatsapp-pane') {
-                const { initWhatsApp } = await import('./modules/whatsapp.js');
+                const { initWhatsApp } = await import('./modules/system/whatsapp.js');
                 initWhatsApp();
             } else if (targetId === 'notifications-pane') {
-                const { initNotifications } = await import('./modules/notifications.js');
+                const { initNotifications } = await import('./modules/system/notifications.js');
                 initNotifications();
             } else if (targetId === 'scheduling-pane') {
-                const { initScheduling } = await import('./modules/scheduling.js');
+                const { initScheduling } = await import('./modules/system/scheduling.js');
                 initScheduling();
             } else if (targetId === 'payments-pane') {
-                const { initPayments } = await import('./modules/payments.js');
+                const { initPayments } = await import('./modules/finance/payments.js');
                 initPayments();
             } else if (targetId === 'billing-content') {
-                const { initBilling } = await import('./modules/billing.js');
+                const { initBilling } = await import('./modules/finance/billing.js');
                 initBilling();
             } else if (targetId === 'attendance-content') {
-                const { initAttendance } = await import('./modules/attendance.js');
+                const { initAttendance } = await import('./modules/hr/attendance.js');
                 initAttendance();
             } else if (targetId === 'hr-dashboard-content') {
-                const { initHRDashboard } = await import('./modules/hr-dashboard.js');
+                const { initHRDashboard } = await import('./modules/hr/hr-dashboard.js');
                 initHRDashboard();
             } else if (targetId === 'overtime-content') {
-                const { initOvertime } = await import('./modules/overtime.js');
+                const { initOvertime } = await import('./modules/hr/overtime.js');
                 initOvertime();
             } else if (targetId === 'payroll-content') {
-                const { initPayroll } = await import('./modules/payroll.js');
+                const { initPayroll } = await import('./modules/hr/payroll.js');
                 initPayroll();
             } else if (targetId === 'finance-content') {
-                const { initFinance } = await import('./modules/finance.js');
+                const { initFinance } = await import('./modules/finance/finance.js');
                 initFinance();
             }
         } catch (error) {
