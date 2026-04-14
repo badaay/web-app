@@ -3,7 +3,7 @@
  * Full implementation: periods list, create period, trigger calculation,
  * approve, view per-employee breakdown
  */
-import { supabase, apiCall } from '../../api/supabase.js';
+import { supabase, apiCall, supabaseB } from '../../api/supabase.js';
 
 const fmt = new Intl.NumberFormat('id-ID');
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -53,7 +53,7 @@ export async function initPayroll() {
 async function loadPeriods() {
     const list = document.getElementById('period-list');
     try {
-        const { data } = await supabase
+        const { data } = await supabaseB
             .from('payroll_periods')
             .select('*')
             .order('year', { ascending: false })
@@ -146,12 +146,16 @@ window.selectPeriod = async (id, period) => {
                                     <td class="text-danger">Rp ${fmt.format(s.total_deductions)}</td>
                                     <td class="text-success fw-bold">Rp ${fmt.format(s.take_home_pay)}</td>
                                     <td>
-                                        <span class="badge bg-${s.actual_points >= s.target_points ? 'success' : 'warning'}">
+                                        <span class="badge bg-${s.actual_points >= s.target_points ? 'success' : 'warning'} cursor-pointer" 
+                                            onclick="window.viewPointsDetail('${id}','${s.employee_id}')" title="Klik untuk detail poin">
                                             ${s.actual_points}/${s.target_points}
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-xs btn-outline-secondary" onclick="window.viewPayslip('${id}','${s.employee_id}')">
+                                        <button class="btn btn-xs btn-outline-warning me-1" onclick="window.manageAdjustments('${id}','${s.employee_id}', '${s.employees?.name}')" title="Kelola Bonus/Potongan">
+                                            <i class="bi bi-patch-plus"></i>
+                                        </button>
+                                        <button class="btn btn-xs btn-outline-secondary" onclick="window.viewPayslip('${id}','${s.employee_id}')" title="Lihat Slip Gaji">
                                             <i class="bi bi-receipt"></i>
                                         </button>
                                     </td>
@@ -167,6 +171,174 @@ window.selectPeriod = async (id, period) => {
         `;
     } catch (err) {
         detail.innerHTML = `<div class="card-body text-danger">${err.message}</div>`;
+    }
+};
+
+window.viewPointsDetail = async (periodId, employeeId) => {
+    const modalTitle = document.getElementById('crudModalTitle');
+    const modalBody  = document.getElementById('crudModalBody');
+    const saveBtn    = document.getElementById('save-crud-btn');
+    if (!modalTitle || !modalBody) return;
+
+    modalTitle.innerHTML = `<i class="bi bi-star-fill text-warning me-2"></i>Detail Pengerjaan & Poin`;
+    modalBody.innerHTML = `<div class="text-center p-4"><div class="spinner-border text-primary"></div></div>`;
+    saveBtn.classList.add('d-none'); // Hide save button
+
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('crudModal'));
+    modal.show();
+
+    try {
+        const res = await apiCall(`/payroll/points-detail?period_id=${periodId}&employee_id=${employeeId}`);
+        if (!res.items?.length) {
+            modalBody.innerHTML = `<div class="alert alert-info">Tidak ada data pengerjaan (Closed) di periode ini.</div>`;
+            return;
+        }
+
+        modalBody.innerHTML = `
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <span class="text-muted small">Periode: ${res.period_range}</span>
+                <strong class="text-success">Total: ${res.total_points} Poin</strong>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-sm align-middle">
+                    <thead><tr class="text-muted" style="font-size: 0.75rem">
+                        <th>Tanggal</th><th>Pekerjaan</th><th>Customer</th><th class="text-end">Poin</th>
+                    </tr></thead>
+                    <tbody>
+                        ${res.items.map(item => `
+                            <tr>
+                                <td class="small">${new Date(item.work_orders.completed_at).toLocaleDateString('id-ID')}</td>
+                                <td>
+                                    <div class="small fw-bold">${item.work_orders.title}</div>
+                                    <span class="badge" style="background-color: ${item.work_orders.type?.color || '#333'}; font-size: 0.6rem">
+                                        <i class="bi ${item.work_orders.type?.icon || 'bi-dot'} me-1"></i>${item.work_orders.type?.name || 'WO'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="small">${item.work_orders.customer?.name || '–'}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem">${item.work_orders.customer?.customer_code || ''}</div>
+                                </td>
+                                <td class="text-end fw-bold text-accent">${item.points_earned}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (err) {
+        modalBody.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+
+    // Reset modal on close
+    document.getElementById('crudModal').addEventListener('hidden.bs.modal', () => {
+        saveBtn.classList.remove('d-none');
+    }, { once: true });
+};
+
+window.manageAdjustments = async (periodId, employeeId, employeeName) => {
+    const modalTitle = document.getElementById('crudModalTitle');
+    const modalBody  = document.getElementById('crudModalBody');
+    const saveBtn    = document.getElementById('save-crud-btn');
+    if (!modalTitle || !modalBody) return;
+
+    modalTitle.innerHTML = `<i class="bi bi-patch-plus me-2"></i>Kelola Bonus & Potongan: ${employeeName}`;
+    modalBody.innerHTML = `<div class="text-center p-4"><div class="spinner-border text-primary"></div></div>`;
+    saveBtn.innerText = 'Tambah Penyesuaian';
+    
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('crudModal'));
+    modal.show();
+
+    const loadAdjustments = async () => {
+        try {
+            const data = await apiCall(`/payroll/adjustments?period_id=${periodId}&employee_id=${employeeId}`);
+            modalBody.innerHTML = `
+                <div class="mb-4">
+                    <h6>Daftar Penyesuaian</h6>
+                    <div class="list-group list-group-flush border border-secondary rounded overflow-hidden">
+                        ${data?.length ? data.map(adj => `
+                            <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold ${adj.adjustment_type === 'bonus' ? 'text-success' : 'text-danger'}">
+                                        ${adj.adjustment_type === 'bonus' ? '+' : '-'} Rp ${fmt.format(adj.amount)}
+                                    </div>
+                                    <div class="small text-white-50">${adj.reason}</div>
+                                    <span class="badge ${adj.status === 'approved' ? 'bg-success' : 'bg-warning'} x-small">
+                                        ${adj.status}
+                                    </span>
+                                </div>
+                                <button class="btn btn-link text-danger p-0" onclick="window.deleteAdjustment('${adj.id}', '${periodId}', '${employeeId}', '${employeeName}')" title="Hapus">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        `).join('') : '<div class="list-group-item bg-dark border-secondary text-muted small py-3 text-center">Belum ada penyesuaian manual</div>'}
+                    </div>
+                </div>
+
+                <hr class="border-secondary">
+
+                <h6>Form Penyesuaian Baru</h6>
+                <div class="row g-2 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label small">Tipe</label>
+                        <select id="adj-type" class="form-select form-select-sm">
+                            <option value="bonus">Bonus / Insentif (+)</option>
+                            <option value="deduction">Potongan (-)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Jumlah (Rp)</label>
+                        <input type="number" id="adj-amount" class="form-control form-control-sm" placeholder="0">
+                    </div>
+                    <div class="col-12 mt-2">
+                        <label class="form-label small">Alasan / Keterangan</label>
+                        <input type="text" id="adj-reason" class="form-control form-control-sm" placeholder="Contoh: Bonus lembur proyek">
+                    </div>
+                </div>
+            `;
+        } catch (err) {
+            modalBody.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+        }
+    };
+
+    await loadAdjustments();
+
+    saveBtn.onclick = async () => {
+        const payload = {
+            payroll_period_id: periodId,
+            employee_id: employeeId,
+            adjustment_type: document.getElementById('adj-type').value,
+            amount: parseInt(document.getElementById('adj-amount').value),
+            reason: document.getElementById('adj-reason').value,
+            status: 'approved' // Direct approval for now since added by Admin
+        };
+
+        if (!payload.amount || !payload.reason) {
+            showToast('warning', 'Jumlah dan Alasan wajib diisi');
+            return;
+        }
+
+        try {
+            saveBtn.disabled = true;
+            await apiCall('/payroll/adjustments', { method: 'POST', body: JSON.stringify(payload) });
+            showToast('success', 'Penyesuaian ditambahkan');
+            saveBtn.disabled = false;
+            await loadAdjustments();
+            // Refresh main table if possible, or user can re-calculate
+        } catch (err) {
+            showToast('error', err.message);
+            saveBtn.disabled = false;
+        }
+    };
+};
+
+window.deleteAdjustment = async (adjId, periodId, employeeId, employeeName) => {
+    if (!confirm('Hapus penyesuaian ini?')) return;
+    try {
+        await apiCall(`/payroll/adjustments/${adjId}`, { method: 'DELETE' });
+        showToast('success', 'Penyesuaian dihapus');
+        window.manageAdjustments(periodId, employeeId, employeeName);
+    } catch (err) {
+        showToast('error', err.message);
     }
 };
 

@@ -37,8 +37,9 @@ const ROLE_PERMISSIONS = {
         'overtime-content',
         'payroll-content',
         'billing-content',
-        'financial-reports-content',
-        'financial-ledger-content',
+        'billing-content',
+        'finance-content',
+        'hr-dashboard-content',
         'payments-pane'
     ],
     'SPV_TECH': [
@@ -85,16 +86,17 @@ const MENU_SCHEMA = [
     },
     {
         group: 'Analitik & Performa',
-        roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'],
+        roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH', 'TREASURER'],
         items: [
-            { id: 'reports-content', label: 'Laporan', icon: 'bi-bar-chart-line', roles: ['S_ADM', 'OWNER', 'ADM'] },
-            { id: 'performance-content', label: 'Performa', icon: 'bi-lightning-charge', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] }
+            { id: 'reports-content', label: 'Laporan', icon: 'bi-bar-chart-line', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH', 'TREASURER'] },
+            { id: 'performance-content', label: 'Performa', icon: 'bi-lightning-charge', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH', 'TREASURER'] }
         ]
     },
     {
         group: 'Payroll & HR',
         roles: ['S_ADM', 'OWNER', 'TREASURER'],
         items: [
+            { id: 'hr-dashboard-content', label: 'HR Dashboard', icon: 'bi-grid-1x2', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
             { id: 'attendance-content', label: 'Kehadiran', icon: 'bi-calendar-check', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
             { id: 'overtime-content', label: 'Lembur', icon: 'bi-clock-history', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
             { id: 'payroll-content', label: 'Payroll', icon: 'bi-cash-stack', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
@@ -105,8 +107,7 @@ const MENU_SCHEMA = [
         roles: ['S_ADM', 'OWNER', 'TREASURER'],
         items: [
             { id: 'billing-content', label: 'Tagihan', icon: 'bi-receipt-cutoff', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
-            { id: 'financial-reports-content', label: 'Lap. Keuangan', icon: 'bi-graph-up', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
-            { id: 'financial-ledger-content', label: 'Buku Besar', icon: 'bi-book', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
+            { id: 'finance-content', label: 'Laporan Keuangan', icon: 'bi-graph-up-arrow', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
         ]
     },
     {
@@ -479,6 +480,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.addEventListener('shown.bs.tab', (e) => {
             const targetId = e.target.getAttribute('data-bs-target')?.replace('#', '');
             if (targetId) {
+                console.log(targetId);
                 initModule(targetId);
             }
         });
@@ -505,37 +507,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.warn(`Unauthorized access attempt to module: ${targetId}`);
             window.location.href = APP_BASE_URL + '/admin/403-forbidden.html';
             return;
-        }
-        // RBAC Access Guard
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('roles(code)')
-                .eq('id', session.user.id)
-                .single();
-            
-            const roleCode = profile?.roles?.code;
-            
-            // Check if targetId is allowed for this role
-            const allAllowedItems = MENU_SCHEMA.flatMap(g => g.items).filter(i => i.roles.includes(roleCode));
-            const isAllowed = allAllowedItems.some(i => i.id === targetId) || 
-                             ['dashboard', 'theme-pane', 'whatsapp-pane', 'notifications-pane', 'scheduling-pane', 'payments-pane', 'settings-content', 'roles-content', 'packages-content', 'inventory-content', 'queue-types-content'].includes(targetId);
-
-            // Special exception for superadmins and owners
-            const isGodRole = roleCode === 'S_ADM' || roleCode === 'OWNER';
-
-            if (!isAllowed && !isGodRole) {
-                console.warn(`Access denied for module ${targetId} and role ${roleCode}`);
-                showToast('error', 'Akses Ditolak: Anda tidak memiliki izin untuk modul ini.');
-                // Trigger navigation back to dashboard
-                document.dispatchEvent(new CustomEvent('navigate', { detail: 'dashboard' }));
-                return;
-            }
-        } catch (err) {
-            console.error('RBAC Guard Error:', err);
         }
 
         try {
@@ -599,18 +570,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (targetId === 'attendance-content') {
                 const { initAttendance } = await import('./modules/attendance.js');
                 initAttendance();
+            } else if (targetId === 'hr-dashboard-content') {
+                const { initHRDashboard } = await import('./modules/hr-dashboard.js');
+                initHRDashboard();
             } else if (targetId === 'overtime-content') {
                 const { initOvertime } = await import('./modules/overtime.js');
                 initOvertime();
             } else if (targetId === 'payroll-content') {
                 const { initPayroll } = await import('./modules/payroll.js');
                 initPayroll();
-            } else if (targetId === 'financial-ledger-content') {
-                const { initFinancialLedger } = await import('./modules/financial-ledger.js');
-                initFinancialLedger();
-            } else if (targetId === 'financial-reports-content') {
-                const { initFinancialReports } = await import('./modules/financial-reports.js');
-                initFinancialReports();
+            } else if (targetId === 'finance-content') {
+                const { initFinance } = await import('./modules/finance.js');
+                initFinance();
             }
         } catch (error) {
             console.error(`Failed to load module '${targetId}':`, error);

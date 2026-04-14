@@ -2,7 +2,7 @@
  * Module: Attendance Management
  * Full implementation: table, filters, add/edit modal, monthly stats
  */
-import { supabase, apiCall } from '../../api/supabase.js';
+import { supabase, apiCall, supabaseB } from '../../api/supabase.js';
 
 const fmt = new Intl.NumberFormat('id-ID');
 

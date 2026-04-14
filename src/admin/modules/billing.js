@@ -1,4 +1,4 @@
-import { supabase, apiCall } from '../../api/supabase.js';
+import { supabase, apiCall, supabaseB } from '../../api/supabase.js';
 import { showToast } from '../utils/toast.js';
 
 let _currentPeriod = {
@@ -294,10 +294,18 @@ function showGenerateModal() {
     modal.show();
 }
 
-function showMarkPaidModal(bill) {
+async function showMarkPaidModal(bill) {
     const modal = new bootstrap.Modal(document.getElementById('crudModal'));
     document.getElementById('crudModalTitle').innerText = 'Konfirmasi Pembayaran';
     
+    // Fetch bank accounts for selection
+    let banks = [];
+    try {
+        banks = await apiCall('/bank-accounts');
+    } catch (err) {
+        console.error('Failed to load banks for billing:', err);
+    }
+
     document.getElementById('crudModalBody').innerHTML = `
         <div class="p-3 rounded bg-dark border-secondary mb-3">
             <div class="row g-2">
@@ -315,18 +323,27 @@ function showMarkPaidModal(bill) {
                 </div>
             </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label text-white-50 small">Metode Pembayaran</label>
-            <select id="pay-method" class="form-select bg-dark text-white border-secondary">
-                <option value="transfer">Transfer Bank (TF)</option>
-                <option value="cash">Tunai / Cash</option>
-            </select>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label text-white-50 small">Metode Bayar</label>
+                <select id="pay-method" class="form-select bg-dark text-white border-secondary">
+                    <option value="transfer">Transfer Bank (TF)</option>
+                    <option value="cash">Tunai / Cash</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-white-50 small">Rekening / Akun</label>
+                <select id="pay-bank-id" class="form-select bg-dark text-white border-secondary">
+                    <option value="">-- Automatis --</option>
+                    ${banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-md-12">
+                <label class="form-label text-white-50 small">Catatan (Opsional)</label>
+                <textarea id="pay-notes" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Contoh: BCA a/n Budi..."></textarea>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label text-white-50 small">Catatan (Opsional)</label>
-            <textarea id="pay-notes" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Contoh: BCA a/n Budi..."></textarea>
-        </div>
-        <div class="alert alert-warning small bg-vscode border-warning text-warning-emphasis">
+        <div class="alert alert-warning small bg-vscode border-warning text-warning-emphasis mt-3 mb-0">
             <i class="bi bi-whatsapp me-2"></i>
             Setelah dikonfirmasi, sistem akan mengirimkan notifikasi link invoice ke nomor WhatsApp pelanggan.
         </div>
@@ -335,6 +352,7 @@ function showMarkPaidModal(bill) {
     document.getElementById('save-crud-btn').onclick = async () => {
         const btn = document.getElementById('save-crud-btn');
         const method = document.getElementById('pay-method').value;
+        const bank_account_id = document.getElementById('pay-bank-id').value;
         const notes = document.getElementById('pay-notes').value;
 
         btn.disabled = true;
@@ -343,7 +361,12 @@ function showMarkPaidModal(bill) {
         try {
             await apiCall('/bills/mark-paid', {
                 method: 'PATCH',
-                body: JSON.stringify({ bill_id: bill.id, payment_method: method, notes })
+                body: JSON.stringify({ 
+                    bill_id: bill.id, 
+                    payment_method: method, 
+                    bank_account_id: bank_account_id || undefined, 
+                    notes 
+                })
             });
             showToast('success', 'Pembayaran berhasil dikonfirmasi ✅');
             modal.hide();

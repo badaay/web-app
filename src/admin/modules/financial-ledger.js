@@ -1,4 +1,4 @@
-import { supabase } from '../../api/supabase.js';
+import { supabase, supabaseB } from '../../api/supabase.js';
 import { getSpinner } from '../utils/ui-common.js';
 
 export async function initFinancialLedger() {
@@ -29,7 +29,7 @@ async function loadLedgerData() {
     const container = document.getElementById('ledger-table-container');
     container.innerHTML = getSpinner('Memuat data buku besar...');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseB
         .from('financial_transactions')
         .select('*')
         .order('transaction_date', { ascending: false });
