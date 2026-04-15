@@ -79,7 +79,14 @@ CREATE POLICY "Admins have full access to monitorings"
     WITH CHECK (public.is_admin_class());
 
 -- 5. Trigger for updated_at
--- Use existing trigger function if available in migration 100002
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS on_installation_monitorings_updated ON public.installation_monitorings;
 CREATE TRIGGER on_installation_monitorings_updated
     BEFORE UPDATE ON public.installation_monitorings
