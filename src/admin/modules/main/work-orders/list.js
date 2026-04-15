@@ -165,17 +165,17 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
         style.id = 'kanban-pro-max-styles';
         style.innerHTML = `
             .kanban-pro-col {
-                background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.1) 100%);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-                border-radius: 16px;
+                background: var(--surface-solid, #1e293b);
+                border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12));
+                border-radius: var(--ui-radius-md, 4px);
                 padding: 16px;
-                box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+                box-shadow: none;
             }
             .kanban-pro-card {
-                background: rgba(30, 41, 59, 0.6) !important;
-                backdrop-filter: blur(12px) !important;
-                border: 1px solid rgba(255, 255, 255, 0.08) !important;
-                border-radius: 14px !important;
+                background: var(--vscode-bg, #0f172a) !important;
+                backdrop-filter: none !important;
+                border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12)) !important;
+                border-radius: var(--ui-radius-md, 4px) !important;
                 padding: 14px !important;
                 cursor: pointer;
                 transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
@@ -238,9 +238,9 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                 background: rgba(20, 184, 166, 0.5);
             }
             .glass-header-pro {
-                background: rgba(255,255,255,0.03);
-                border: 1px solid rgba(255,255,255,0.05);
-                border-radius: 12px;
+                background: transparent;
+                border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12));
+                border-radius: 4px;
                 padding: 12px 16px;
                 margin-bottom: 20px;
             }
@@ -322,8 +322,8 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
         heroContainer.innerHTML = `
             <div class="row g-4 mb-2">
                 <div class="col-md-6">
-                    <div class="kanban-pro-col overflow-hidden" style="border-top: 4px solid #0047AB; background: linear-gradient(180deg, rgba(14, 165, 233, 0.15) 0%, rgba(15, 23, 42, 0.2) 100%); border-color: rgba(14, 165, 233, 0.3);">
-                        <div class="glass-header-pro d-flex justify-content-between align-items-center mb-0 border-0 border-bottom border-secondary border-opacity-25" style="background:transparent;">
+                    <div class="kanban-pro-col overflow-hidden" style="border-top: 4px solid #0047AB; background: var(--surface-solid, #1e293b); border-color: rgba(14, 165, 233, 0.3);">
+                        <div class="glass-header-pro d-flex justify-content-between align-items-center mb-0 border-0 border-bottom border-secondary border-opacity-25" style="border-radius:0;">
                             <span class="fw-bold text-white fs-6">
                                 <i class="bi bi-calendar2-day text-info me-2"></i>Tugas Aktif Hari Ini
                             </span>
@@ -335,8 +335,8 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="kanban-pro-col overflow-hidden" style="border-top: 4px solid #f43f5e; background: linear-gradient(180deg, rgba(244, 63, 94, 0.1) 0%, rgba(15, 23, 42, 0.2) 100%); border-color: rgba(244, 63, 94, 0.3);">
-                        <div class="glass-header-pro d-flex justify-content-between align-items-center mb-0 border-0 border-bottom border-secondary border-opacity-25" style="background:transparent;">
+                    <div class="kanban-pro-col overflow-hidden" style="border-top: 4px solid #f43f5e; background: var(--surface-solid, #1e293b); border-color: rgba(244, 63, 94, 0.3);">
+                        <div class="glass-header-pro d-flex justify-content-between align-items-center mb-0 border-0 border-bottom border-secondary border-opacity-25" style="border-radius:0;">
                             <span class="fw-bold text-white fs-6">
                                 <i class="bi bi-exclamation-triangle text-danger me-2"></i>Sisa Kemarin (Outstanding)
                             </span>
@@ -354,7 +354,7 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
     // 2. RENDER MAIN KANBAN WITH HORIZONTAL SWIPING AND SWIMLANES
     let kanbanHtml = `
         <h5 class="text-white mb-3 fw-bold mt-2" style="letter-spacing: -0.5px;">
-            <i class="bi bi-kanban text-secondary me-2"></i>Antrian Keseluruhan (Swimlanes)
+            <i class="bi bi-kanban text-secondary me-2"></i>Antrian Keseluruhan
         </h5>
         <div class="d-flex flex-nowrap overflow-x-auto pb-4 gap-4 kanban-scroll" style="min-height: 50vh; snap-type: x mandatory;">
     `;

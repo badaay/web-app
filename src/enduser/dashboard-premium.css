@@ -12,7 +12,11 @@
 
 body.dashboard-page {
     font-family: 'DM Sans', sans-serif;
-    background-color: var(--dash-bg);
+    background-color: #0f172a; /* Deep slate solid */
+    background-image: 
+        linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 20px 20px; /* Technical Grid Background */
     color: var(--dash-text);
     margin: 0;
     min-height: 100vh;
@@ -20,12 +24,7 @@ body.dashboard-page {
 
 /* Background Shapes */
 .bg-shape {
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(80px);
-    z-index: -1;
-    opacity: 0.4;
-    animation: floating 15s infinite alternate ease-in-out;
+    display: none !important;
 }
 .shape-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background-color: #93c5fd; }
 .shape-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background-color: #c4b5fd; }
@@ -79,12 +78,12 @@ body.dashboard-page {
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    max-width: 600px;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-top: 1px solid var(--glass-border);
-    border-radius: 2rem 2rem 0 0;
+    max-width: 100%;
+    background: #1e293b;
+    border-top: 2px solid var(--dash-accent);
+    border-radius: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     display: flex;
     justify-content: space-around;
     padding: 15px 10px 25px 10px;

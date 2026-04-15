@@ -21,12 +21,12 @@ body.auth-page {
 }
 
 .customer-login-card {
-    background: var(--customer-card-bg) !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--customer-border) !important;
-    border-radius: 24px !important;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    border-radius: 2px !important;
+    background-color: #0f172a !important;
+    border: 1px solid var(--customer-accent) !important;
+    box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.2) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     max-width: 440px;
     width: 90%;
     padding: 48px;
@@ -63,10 +63,10 @@ body.auth-page {
 }
 
 .auth-input {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0px !important;
+    background: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     color: white !important;
-    border-radius: 14px !important;
     padding: 14px 18px !important;
     margin-bottom: 20px !important;
 }

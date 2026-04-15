@@ -76,10 +76,10 @@ export async function initCustomerMapView() {
 
     // =====================  UI RENDER  =====================
     container.innerHTML = `
-        <div id="cmap-wrapper" class="glass-container" style="display:flex;height:calc(100vh - 150px);gap:0;border-radius:16px;overflow:hidden;border:1px solid var(--vscode-border);position:relative;background:var(--vscode-bg);">
+        <div id="cmap-wrapper" class="solid-container" style="display:flex;height:calc(100vh - 150px);gap:0;border-radius:4px;overflow:hidden;border:1px solid var(--vscode-border);position:relative;background:var(--vscode-bg);">
             
             <!-- Sidebar Drawer Overlay (Mobile) -->
-            <div id="cmap-sidebar-overlay" class="d-md-none" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1045;display:none;backdrop-filter:blur(4px);"></div>
+            <div id="cmap-sidebar-overlay" class="d-md-none" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--vscode-bg);opacity:0.8;z-index:1045;display:none;backdrop-filter:none;"></div>
 
             <!-- Mobile Toggle -->
             <button id="cmap-mobile-toggle" class="btn btn-primary d-md-none position-absolute" 
@@ -88,8 +88,8 @@ export async function initCustomerMapView() {
             </button>
 
             <!-- Sidebar -->
-            <div id="cmap-sidebar" class="glass-sidebar" style="width:310px;min-width:310px;background:var(--glass-bg);backdrop-filter:blur(20px);border-right:1px solid var(--vscode-border);display:flex;flex-direction:column;overflow:hidden;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);z-index:1050;">
-                <div style="padding:20px;background:rgba(0,0,0,0.2);border-bottom:1px solid var(--vscode-border);">
+            <div id="cmap-sidebar" class="sidebar-solid" style="width:310px;min-width:310px;background:var(--vscode-sidebar-bg);backdrop-filter:none;border-right:1px solid var(--vscode-border);display:flex;flex-direction:column;overflow:hidden;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);z-index:1050;">
+                <div style="padding:20px;background:var(--vscode-header-bg);border-bottom:1px solid var(--vscode-border);">
                     <div class="d-flex align-items-center justify-content-between">
                         <div style="font-weight:700;color:var(--vscode-text-bright);font-size:16px;letter-spacing:-0.5px;">
                             <i class="bi bi-layers-half me-2 text-accent-gradient"></i>Map Explorer
@@ -191,8 +191,8 @@ export async function initCustomerMapView() {
         </div>
 
         <style>
-            .glass-sidebar::-webkit-scrollbar { width: 4px; }
-            .glass-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+            .sidebar-solid::-webkit-scrollbar { width: 4px; }
+            .sidebar-solid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
             
             .filter-header { font-size: 11px; font-weight: 800; color: var(--vscode-accent-teal); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: block; opacity: 0.8; }
             .tiny-label { font-size: 10px; color: var(--vscode-text); display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
@@ -209,7 +209,7 @@ export async function initCustomerMapView() {
             .btn-accent-gradient { background: var(--vscode-accent-gradient); border: none; color: #fff; box-shadow: var(--glow-accent); }
             .btn-accent-gradient:hover { filter: brightness(1.1); box-shadow: 0 0 20px rgba(0, 71, 171, 0.6); color: #fff; }
 
-            .glass-stats-panel { position:absolute;top:60px;left:10px;z-index:1000;background:rgba(15, 23, 42, 0.85);backdrop-filter:blur(12px);padding:8px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);pointer-events:none;box-shadow:var(--glass-shadow); min-width:140px; }
+            .glass-stats-panel { position:absolute;top:60px;left:10px;z-index:1000;background:var(--vscode-bg);backdrop-filter:none;padding:8px 14px;border-radius:4px;border:1px solid var(--vscode-border);pointer-events:none;box-shadow:none; min-width:140px; }
 
             @media (max-width: 768px) {
                 #cmap-wrapper { height: calc(100vh - 160px) !important; margin: -10px !important; border-radius: 0 !important; border: none !important; }
@@ -441,9 +441,9 @@ export async function initCustomerMapView() {
 
         legendCtrl.onAdd = () => {
             const div = L.DomUtil.create('div', 'legend-container');
-            div.style.cssText = 'background:rgba(15, 23, 42, 0.9);backdrop-filter:blur(8px);box-shadow:var(--glass-shadow);padding:12px;border-radius:12px;font-size:11px;border:1px solid rgba(255,255,255,0.1);color:#fff;margin-bottom:20px;min-width:140px;';
+            div.style.cssText = 'background:var(--vscode-bg);backdrop-filter:none;box-shadow:none;padding:12px;border-radius:4px;font-size:11px;border:1px solid var(--vscode-border);color:var(--vscode-text);margin-bottom:20px;min-width:140px;';
             
-            let html = `<div style="font-weight:700;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:6px;color:var(--vscode-accent-teal);text-transform:uppercase;letter-spacing:0.5px;">Legenda</div>`;
+            let html = `<div style="font-weight:700;margin-bottom:8px;border-bottom:1px solid var(--vscode-border);padding-bottom:6px;color:var(--vscode-accent-teal);text-transform:uppercase;letter-spacing:0.5px;">Legenda</div>`;
 
             if (mode === 'type') {
                 html += queueTypesData.map(t => `

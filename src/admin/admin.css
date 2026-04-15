@@ -24,6 +24,16 @@
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.4);
     --glow-accent: 0 0 15px rgba(0, 71, 171, 0.4);
+
+    /* Precision Design Tokens */
+    --ui-radius-sm: 2px;
+    --ui-radius-md: 4px; /* The "Golden" professional radius */
+    --ui-radius-lg: 0px;  /* For large containers/headers */
+    
+    /* Surface Tokens (Solid, No Blur) */
+    --surface-solid: #1e293b; 
+    --surface-border: rgba(255, 255, 255, 0.12);
+    --surface-accent: var(--vscode-accent);
 }
 
 body {
@@ -98,10 +108,10 @@ code, .font-monospace {
 }
 
 .nav-item-custom.active {
-    background: var(--vscode-accent-gradient);
+    background: var(--vscode-accent);
     color: var(--vscode-text-bright) !important;
     font-weight: 700;
-    box-shadow: var(--glow-accent);
+    box-shadow: none;
 }
 
 .nav-item-custom i {
@@ -196,14 +206,13 @@ code, .font-monospace {
     padding-bottom: 80px; /* Spacer for mobile nav */
 }
 
-/* Chat-Style Bubbles (Cards) */
 .card {
-    background: var(--vscode-bg) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid var(--glass-border) !important;
-    border-radius: var(--radius-bubble) !important;
+    border-radius: var(--ui-radius-md) !important;
+    background-color: var(--surface-solid) !important;
+    border: 1px solid var(--surface-border) !important;
+    backdrop-filter: none !important;
     color: var(--vscode-text) !important;
-    box-shadow: var(--glass-shadow) !important;
+    box-shadow: none !important;
     margin-bottom: 20px;
     transition: transform 0.2s;
 }
@@ -236,12 +245,12 @@ code, .font-monospace {
 
 /* Modals in Glass Style */
 .modal-content {
-    background: rgba(25, 25, 25, 0.8) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 1px solid var(--glass-border) !important;
-    border-radius: var(--radius-bubble) !important;
-    color: var(--vscode-text-bright) !important;
-    box-shadow: var(--glass-shadow) !important;
+    background-color: var(--vscode-bg) !important;
+    backdrop-filter: none !important;
+    border: 1px solid var(--vscode-border) !important;
+    border-radius: var(--ui-radius-md, 4px) !important;
+    color: var(--vscode-text) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
 }
 
 .modal-header, .modal-footer {
