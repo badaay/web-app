@@ -196,7 +196,7 @@ export async function initPerformance() {
 
                             <!-- Points -->
                             <div class="text-end ms-3">
-                                <div class="text-accent fw-bold lh-1" style="font-size: 1.1rem;">${tech.points}</div>
+                                <div class="text-accent-gradient fw-bold lh-1" style="font-size: 1.1rem;">${tech.points}</div>
                                 <div class="text-white-50" style="font-size: 0.6rem; letter-spacing: 0.5px;">POINTS</div>
                             </div>
                         </div>

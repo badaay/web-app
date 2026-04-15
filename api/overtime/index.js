@@ -2,7 +2,7 @@
  * GET  /api/overtime   — list overtime records with assignments
  * POST /api/overtime   — create overtime event + auto-assign amounts
  */
-import { verifyAuth, hasRole, jsonResponse, errorResponse, withCors, supabaseAdmin } from '../_lib/supabase.js';
+import { verifyAuth, hasRole, jsonResponse, errorResponse, withCors, supabaseAdmin, supabaseAdminB } from '../_lib/supabase.js';
 
 export const config = { runtime: 'edge' };
 
@@ -22,7 +22,7 @@ export default withCors(async (req) => {
         const from = dateFrom || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
         const to   = dateTo   || new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
 
-        let query = supabaseAdmin
+        let query = supabaseAdminB
             .from('overtime_records')
             .select(`
                 *,
@@ -76,7 +76,7 @@ export default withCors(async (req) => {
         const perPersonAmount = Math.round(totalAmount / technician_ids.length);
 
         // Insert overtime record
-        const { data: ot, error: otErr } = await supabaseAdmin
+        const { data: ot, error: otErr } = await supabaseAdminB
             .from('overtime_records')
             .insert({
                 overtime_date, start_time, end_time,
@@ -97,7 +97,7 @@ export default withCors(async (req) => {
             employee_id: emp_id,
             amount_earned: perPersonAmount
         }));
-        const { error: assignErr } = await supabaseAdmin
+        const { error: assignErr } = await supabaseAdminB
             .from('overtime_assignments')
             .insert(assignments);
         if (assignErr) return errorResponse(assignErr.message, 500);
@@ -114,7 +114,7 @@ export default withCors(async (req) => {
         const id = url.pathname.split('/').pop();
         if (!id || id === 'overtime') return errorResponse('ID required', 400);
 
-        const { error } = await supabaseAdmin.from('overtime_records').delete().eq('id', id);
+        const { error } = await supabaseAdminB.from('overtime_records').delete().eq('id', id);
         if (error) return errorResponse(error.message, 500);
         return jsonResponse({ success: true });
     }

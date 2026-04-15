@@ -66,18 +66,14 @@ async function loadPeriods() {
         }
 
         list.innerHTML = data.map(p => {
-            const statusColor = {
-                draft: 'secondary', calculating: 'warning', calculated: 'info',
-                approved: 'primary', paid: 'success'
-            }[p.status] || 'secondary';
             return `<button class="list-group-item list-group-item-action bg-dark border-secondary payroll-period-btn"
                 data-id="${p.id}" onclick="window.selectPeriod('${p.id}', ${JSON.stringify(p).replace(/"/g,'&quot;')})">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <strong>${MONTH_NAMES[p.month-1]} ${p.year}</strong>
-                        <div class="small text-muted">${p.period_start} – ${p.period_end}</div>
+                        <strong class="fs-6 text-white mb-1 d-block">${MONTH_NAMES[p.month-1]} ${p.year}</strong>
+                        <div class="small" style="color: #9ca3af;">${p.period_start} &ndash; ${p.period_end}</div>
                     </div>
-                    <span class="badge bg-${statusColor}">${p.status}</span>
+                    <span class="badge badge-${p.status} rounded-1 px-2 py-1 fw-normal text-capitalize" style="letter-spacing: 0.5px; font-size: 0.7rem;">${p.status}</span>
                 </div>
             </button>`;
         }).join('');
@@ -109,8 +105,8 @@ window.selectPeriod = async (id, period) => {
 
         detail.innerHTML = `
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">${MONTH_NAMES[period.month-1]} ${period.year}
-                    <span class="badge bg-${getStatusColor(period.status)} ms-2">${period.status}</span>
+                <h6 class="mb-0 mt-1">${MONTH_NAMES[period.month-1]} ${period.year}
+                    <span class="badge badge-${period.status} rounded-1 px-2 py-1 ms-2 fw-normal text-capitalize" style="letter-spacing: 0.5px; font-size: 0.75rem;">${period.status}</span>
                 </h6>
                 <div class="d-flex gap-2">
                     ${canCalculate ? `<button class="btn btn-outline-info btn-sm" onclick="window.calculatePayroll('${id}')">
@@ -163,7 +159,7 @@ window.selectPeriod = async (id, period) => {
                             </tbody>
                         </table>
                     </div>
-                ` : `<div class="text-center text-muted py-5">
+                ` : `<div class="text-center py-5">
                     <i class="bi bi-calculator fs-1 d-block mb-2"></i>
                     Payroll belum dihitung. Klik <strong>Hitung</strong> untuk memulai.
                 </div>`}
@@ -341,10 +337,6 @@ window.deleteAdjustment = async (adjId, periodId, employeeId, employeeName) => {
         showToast('error', err.message);
     }
 };
-
-function getStatusColor(status) {
-    return {draft:'secondary',calculating:'warning',calculated:'info',approved:'primary',paid:'success'}[status]||'secondary';
-}
 
 window.calculatePayroll = async (periodId) => {
     if (!confirm('Mulai hitung payroll? Ini akan menghitung ulang semua data.')) return;

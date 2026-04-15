@@ -2,7 +2,7 @@
  * GET  /api/attendance        — list with filters
  * POST /api/attendance        — create record (auto-calculates late deduction)
  */
-import { verifyAuth, hasRole, jsonResponse, errorResponse, withCors, supabaseAdmin } from '../_lib/supabase.js';
+import { verifyAuth, hasRole, jsonResponse, errorResponse, withCors, supabaseAdminB } from '../_lib/supabase.js';
 
 export const config = { runtime: 'edge' };
 
@@ -24,7 +24,7 @@ export default withCors(async (req) => {
         const from  = date_from || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
         const to    = date_to   || new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
 
-        let query = supabaseAdmin
+        let query = supabaseAdminB
             .from('attendance_records')
             .select(`
                 *,
@@ -55,12 +55,12 @@ export default withCors(async (req) => {
         }
 
         // Calculate deduction using helper
-        const { data: deduction } = await supabaseAdmin.rpc('calculate_late_deduction', {
+        const { data: deduction } = await supabaseAdminB.rpc('calculate_late_deduction', {
             p_check_in_time: check_in_time,
             p_is_absent: is_absent || false
         });
 
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await supabaseAdminB
             .from('attendance_records')
             .upsert({
                 employee_id,

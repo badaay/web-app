@@ -476,3 +476,54 @@ code, .font-monospace {
     font-size: 0.75rem;
     line-height: 1.3;
 }
+
+/* ─── Payroll UI (Premium Dark Theme) ─── */
+#period-list {
+  background-color: #121212; /* Deep Charcoal from our established palette */
+}
+
+#period-list .payroll-period-btn {
+  color: #f8fafc; /* Slate light text */
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent !important;
+  padding: 1rem 1.25rem; /* Better touch targets */
+}
+
+#period-list .payroll-period-btn:hover,
+#period-list .payroll-period-btn:focus,
+#period-list .payroll-period-btn.active {
+  background-color: var(--vscode-bg) !important;
+  border-left: 3px solid var(--vscode-accent, --vscode-border) !important;
+  color: var(--vscode-text) !important;
+}
+
+/* Custom Semantic Badges */
+.badge-draft {
+  background-color: rgba(245, 158, 11, 0.15); /* Warning/Amber with opacity */
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-calculating {
+  background-color: rgba(236, 72, 153, 0.15); /* Pink for calculating */
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+.badge-calculated {
+  background-color: rgba(56, 189, 248, 0.15); /* Info/Sky with opacity */
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.badge-approved {
+  background-color: rgba(99, 102, 241, 0.15); /* Indigo with opacity */
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.badge-paid {
+  background-color: rgba(16, 185, 129, 0.15); /* Success/Emerald with opacity */
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}

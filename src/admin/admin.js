@@ -106,7 +106,7 @@ const MENU_SCHEMA = [
         group: 'Keuangan',
         roles: ['S_ADM', 'OWNER', 'TREASURER'],
         items: [
-            { id: 'billing-content', label: 'Tagihan', icon: 'bi-receipt-cutoff', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
+            // { id: 'billing-content', label: 'Tagihan', icon: 'bi-receipt-cutoff', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
             { id: 'finance-content', label: 'Laporan Keuangan', icon: 'bi-graph-up-arrow', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
         ]
     },
