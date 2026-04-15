@@ -36,11 +36,8 @@ async function handleGet(req, user) {
     if (!supabaseAdminB) return errorResponse('Project B (Vault) not configured', 503);
 
     let query = supabaseAdminB
-        .from('financial_transactions')
-        .select(`
-            *,
-            bank_accounts ( name )
-        `)
+        .from('v_financial_recap')
+        .select('*')
         .order('payment_date', { ascending: false, nullsFirst: false })
         .order('transaction_date', { ascending: false });
 

@@ -277,7 +277,7 @@ async function loadLedger() {
                         <td class="text-white-50">${date}</td>
                         <td><span class="badge bg-vscode border border-secondary">${tx.category}</span></td>
                         <td>${tx.description}</td>
-                        <td><span class="text-info">${tx.bank_accounts?.name || '-'}</span></td>
+                        <td><span class="text-info">${tx.bank_name || '-'}</span></td>
                         <td class="text-end fw-bold ${isIncome ? 'text-success' : 'text-danger'}">
                             ${isIncome ? '+' : '-'} Rp ${new Intl.NumberFormat('id-ID').format(tx.amount)}
                         </td>

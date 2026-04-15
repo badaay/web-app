@@ -88,7 +88,7 @@ async function loadOvertime() {
 
         tbody.innerHTML = records.map(r => {
             const techNames = (r.overtime_assignments || [])
-                .map(a => a.employees?.name || '–')
+                .map(a => a.employee_name || '–')
                 .join(', ');
             const perPerson = r.overtime_assignments?.[0]?.amount_earned
                 ? 'Rp ' + fmt.format(r.overtime_assignments[0].amount_earned) + '/org'

@@ -25,11 +25,8 @@ export default withCors(async (req) => {
         const to    = date_to   || new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
 
         let query = supabaseAdminB
-            .from('attendance_records')
-            .select(`
-                *,
-                employees!employee_id(id, name, employee_id)
-            `, { count: 'exact' })
+            .from('v_attendance_records')
+            .select('*', { count: 'exact' })
             .gte('attendance_date', from)
             .lte('attendance_date', to)
             .order('attendance_date', { ascending: false })

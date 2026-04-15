@@ -22,24 +22,38 @@ export default withCors(async (req) => {
         const from = dateFrom || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
         const to   = dateTo   || new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
 
+        // 1. Get overtime records (flat, no join)
         let query = supabaseAdminB
             .from('overtime_records')
-            .select(`
-                *,
-                overtime_assignments(
-                    id, amount_earned,
-                    employees!employee_id(id, name, employee_id)
-                )
-            `, { count: 'exact' })
+            .select('*', { count: 'exact' })
             .gte('overtime_date', from)
             .lte('overtime_date', to)
             .order('overtime_date', { ascending: false })
             .range(offset, offset + limit - 1);
 
-        const { data, error, count } = await query;
+        const { data: records, error, count } = await query;
         if (error) return errorResponse(error.message, 500);
 
-        return jsonResponse({ data, count, limit, offset });
+        // 2. Get assignments via the view (employee names baked in)
+        if (records?.length) {
+            const otIds = records.map(r => r.id);
+            const { data: assignments } = await supabaseAdminB
+                .from('v_overtime_ledger')
+                .select('id, overtime_id, employee_id, amount_earned, employee_name, employee_code')
+                .in('overtime_id', otIds);
+
+            // 3. Stitch assignments onto records
+            const assignMap = {};
+            (assignments || []).forEach(a => {
+                if (!assignMap[a.overtime_id]) assignMap[a.overtime_id] = [];
+                assignMap[a.overtime_id].push(a);
+            });
+            records.forEach(r => {
+                r.overtime_assignments = assignMap[r.id] || [];
+            });
+        }
+
+        return jsonResponse({ data: records, count, limit, offset });
     }
 
     // ──────────── POST ────────────

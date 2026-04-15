@@ -92,10 +92,10 @@ window.selectPeriod = async (id, period) => {
 
     try {
         const { data: summaries } = await supabaseB
-            .from('payroll_summaries')
-            .select('*, employees(name, employee_id)')
+            .from('v_payroll_summaries')
+            .select('*')
             .eq('payroll_period_id', id)
-            .order('employees(name)');
+            .order('employee_name');
 
         const canCalculate = ['draft','calculated'].includes(period.status);
         const canApprove   = period.status === 'calculated';
@@ -135,8 +135,8 @@ window.selectPeriod = async (id, period) => {
                             <tbody>
                                 ${summaries.map(s => `<tr>
                                     <td>
-                                        <div>${s.employees?.name || '–'}</div>
-                                        <small class="text-muted">${s.employees?.employee_id||''}</small>
+                                        <div>${s.employee_name || '–'}</div>
+                                        <small class="text-muted">${s.employee_code||''}</small>
                                     </td>
                                     <td>Rp ${fmt.format(s.gross_earnings)}</td>
                                     <td class="text-danger">Rp ${fmt.format(s.total_deductions)}</td>

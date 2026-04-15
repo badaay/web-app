@@ -19,20 +19,15 @@ export default withCors(async function handler(req) {
     if (mode === 'daily') {
         // Group by bank name
         const { data, error } = await supabaseAdminB
-            .from('financial_transactions')
-            .select(`
-                amount,
-                type,
-                bank_account_id,
-                bank_accounts ( name )
-            `)
+            .from('v_financial_recap')
+            .select('amount, type, bank_account_id, bank_name')
             .eq('transaction_date', date);
         
         if (error) return errorResponse(error.message, 500);
 
         const recap = {};
         data.forEach(tx => {
-            const bankName = tx.bank_accounts?.name || 'Lainnya';
+            const bankName = tx.bank_name || 'Lainnya';
             if (!recap[bankName]) recap[bankName] = { income: 0, expense: 0 };
             if (tx.type === 'income') recap[bankName].income += parseFloat(tx.amount);
             else recap[bankName].expense += parseFloat(tx.amount);
