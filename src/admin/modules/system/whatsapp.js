@@ -10,7 +10,7 @@
  */
 import { supabase, apiCall } from '../../../api/supabase.js';
 import { showToast } from '../../utils/toast.js';
-import { setBtn } from '../../utils/ui-common.js';
+
 import { ActivityLog } from '../../utils/activity-log.js';
 
 let _gaugeInterval = null;

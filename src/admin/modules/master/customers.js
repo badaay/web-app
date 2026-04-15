@@ -1,11 +1,11 @@
 import { supabase, supabaseA, supabaseB, apiCall, getStorageUrl } from '../../../api/supabase.js';
 import { compressImage } from '../../utils/image-utils.js';
-import { adminResetPassword, generatePassword } from '../../api/registration-service.js';
+import { adminResetPassword, generatePassword } from '../../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink, showSharedMap, createStandardMarker, getSpinner } from '../../utils/ui-common.js';
 import { createLocationPicker, parseCoordsField } from '../../utils/map-kit.js';
 import { showToast } from '../../utils/toast.js';
-import { APP_BASE_URL } from '../../config.js';
-import { APP_CONFIG } from '../../api/config.js';
+import { APP_BASE_URL } from '../../../config.js';
+import { APP_CONFIG } from '../../../api/config.js';
 
 export async function initCustomers() {
     const listContainer = document.getElementById('customers-list');

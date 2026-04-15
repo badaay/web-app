@@ -1,8 +1,6 @@
 import { apiCall, supabase, supabaseA, supabaseB } from '../../../api/supabase.js';
 import { compressImage } from '../../utils/image-utils.js';
-import { AuthService } from '../../api/auth-service.js';
-import { APP_BASE_URL } from '../../config.js';
-import { APP_CONFIG } from '../../api/config.js';
+import { APP_BASE_URL } from '../../../config.js';
 import { showToast } from '../../utils/toast.js';
 import { createLocationPicker, parseCoordsField } from '../../utils/map-kit.js';
 

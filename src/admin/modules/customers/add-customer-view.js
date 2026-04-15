@@ -1,5 +1,5 @@
 import { supabase, supabaseA, supabaseB } from '../../../api/supabase.js';
-import { generatePassword, generateCustomerCode, adminCreateCustomer } from '../../api/registration-service.js';
+import { generatePassword, generateCustomerCode, adminCreateCustomer } from '../../../api/registration-service.js';
 import { populatePackagesDropdown, getGoogleMapsLink } from '../../utils/ui-common.js';
 import { createLocationPicker, parseCoordsField } from '../../utils/map-kit.js';
 import { showToast } from '../../utils/toast.js';

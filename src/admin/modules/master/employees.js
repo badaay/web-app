@@ -1,7 +1,7 @@
 import { supabase, apiCall } from '../../../api/supabase.js';
 import { showToast } from '../../utils/toast.js';
 import { getSpinner } from '../../utils/ui-common.js';
-import { APP_BASE_URL } from '../../config.js';
+import { APP_BASE_URL } from '../../../config.js';
 
 export async function initEmployees() {
     const listContainer = document.getElementById('employees-list');
