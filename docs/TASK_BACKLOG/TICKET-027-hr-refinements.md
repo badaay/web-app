@@ -14,9 +14,10 @@
 - [x] Dummy Data Seeding for demonstration.
 
 ## 🏗️ Remaining Work (This Ticket)
-### 1. Manual Payroll Adjustments
-- [ ] **API**: `api/payroll/adjustments` for adding bonuses/deductions.
-- [ ] **UI**: Modal/Form in Payroll Detail to add specific adjustments before calculation.
+### 1. Manual Payroll Adjustments & Points Detail
+- [x] **API**: `api/payroll/adjustments` (vault/project_b) for adding bonuses/deductions.
+- [x] **UI**: Modal/Form in Payroll Detail to add specific adjustments before calculation.
+- [x] **Points Detail**: Transparent point breakdown modal in UI (cross-project lookup).
 
 ### 2. Approval & Lockdown
 - [ ] **API**: `api/payroll/approve.js` to change status from 'calculated' to 'approved'.
@@ -30,4 +31,5 @@
 - [ ] **UI**: Add a sub-tab in Employee details to manage their salary components (currently seeded manually).
 
 ## 📝 Notes
-- Points deduction logic for technicians currently relies on the standard RPC `calculate_point_deduction`. Ensure this is tested with actual work order data.
+- **Project Structure**: Financial tables have been moved to **Project B (Vault)** via 8 separate migration files. API endpoints have been updated to handle cross-project lookups (fetch names from A, data from B).
+- Points deduction logic for technicians now uses the Vault-resident `calculate_point_deduction`.

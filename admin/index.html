@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id"">
+<html lang="id">
 
 <head>
     <meta charset=" UTF-8">
@@ -110,11 +110,8 @@
                     <button class="nav-item-custom nav-module-link" data-module="billing-content">
                         <i class="bi bi-receipt-cutoff"></i> Tagihan
                     </button>
-                    <button class="nav-item-custom nav-module-link" data-module="financial-reports-content">
-                        <i class="bi bi-graph-up"></i> Lap. Keuangan
-                    </button>
-                    <button class="nav-item-custom nav-module-link" data-module="financial-ledger-content">
-                        <i class="bi bi-book"></i> Buku Besar
+                    <button class="nav-item-custom nav-module-link" data-module="finance-content">
+                        <i class="bi bi-graph-up-arrow"></i> Laporan Keuangan
                     </button>
                 </div>
 
@@ -529,13 +526,27 @@
                              
                             </div>
                         </div>
-                        <!-- Financial Reports Tab -->
-                        <div class="tab-pane fade" id="financial-reports-content" role="tabpanel">
-                            <!-- Content will be rendered by financial-reports.js -->
+                        <!-- HR & Payroll Panes -->
+                        <div class="tab-pane fade" id="hr-dashboard-content" role="tabpanel">
+                            <!-- Content will be rendered by hr-dashboard.js -->
                         </div>
-                        <!-- Financial Ledger Tab -->
-                        <div class="tab-pane fade" id="financial-ledger-content" role="tabpanel">
-                            <!-- Content will be rendered by financial-ledger.js -->
+                        <div class="tab-pane fade" id="attendance-content" role="tabpanel">
+                            <!-- Content will be rendered by attendance.js -->
+                        </div>
+                        <div class="tab-pane fade" id="overtime-content" role="tabpanel">
+                            <!-- Content will be rendered by overtime.js -->
+                        </div>
+                        <div class="tab-pane fade" id="payroll-content" role="tabpanel">
+                            <!-- Content will be rendered by payroll.js -->
+                        </div>
+
+                        <!-- Financial Dashboard Tab (Unified Reports & Ledger) -->
+                        <div class="tab-pane fade" id="finance-content" role="tabpanel">
+                            <!-- Content will be rendered by finance.js -->
+                            <div class="text-center py-5 text-white-50">
+                                <div class="spinner-border spinner-border-sm me-2"></div>
+                                Menginisialisasi modul keuangan...
+                            </div>
                         </div>
                     </div>
                 </div>
