@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Nav Elements
-    const navBtns = document.querySelectorAll('.menu-item');
+    const navBtns = document.querySelectorAll('.nav-item');
     const views = {
         'view-tiket-hari-ini': document.getElementById('view-tiket-hari-ini'),
         'view-tiket-baru': document.getElementById('view-tiket-baru'),
@@ -238,6 +238,104 @@ document.addEventListener('DOMContentLoaded', async () => {
         showError('Terjadi kesalahan saat memuat data dari server.');
     }
 
+    function renderWorkOrder(wo, forceAction = null, isTimeline = false) {
+        const customerName = wo.customers?.name || 'Pelanggan tidak diketahui';
+        const customerAddress = wo.customers?.address || '-';
+        const customerPhone = wo.customers?.phone || '';
+        const customerLat = wo.customers?.lat;
+        const customerLng = wo.customers?.lng;
+
+        const mapLinkHtml = createGoogleMapsLink(customerLat, customerLng);
+
+        // Format time
+        const date = new Date(wo.created_at);
+        const timeString = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        const dateString = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        const statusBadgeColor = getStatusColor(wo.status);
+        const type = wo.master_queue_types;
+
+        const card = document.createElement('div');
+        card.className = `ticket-premium-card ${isTimeline ? 'timeline-mode' : ''}`;
+        if (wo.status === 'closed') card.classList.add('is-closed');
+        
+        card.innerHTML = `
+            <div class="card-header-glass">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    <div class="d-flex align-items-center">
+                        <div class="type-icon-box shadow-sm" style="background: ${type?.color || '#3b5bdb'}">
+                            <i class="bi ${type?.icon || 'bi-ticket-perforated'}"></i>
+                        </div>
+                        <div class="ms-2">
+                            <div class="card-type-label">${type?.name || 'Ticket'}</div>
+                            <div class="card-title-text">${wo.title}</div>
+                        </div>
+                    </div>
+                    <div class="status-pill-minimal status-${statusBadgeColor}">
+                        ${wo.status.toUpperCase()}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body-content">
+                <div class="customer-strip mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="avatar-sm me-2">
+                            <i class="bi bi-person"></i>
+                        </div>
+                        <div class="fw-bold text-dark">${customerName}</div>
+                    </div>
+                    <div class="d-flex align-items-start small text-muted">
+                        <i class="bi bi-geo-alt me-2 mt-1"></i>
+                        <div>${customerAddress} ${mapLinkHtml}</div>
+                    </div>
+                    ${customerPhone ? `
+                    <div class="mt-2 text-center">
+                        <a href="https://wa.me/${customerPhone.replace(/\D/g,'')}" target="_blank" class="btn-wa-minimal">
+                            <i class="bi bi-whatsapp"></i> Hubungi via WhatsApp
+                        </a>
+                    </div>` : ''}
+                </div>
+
+                ${wo.description ? `
+                <div class="description-plate mb-3">
+                    <i class="bi bi-info-circle me-1"></i> ${wo.description}
+                </div>` : ''}
+
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                    <div class="text-muted small">
+                         <i class="bi bi-clock-history"></i> ${timeString}
+                    </div>
+                    <div class="action-btn-container">
+                        ${(forceAction === 'claim' || (wo.status === 'confirmed' && !wo.claimed_by)) ? `
+                            <button class="btn btn-tech-primary btn-claim-wo" data-id="${wo.id}">
+                                <i class="bi bi-check2-circle"></i> AMBIL TIKET
+                            </button>
+                        ` : (forceAction === 'execute' || (wo.status === 'open' && wo.claimed_by === techDbId_Global)) ? `
+                            <button class="btn btn-tech-accent btn-execute-wo" data-id="${wo.id}">
+                                <i class="bi bi-lightning-charge"></i> UPDATE HASIL
+                            </button>
+                        ` : `
+                            <div class="text-success small fw-bold"><i class="bi bi-check-all"></i> SELESAI</div>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const btnExec = card.querySelector('.btn-execute-wo');
+        if (btnExec) {
+            btnExec.addEventListener('click', () => openExecutionModal(wo));
+        }
+
+        const btnClaim = card.querySelector('.btn-claim-wo');
+        if (btnClaim) {
+            btnClaim.addEventListener('click', () => openClaimModal(wo));
+        }
+
+        return card;
+    }
+
     async function loadWorkOrders(techDbId) {
         const loadingHtml = `
             <div class="loading-chat mt-3">
@@ -250,6 +348,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         tiketBaruContainer.innerHTML = loadingHtml;
         tiketAktifContainer.innerHTML = loadingHtml;
 
+        const today = new Date().toISOString().split('T')[0];
+
         const { data: wos, error: woErr } = await supabase
             .from('work_orders')
             .select(`
@@ -260,7 +360,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 master_queue_types(name, color, icon),
                 work_order_assignments ( id, employee_id, assignment_role, points_earned, employees(name) )
             `)
-            .or(`status.eq.confirmed,employee_id.eq.${techDbId},claimed_by.eq.${techDbId}`)
+            .or(`status.eq.confirmed,status.eq.open,claimed_at.gte.${today},completed_at.gte.${today}`)
             .order('created_at', { ascending: true });
 
         if (woErr) {
@@ -292,105 +392,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         let hasBaru = false;
         let hasAktif = false;
 
-        const today = new Date().toISOString().split('T')[0];
-
         wos.forEach(wo => {
-            const customerName = wo.customers?.name || 'Pelanggan tidak diketahui';
-            const customerAddress = wo.customers?.address || '-';
-            const customerLat = wo.customers?.lat;
-            const customerLng = wo.customers?.lng;
-
-            const mapLinkHtml = createGoogleMapsLink(customerLat, customerLng);
-
-            // Format time
-            const date = new Date(wo.created_at);
-            const timeString = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            const dateString = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-
-            const statusBadgeColor = getStatusColor(wo.status);
-            const type = wo.master_queue_types;
-
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble';
-            bubble.style.borderLeftColor = type?.color || 'var(--vscode-accent)';
-            
-            bubble.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="d-flex align-items-center">
-                         <span class="badge rounded-pill px-2 me-2" style="background:${type?.color || '#6b7280'}">
-                            <i class="bi ${type?.icon || 'bi-ticket-detailed'} me-1"></i>
-                            ${type?.name || 'Tiket'}
-                        </span>
-                        <div>
-                            <div class="fw-bold mb-0">${wo.title}</div>
-                            <div class="small text-muted"><i class="bi bi-clock me-1"></i> ${dateString} ${timeString}</div>
-                        </div>
-                    </div>
-                    <span class="badge rounded-pill bg-${statusBadgeColor} bg-opacity-10 text-${statusBadgeColor} px-3 py-2" style="font-size: 0.75rem">${wo.status}</span>
-                </div>
-
-                <div class="p-3 bg-light rounded-4 mb-3 border border-light">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-person-circle fs-5 text-primary me-3"></i>
-                        <div>
-                            <div class="small text-muted" style="font-size: 0.7rem">Nama Pelanggan</div>
-                            <div class="fw-medium">${customerName}</div>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-start">
-                        <i class="bi bi-geo-alt-fill fs-5 text-danger me-3"></i>
-                        <div>
-                            <div class="small text-muted" style="font-size: 0.7rem">Alamat Pemasangan</div>
-                            <div class="fw-medium small">${customerAddress} ${mapLinkHtml}</div>
-                        </div>
-                    </div>
-                </div>
-
-                ${wo.description ? `<div class="p-2 border-start border-primary border-4 bg-primary bg-opacity-10 rounded-end small mb-3 text-muted">${wo.description}</div>` : ''}
-                
-                <div class="mt-3">
-                    ${wo.status === 'confirmed' ? `
-                    <button class="btn btn-success btn-eksekusi fw-bold shadow-sm" data-action="claim" data-id="${wo.id}">
-                        <i class="bi bi-unlock-fill"></i> Ambil & Buka Tiket
-                    </button>
-                    ` : wo.status === 'open' ? `
-                    <button class="btn btn-primary btn-eksekusi fw-bold shadow-sm" data-action="execute" data-id="${wo.id}">
-                        <i class="bi bi-lightning-fill"></i> Update / Selesaikan
-                    </button>
-                    ` : `
-                    <button class="btn btn-outline-secondary btn-eksekusi fw-bold" disabled>
-                        <i class="bi bi-check2-all"></i> ${wo.status === 'closed' ? 'Tiket Ditutup' : wo.status}
-                    </button>
-                    `}
-                </div>
-            `;
-
-            const btnExec = bubble.querySelector('.btn-eksekusi[data-action="execute"]');
-            if (btnExec) {
-                btnExec.addEventListener('click', () => openExecutionModal(wo));
-            }
-
-            const btnClaim = bubble.querySelector('.btn-eksekusi[data-action="claim"]');
-            if (btnClaim) {
-                btnClaim.addEventListener('click', () => openClaimModal(wo));
-            }
-
             // Ticket Splitting Logic
             const isClaimedToday = wo.claimed_at && wo.claimed_at.startsWith(today);
+            const isClosedToday = wo.completed_at && wo.completed_at.startsWith(today);
+            
+            // Check if I am involved as Lead OR Team Member OR Assigned Employee
+            const isMyAssignment = wo.work_order_assignments?.some(a => a.employee_id === techDbId);
+            const isMyTicket = wo.claimed_by === techDbId || wo.employee_id === techDbId || isMyAssignment;
 
-            if (isClaimedToday || (wo.status === 'open' && wo.claimed_by === techDbId)) {
-                tiketHariIniContainer.appendChild(bubble.cloneNode(true));
-                hasHariIni = true;
+            // 1. TIKET HARI INI: Activity log for today
+            if (isClaimedToday || isClosedToday) {
+                if (isMyTicket) {
+                    tiketHariIniContainer.appendChild(renderWorkOrder(wo, null, true));
+                    hasHariIni = true;
+                }
             }
 
+            // 2. TIKET BARU: Available global pool
             if (wo.status === 'confirmed' && !wo.claimed_by) {
-                tiketBaruContainer.appendChild(bubble);
+                tiketBaruContainer.appendChild(renderWorkOrder(wo, 'claim'));
                 hasBaru = true;
-            } else if (wo.status === 'open') {
-                tiketAktifContainer.appendChild(bubble.cloneNode(true));
+            } 
+            
+            // 3. TIKET AKTIF: My ongoing work
+            else if (wo.status === 'open' && isMyTicket) {
+                tiketAktifContainer.appendChild(renderWorkOrder(wo, 'execute'));
                 hasAktif = true;
             }
-            // Closed tickets are filtered out as requested
         });
 
         if (!hasHariIni) tiketHariIniContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Belum ada aktivitas hari ini.</p>';
@@ -748,7 +777,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('Silakan pilih titik lokasi pada peta.');
                 return;
             }
-            if (!ktpBase64 || !rumahBase64) {
+            if (!ktpRegFile || !rumahRegFile) {
                 alert('Foto KTP dan Foto Rumah wajib diunggah.');
                 return;
             }
@@ -814,7 +843,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Clear Form
                 document.getElementById('tech-reg-customer-form').reset();
-                ktpBase64 = null; rumahBase64 = null;
+                ktpRegFile = null; rumahRegFile = null;
                 previewRegKtp.classList.add('d-none');
                 previewRegRumah.classList.add('d-none');
                 if (marker) {
@@ -822,7 +851,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 // Auto switch back to Tiket Baru to see the new ticket
-                document.querySelector('.menu-item[data-target="view-tiket-baru"]').click();
+                document.querySelector('.nav-item[data-target="view-tiket-baru"]').click();
                 await loadWorkOrders(techDbId_Global);
 
             } catch (err) {
