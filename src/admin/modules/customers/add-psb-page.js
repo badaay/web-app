@@ -544,12 +544,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const lng = _coordsParsed?.lng ?? null;
             const installDate = null;
             const email = document.getElementById('adv-cust-email').value.trim();
-            const altPhone = document.getElementById('adv-cust-alt-phone').value.trim();
+            const altPhone = document.getElementById('adv-cust-alt-phone').value.trim() ?? '0';
 
             let finalAddress = address;
-            if (email || altPhone) {
-                finalAddress += '\n(Email: ' + (email || '-') + ' | HP Alt: ' + (altPhone || '-') + ')';
-            }
+            // if (email || altPhone) {
+            //     finalAddress += '\n(Email: ' + (email || '-') + ' | HP Alt: ' + (altPhone || '-') + ')';
+            // }
 
             saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan Data...';
             saveBtn.disabled = true;

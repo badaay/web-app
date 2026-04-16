@@ -83,6 +83,7 @@ export default withCors(async function handler(req) {
           id: sharedId,
           name,
           phone,
+          alt_phone,
           address,
           packet,
           lat,
