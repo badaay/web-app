@@ -1,4 +1,4 @@
-import { supabase } from '../../../api/supabase.js';
+import { supabase, supabaseB } from '../../../api/supabase.js';
 
 /**
  * Reports & Analytics Module - Real-time Implementation
@@ -198,7 +198,7 @@ export async function initReports() {
 
         try {
             const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString();
-            const { data } = await supabase
+            const { data } = await supabaseB
                 .from('financial_transactions')
                 .select('amount, transaction_date')
                 .eq('type', 'income')

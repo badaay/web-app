@@ -116,7 +116,7 @@ async function loadAttendance() {
         <div class="spinner-border spinner-border-sm me-2"></div>Memuat...
     </td></tr>`;
 
-    let url = `/attendance?date_from=${from}&date_to=${to}&limit=200`;
+    let url = `/attendance?date_from=${from}&date_to=${to}&limit=100`;
     if (emp) url += `&employee_id=${emp}`;
 
     try {
@@ -142,9 +142,9 @@ async function loadAttendance() {
                     ? `<span class="badge bg-warning text-dark">Terlambat ${r.late_minutes} mnt</span>`
                     : `<span class="badge bg-success">Hadir</span>`;
             return `<tr>
-                <td>${new Date(r.attendance_date).toLocaleDateString('id-ID')}</td>
-                <td>${r.employees?.name || '–'}</td>
-                <td>${r.check_in_time || '<span class="text-muted">–</span>'}</td>
+                <td>${new Date(r.check_in).toLocaleDateString('id-ID')}</td>
+                <td>${r.employee_name || '–'}</td>
+                <td>${new Date(r.check_in).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) || '<span class="text-muted">–</span>'}</td>
                 <td>${r.late_minutes > 0 ? r.late_minutes + ' mnt' : '–'}</td>
                 <td class="${r.deduction_amount > 0 ? 'text-danger' : ''}">
                     ${r.deduction_amount > 0 ? 'Rp ' + fmt.format(r.deduction_amount) : '–'}

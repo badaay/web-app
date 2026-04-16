@@ -45,16 +45,26 @@ export default withCors(async (req) => {
         const canManage = await hasRole(user.id, ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH']);
         if (!canManage) return errorResponse('Forbidden', 403);
 
-        const { employee_id, attendance_date, check_in_time, check_out_time, is_absent, notes } = await req.json();
+        const { employee_id, attendance_date, check_in_time, check_out_time, is_absent = false, notes, source = 'manual' } = await req.json();
         
         if (!employee_id || !attendance_date) {
             return errorResponse('employee_id and attendance_date are required', 400);
         }
 
+        // Calculate late_minutes (assuming 08:00 start time as per system defaults)
+        let late_minutes = 0;
+        if (!is_absent && check_in_time) {
+            const workStart = '08:00';
+            const [sH, sM] = workStart.split(':').map(Number);
+            const [cH, cM] = check_in_time.split(':').map(Number);
+            const diff = (cH * 60 + cM) - (sH * 60 + sM);
+            if (diff > 0) late_minutes = diff;
+        }
+
         // Calculate deduction using helper
         const { data: deduction } = await supabaseAdminB.rpc('calculate_late_deduction', {
             p_check_in_time: check_in_time,
-            p_is_absent: is_absent || false
+            p_is_absent: is_absent
         });
 
         const { data, error } = await supabaseAdminB
@@ -62,15 +72,15 @@ export default withCors(async (req) => {
             .upsert({
                 employee_id,
                 attendance_date,
-                check_in_time:   check_in_time  || null,
-                check_out_time:  check_out_time || null,
+                check_in: attendance_date + ' ' + check_in_time  || null,
+                check_out: attendance_date + ' ' + check_out_time || null,
                 late_minutes,
                 is_absent,
-                deduction_amount: deductionResult || 0,
-                notes,
-                source,
-                created_by: user.id,
-                updated_at: new Date().toISOString()
+                deduction_amount: deduction || 0,
+                // notes,
+                // source,
+                // created_by: user.id,
+                // updated_at: new Date().toISOString()
             }, { onConflict: 'employee_id,attendance_date' })
             .select()
             .single();
