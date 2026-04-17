@@ -38,18 +38,18 @@
             </div>
 
             <div id="view-tiket-baru" class="view-section d-none">
-                <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
+                <h5 class="fw-bold border-bottom pb-2 tech-title" style="border-color: var(--vscode-border) !important;">
                     <i class="bi bi-inbox text-primary me-2"></i>Tiket Baru (Tersedia)
                 </h5>
-                <div id="tiket-baru-container">
+                <div id="tiket-baru-container" class="tech-items">
                     </div>
             </div>
 
             <div id="view-tiket-aktif" class="view-section">
-                <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
+                <h5 class="fw-bold border-bottom pb-2 tech-title" style="border-color: var(--vscode-border) !important;">
                     <i class="bi bi-person-workspace text-warning me-2"></i>Tiket Saya
                 </h5>
-                <div id="tiket-aktif-container">
+                <div id="tiket-aktif-container" class="tech-items">
                     <div class="loading-chat">
                         <div class="spinner-border text-warning" role="status">
                             <span class="visually-hidden">Loading...</span>
@@ -59,10 +59,10 @@
             </div>
 
             <div id="view-registrasi" class="view-section d-none">
-                <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: var(--vscode-border) !important;">
+                <h5 class="fw-bold border-bottom pb-2 tech-title" style="border-color: var(--vscode-border) !important;">
                     <i class="bi bi-person-plus text-info me-2"></i>Registrasi Pelanggan Baru
                 </h5>
-                <form id="tech-reg-customer-form" class="chat-bubble">
+                <form id="tech-reg-customer-form" class="chat-bubble tech-items">
                     <div class="row g-3 p-3">
                         <div class="col-12">
                             <label class="form-label small fw-bold">Nama Lengkap</label>
@@ -193,7 +193,7 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn text-white rounded-pill px-5 fw-bold" id="btn-save-exec" style="background-color: var(--vscode-accent);">Simpan Hasil</button>
+                    <button type="button" class="btn btn-tech-primary rounded-pill px-5 fw-bold" id="btn-save-exec">Simpan Hasil</button>
                 </div>
             </div>
         </div>

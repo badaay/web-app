@@ -46,6 +46,27 @@ body.activity-page {
     padding: 30px 25px;
     margin-bottom: 25px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px;
+    z-index: 100;
+}
+
+.tech-title {
+    z-index: 100;
+    width: 100%;
+    max-width: 600px;
+    padding: 0 25px;
+    margin-top: 9rem;
+    border-radius: 0 0 2rem 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.tech-items {
+    /* margin-top: 12rem; */
 }
 
 .ticket-card {
@@ -229,6 +250,18 @@ body.activity-page {
     box-shadow: 0 4px 12px rgba(59, 91, 219, 0.3);
 }
 
+.btn-tech-primary:hover {
+    transform: scale(1.05);
+    color: #3b5bdb;
+}
+
+.loading-chat {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+}
+
 .btn-tech-accent {
     background: #0d9488;
     color: white;
@@ -240,9 +273,9 @@ body.activity-page {
     box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
 }
 
-.btn-tech-primary:hover, .btn-tech-accent:hover {
+.btn-tech-accent:hover {
     transform: scale(1.05);
-    color: white;
+    color: #0d9488;
 }
 
 .timeline-mode {
