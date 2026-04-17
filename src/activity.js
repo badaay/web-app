@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Cache DOM elements early for error handling
     const errorAlert = document.getElementById('error-alert');
     const errorMessage = document.getElementById('error-message');
-    const tiketHariIniContainer = document.getElementById('tiket-hari-ini-container');
     const tiketBaruContainer = document.getElementById('tiket-baru-container');
     const tiketAktifContainer = document.getElementById('tiket-aktif-container');
     const techInfo = document.getElementById('technician-info');
@@ -22,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showError(msg) {
         errorAlert.classList.remove('d-none');
         errorMessage.innerText = msg;
-        if(tiketHariIniContainer) tiketHariIniContainer.innerHTML = '';
         if(tiketBaruContainer) tiketBaruContainer.innerHTML = '';
         if(tiketAktifContainer) tiketAktifContainer.innerHTML = '';
     }
@@ -72,7 +70,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Nav Elements
     const navBtns = document.querySelectorAll('.nav-item');
     const views = {
-        'view-tiket-hari-ini': document.getElementById('view-tiket-hari-ini'),
         'view-tiket-baru': document.getElementById('view-tiket-baru'),
         'view-tiket-aktif': document.getElementById('view-tiket-aktif'),
         'view-registrasi': document.getElementById('view-registrasi')
@@ -184,13 +181,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         let tech, techErr;
 
-        if (eidFromUrl) {
+        if (employeeId) {
            // 1. Ensure the ID from the URL is stripped of quotes and whitespace
-            const rawEid = eidFromUrl || "";
-            const cleanEid = rawEid.replace(/['"]+/g, '').trim(); 
+            const cleanEid = employeeId.replace(/['"]+/g, '').trim(); 
 
-            console.log('cleanEid', cleanEid);
-            console.log('eidFromUrl', eidFromUrl);
             // 2. Perform the query
             ({ data: tech, error: techErr } = await supabaseA
                 .from('employees')
@@ -201,8 +195,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (techErr) {
                 console.error("Lookup error:", techErr.message);
             }
-            console.log('tech', tech);
-            console.log('techErr', techErr);
         } else {
             // Default: load the current logged-in user's employee record
             ({ data: tech, error: techErr } = await supabaseA
@@ -311,7 +303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button class="btn btn-tech-primary btn-claim-wo" data-id="${wo.id}">
                                 <i class="bi bi-check2-circle"></i> AMBIL TIKET
                             </button>
-                        ` : (forceAction === 'execute' || (wo.status === 'open' && wo.claimed_by === techDbId_Global)) ? `
+                        ` : (forceAction === 'execute' || (['open', 'pending', 'incident'].includes(wo.status) && (String(wo.claimed_by) === String(techDbId_Global) || String(wo.employee_id) === String(techDbId_Global)))) ? `
                             <button class="btn btn-tech-accent btn-execute-wo" data-id="${wo.id}">
                                 <i class="bi bi-lightning-charge"></i> UPDATE HASIL
                             </button>
@@ -344,28 +336,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             </div>
         `;
-        tiketHariIniContainer.innerHTML = loadingHtml;
         tiketBaruContainer.innerHTML = loadingHtml;
         tiketAktifContainer.innerHTML = loadingHtml;
 
-        const today = new Date().toISOString().split('T')[0];
+        // Use local date for better timezone consistency
+        const now = new Date();
+        const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
         const { data: wos, error: woErr } = await supabase
-            .from('work_orders')
-            .select(`
-                *,
-                customers ( name, address, phone, lat, lng ),
-                installation_monitorings!work_order_id (*),
-                employees!employee_id ( name ),
-                master_queue_types(name, color, icon),
-                work_order_assignments ( id, employee_id, assignment_role, points_earned, employees(name) )
-            `)
-            .or(`status.eq.confirmed,status.eq.open,claimed_at.gte.${today},completed_at.gte.${today}`)
+            .from('v_activity_work_orders')
+            .select('*')
             .order('created_at', { ascending: true });
 
         if (woErr) {
             showError('Gagal memuat daftar pekerjaan: ' + woErr.message);
-            tiketHariIniContainer.innerHTML = '';
             tiketBaruContainer.innerHTML = '';
             tiketAktifContainer.innerHTML = '';
             return;
@@ -378,53 +362,61 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p>Tidak ada tiket yang ditemukan.</p>
                 </div>
             `;
-            tiketHariIniContainer.innerHTML = emptyHtml;
             tiketBaruContainer.innerHTML = emptyHtml;
             tiketAktifContainer.innerHTML = emptyHtml;
             return;
         }
 
-        tiketHariIniContainer.innerHTML = '';
         tiketBaruContainer.innerHTML = '';
         tiketAktifContainer.innerHTML = '';
 
-        let hasHariIni = false;
         let hasBaru = false;
         let hasAktif = false;
 
         wos.forEach(wo => {
+            // Fix JSON string payloads from PostgreSQL view JSON aggregations
+            if (typeof wo.work_order_assignments === 'string') {
+                try { wo.work_order_assignments = JSON.parse(wo.work_order_assignments); } catch(e) { wo.work_order_assignments = []; }
+            }
+            if (typeof wo.installation_monitorings === 'string') {
+                try { wo.installation_monitorings = JSON.parse(wo.installation_monitorings); } catch(e) { wo.installation_monitorings = []; }
+            }
+            if (typeof wo.master_queue_types === 'string') {
+                try { wo.master_queue_types = JSON.parse(wo.master_queue_types); } catch(e) { wo.master_queue_types = null; }
+            }
+            if (typeof wo.customers === 'string') {
+                try { wo.customers = JSON.parse(wo.customers); } catch(e) { wo.customers = null; }
+            }
+
             // Ticket Splitting Logic
+            const woStatus = (wo.status || '').toLowerCase();
             const isClaimedToday = wo.claimed_at && wo.claimed_at.startsWith(today);
             const isClosedToday = wo.completed_at && wo.completed_at.startsWith(today);
             
             // Check if I am involved as Lead OR Team Member OR Assigned Employee
-            const isMyAssignment = wo.work_order_assignments?.some(a => a.employee_id === techDbId);
-            const isMyTicket = wo.claimed_by === techDbId || wo.employee_id === techDbId || isMyAssignment;
+            const isMyAssignment = wo.work_order_assignments?.some(a => a && String(a.employee_id) === String(techDbId));
+            const isMyTicket = (wo.claimed_by && String(wo.claimed_by) === String(techDbId)) || 
+                               (wo.employee_id && String(wo.employee_id) === String(techDbId)) || 
+                               isMyAssignment;
 
-            // 1. TIKET HARI INI: Activity log for today
-            if (isClaimedToday || isClosedToday) {
-                if (isMyTicket) {
-                    tiketHariIniContainer.appendChild(renderWorkOrder(wo, null, true));
-                    hasHariIni = true;
-                }
-            }
-
-            // 2. TIKET BARU: Available global pool
-            if (wo.status === 'confirmed' && !wo.claimed_by) {
+            // 1. TIKET BARU: Available global pool (Not claimed and Not specifically assigned)
+            if ((woStatus === 'confirmed' || woStatus === 'waiting') && !wo.claimed_by && !wo.employee_id) {
                 tiketBaruContainer.appendChild(renderWorkOrder(wo, 'claim'));
                 hasBaru = true;
-            } 
-            
-            // 3. TIKET AKTIF: My ongoing work
-            else if (wo.status === 'open' && isMyTicket) {
-                tiketAktifContainer.appendChild(renderWorkOrder(wo, 'execute'));
-                hasAktif = true;
+            }
+
+            // 2. TIKET SAYA (Aktif): My ongoing work OR closed/claimed today
+            if (isMyTicket) {
+                const isActive = ['waiting', 'confirmed', 'open', 'pending', 'incident'].includes(woStatus);
+                if (isActive || isClaimedToday || (woStatus === 'closed' && isClosedToday)) {
+                    tiketAktifContainer.appendChild(renderWorkOrder(wo, (['confirmed', 'waiting'].includes(woStatus) && !wo.claimed_by ? 'claim' : 'execute')));
+                    hasAktif = true;
+                }
             }
         });
 
-        if (!hasHariIni) tiketHariIniContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Belum ada aktivitas hari ini.</p>';
         if (!hasBaru) tiketBaruContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Belum ada tiket baru yang tersedia.</p>';
-        if (!hasAktif) tiketAktifContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Anda tidak memiliki tiket aktif.</p>';
+        if (!hasAktif) tiketAktifContainer.innerHTML = '<p class="text-center text-white-50 mt-4 small">Anda tidak memiliki tiket saat ini.</p>';
     }
 
     async function openClaimModal(wo) {
@@ -437,7 +429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Load technicians for team selection
         teamSelectionContainer.innerHTML = '<div class="spinner-border spinner-border-sm text-success"></div>';
-        const { data: emps } = await supabase.from('employees').select('id, name').neq('id', techDbId_Global);
+        const { data: emps } = await supabase.from('employees').select('id, name, roles!inner(code)').eq('roles.code', 'TECH').neq('id', techDbId_Global);
 
         teamSelectionContainer.innerHTML = emps.map(e => `
             <div class="form-check">
