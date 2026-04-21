@@ -507,19 +507,24 @@ function showUpdateSaldoModal() {
     const saveBtn = document.getElementById('save-crud-btn');
 
     modalTitle.innerText = 'Snapshot Saldo Harian (Audit 5 PM)';
+    
+    // Helper for currency formatting
+    const fmt = (val) => new Intl.NumberFormat('id-ID').format(val);
+
     modalBody.innerHTML = `
-        <div class="alert alert-info py-2 small">
-            <i class="bi bi-info-circle me-1"></i> Rekam total saldo riil di masing-masing BANK hari ini untuk penutupan buku jam 5 sore.
+        <div class="alert alert-info py-2 small border-0 bg-info bg-opacity-10 text-info d-flex align-items-center">
+            <i class="bi bi-shield-check fs-5 me-2"></i>
+            <span>Verifikasi saldo fisik vs sistem. Selisih akan dicatat otomatis.</span>
         </div>
         <div class="row g-3">
             ${currentBankAccounts.map(b => `
                 <div class="col-md-12 mb-1">
-                    <div class="card border-0 rounded-2 tech-finance-card p-3">
+                    <div class="card border-0 rounded-2 tech-finance-card p-3" data-system-balance="${b.current_balance}">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <label class="fw-semibold text-white mb-0 fs-6">${b.name}</label>
                             <div class="d-flex align-items-center bg-dark border border-secondary rounded px-2 py-1">
-                                <span class="text-muted" style="font-size: 0.75rem; margin-right: 6px;">Saldo Sistem:</span>
-                                <span class="text-light fw-medium font-monospace" style="font-size: 0.85rem;">Rp ${new Intl.NumberFormat('id-ID').format(b.current_balance)}</span>
+                                <span class="text-muted tiny me-2">Sistem:</span>
+                                <span class="text-light fw-medium font-monospace small">Rp ${fmt(b.current_balance)}</span>
                             </div>
                         </div>
                         
@@ -529,30 +534,63 @@ function showUpdateSaldoModal() {
                                 type="number" 
                                 class="tech-finance-input font-monospace saldo-input" 
                                 data-bank-id="${b.id}" 
-                                placeholder="Masukkan saldo riil..." 
+                                data-system-val="${b.current_balance}"
+                                placeholder="0" 
                                 value="${b.current_balance}"
                             >
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+                            <span class="text-muted" style="font-size: 0.7rem;">Selisih Audit:</span>
+                            <span class="variance-display fw-bold font-monospace variance-balanced" style="font-size: 0.8rem;">Rp 0 (Balanced)</span>
                         </div>
                     </div>
                 </div>
             `).join('')}
             <div class="col-md-12 mt-2">
                 <div class="card bg-vscode border-secondary p-3">
-                    <label class="form-label small text-white-50 mb-2">Catatan Penyesuaian (Opsional)</label>
-                    <textarea id="snapshot-notes" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Sebutkan alasan penyesuaian jika ada selisih..."></textarea>
+                    <label class="form-label small text-white-50 mb-2">Catatan Audit / Penyesuaian</label>
+                    <textarea id="snapshot-notes" class="form-control bg-dark text-white border-secondary small" rows="2" placeholder="Wajib diisi jika ada selisih..."></textarea>
                 </div>
             </div>
         </div>
     `;
 
+    // Real-time calculation logic
+    const inputs = modalBody.querySelectorAll('.saldo-input');
+    inputs.forEach(input => {
+        // Auto-select text on focus for faster entry
+        input.addEventListener('focus', () => input.select());
+
+        input.addEventListener('input', (e) => {
+            const realVal = parseFloat(e.target.value) || 0;
+            const systemVal = parseFloat(e.target.dataset.systemVal);
+            const diff = realVal - systemVal;
+            const card = e.target.closest('.tech-finance-card');
+            const display = card.querySelector('.variance-display');
+
+            display.classList.remove('variance-balanced', 'variance-surplus', 'variance-deficit', 'variance-neutral');
+
+            if (diff === 0) {
+                display.innerText = 'Rp 0 (Balanced)';
+                display.classList.add('variance-balanced');
+            } else if (diff > 0) {
+                display.innerText = `+ Rp ${fmt(diff)} (Surplus)`;
+                display.classList.add('variance-surplus');
+            } else {
+                display.innerText = `- Rp ${fmt(Math.abs(diff))} (Defisit)`;
+                display.classList.add('variance-deficit');
+            }
+        });
+    });
+
     saveBtn.onclick = async () => {
-        const inputs = document.querySelectorAll('.saldo-input');
         const notes = document.getElementById('snapshot-notes').value;
         const promises = [];
 
         inputs.forEach(input => {
             const bank_account_id = input.getAttribute('data-bank-id');
-            const balance = parseFloat(input.value);
+            const balance = parseFloat(input.value) || 0;
             promises.push(apiCall('/bank-accounts', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -565,12 +603,18 @@ function showUpdateSaldoModal() {
         });
 
         try {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+            
             await Promise.all(promises);
             showToast('success', 'Snapshot saldo harian berhasil disimpan');
             bootstrap.Modal.getInstance(document.getElementById('crudModal')).hide();
             loadBanks();
         } catch (err) {
-            showToast('error', 'Gagal menyimpan beberapa snapshot: ' + err.message);
+            showToast('error', 'Gagal menyimpan snapshot: ' + err.message);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerText = 'Simpan Snapshot';
         }
     };
 
