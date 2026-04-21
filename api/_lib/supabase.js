@@ -43,13 +43,13 @@ const supabaseKeyB     = process.env.SUPABASE_SERVICE_ROLE_KEY_B;
 /**
  * Admin client for Project B (Vault). Bypasses RLS.
  * Use for: customer_bills, financial_transactions, payroll_*, attendance_*, overtime_*, technician_points_ledger.
- * Returns null if Project B env vars are not configured.
+ * FALLBACK: If Project B is not configured, it falls back to Project A (supabaseAdmin).
  */
 export const supabaseAdminB = (supabaseUrlB && supabaseKeyB)
   ? createClient(supabaseUrlB, supabaseKeyB, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
-  : null;
+  : supabaseAdmin;
 
 // ---------------------------------------------------------------------------
 // Auth helpers

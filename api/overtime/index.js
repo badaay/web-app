@@ -12,6 +12,7 @@ export default withCors(async (req) => {
 
     // ──────────── GET ────────────
     if (req.method === 'GET') {
+        if (!supabaseAdminB) return errorResponse('Project B (Vault) not configured', 503);
         const url     = new URL(req.url);
         const dateFrom = url.searchParams.get('date_from');
         const dateTo   = url.searchParams.get('date_to');
@@ -58,6 +59,7 @@ export default withCors(async (req) => {
 
     // ──────────── POST ────────────
     if (req.method === 'POST') {
+        if (!supabaseAdminB) return errorResponse('Project B (Vault) not configured', 503);
         const canManage = await hasRole(user.id, ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH']);
         if (!canManage) return errorResponse('Forbidden', 403);
 
@@ -121,6 +123,7 @@ export default withCors(async (req) => {
 
     // ──────────── DELETE ────────────
     if (req.method === 'DELETE') {
+        if (!supabaseAdminB) return errorResponse('Project B (Vault) not configured', 503);
         const canManage = await hasRole(user.id, ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH']);
         if (!canManage) return errorResponse('Forbidden', 403);
 

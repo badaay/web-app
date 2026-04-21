@@ -12,9 +12,9 @@ export const config = {
 export default async function handler(req) {
   const checks = {
     edge_runtime: true,
-    supabase_url: !!process.env.SUPABASE_URL,
-    supabase_anon_key: !!process.env.SUPABASE_ANON_KEY,
-    supabase_service_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    supabase_url: !!(process.env.SUPABASE_URL || process.env.SUPABASE_URL_A),
+    supabase_service_key: !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY_A),
+    supabase_b_configured: !!(process.env.SUPABASE_URL_B && process.env.SUPABASE_SERVICE_ROLE_KEY_B),
   };
 
   const allPassed = Object.values(checks).every(Boolean);
