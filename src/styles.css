@@ -94,3 +94,59 @@ input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 4px var(--accent-glow);
 }
+/* Financial Input Component - Precision Slate Theme */
+.tech-finance-card {
+  background-color: #1a1c23; /* Deep Slate from our palette */
+  border: 1px solid #374151;
+  transition: all 0.2s ease;
+}
+
+/* Unified Input Group */
+.tech-finance-group {
+  display: flex;
+  align-items: center;
+  background-color: #121212; /* Deep Charcoal inner */
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+/* The Magic: Highlight the whole group when input is focused */
+.tech-finance-group:focus-within {
+  border-color: var(--teal-primary, #0d9488);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.tech-currency-label {
+  padding: 0.5rem 0.875rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-right: 1px solid #4b5563;
+  color: #9ca3af;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.tech-finance-input {
+  flex: 1;
+  background-color: transparent;
+  border: none;
+  color: #f8fafc;
+  padding: 0.5rem 0.875rem;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.tech-finance-input::placeholder {
+  color: #6b7280;
+}
+
+/* Strip default browser number arrows for a clean UI */
+.tech-finance-input::-webkit-outer-spin-button,
+.tech-finance-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.tech-finance-input[type=number] {
+  -moz-appearance: textfield;
+}

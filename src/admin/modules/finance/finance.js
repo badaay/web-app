@@ -511,17 +511,27 @@ function showUpdateSaldoModal() {
         <div class="alert alert-info py-2 small">
             <i class="bi bi-info-circle me-1"></i> Rekam total saldo riil di masing-masing BANK hari ini untuk penutupan buku jam 5 sore.
         </div>
-        <div class="row g-4">
+        <div class="row g-3">
             ${currentBankAccounts.map(b => `
-                <div class="col-md-12">
-                    <div class="card bg-vscode border-secondary p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="small fw-bold text-white mb-0">${b.name}</label>
-                            <span class="tiny text-white-50">Saldo Saat Ini: Rp ${new Intl.NumberFormat('id-ID').format(b.current_balance)}</span>
+                <div class="col-md-12 mb-1">
+                    <div class="card border-0 rounded-2 tech-finance-card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="fw-semibold text-white mb-0 fs-6">${b.name}</label>
+                            <div class="d-flex align-items-center bg-dark border border-secondary rounded px-2 py-1">
+                                <span class="text-muted" style="font-size: 0.75rem; margin-right: 6px;">Saldo Sistem:</span>
+                                <span class="text-light fw-medium font-monospace" style="font-size: 0.85rem;">Rp ${new Intl.NumberFormat('id-ID').format(b.current_balance)}</span>
+                            </div>
                         </div>
-                        <div class="input-group">
-                            <span class="input-group-text bg-dark border-secondary text-white-50 border-end-0">Rp</span>
-                            <input type="number" class="form-control bg-dark text-white border-secondary border-start-0 saldo-input py-2" data-bank-id="${b.id}" placeholder="Masukkan saldo riil..." value="${b.current_balance}">
+                        
+                        <div class="tech-finance-group">
+                            <span class="tech-currency-label">Rp</span>
+                            <input 
+                                type="number" 
+                                class="tech-finance-input font-monospace saldo-input" 
+                                data-bank-id="${b.id}" 
+                                placeholder="Masukkan saldo riil..." 
+                                value="${b.current_balance}"
+                            >
                         </div>
                     </div>
                 </div>
