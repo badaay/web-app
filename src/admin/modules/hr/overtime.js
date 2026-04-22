@@ -109,12 +109,6 @@ async function loadOvertime() {
         }
 
         tbody.innerHTML = records.map(r => {
-            const techNames = (r.overtime_assignments || [])
-                .map(a => a.employee_name || '–')
-                .join(', ');
-            const perPerson = r.overtime_assignments?.[0]?.amount_earned
-                ? 'Rp ' + fmt.format(r.overtime_assignments[0].amount_earned) + '/org'
-                : '–';
             return `<tr>
                 <td>${new Date(r.overtime_date).toLocaleDateString('id-ID')}</td>
                 <td>
@@ -123,8 +117,11 @@ async function loadOvertime() {
                 </td>
                 <td class="text-muted small">${r.start_time?.slice(0,5)} – ${r.end_time?.slice(0,5)}</td>
                 <td>${r.total_hours} jam</td>
-                <td class="text-success">Rp ${fmt.format(r.total_amount)}<br><small class="text-muted">${perPerson}</small></td>
-                <td><small>${techNames || '–'}</small></td>
+                <td class="text-success">Rp ${fmt.format(r.total_amount)}</td>
+                <td>
+                    <div>${r.technician_name}</div>
+                    <small class="text-muted">${r.technician_code}</small>
+                </td>
                 <td>
                     <button class="btn btn-xs btn-outline-danger" onclick="window.deleteOvertime('${r.id}')">
                         <i class="bi bi-trash"></i>

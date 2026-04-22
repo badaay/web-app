@@ -23,9 +23,9 @@ export default withCors(async (req) => {
         const from = dateFrom || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
         const to   = dateTo   || new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
 
-        // 1. Get overtime records (flat, no join)
+        // 1. Get overtime records from the expanded view (handles cross-project join)
         let query = supabaseAdminB
-            .from('overtime_records')
+            .from('v_overtime_records_expanded')
             .select('*', { count: 'exact' })
             .gte('overtime_date', from)
             .lte('overtime_date', to)
@@ -34,25 +34,6 @@ export default withCors(async (req) => {
 
         const { data: records, error, count } = await query;
         if (error) return errorResponse(error.message, 500);
-
-        // 2. Get assignments via the view (employee names baked in)
-        if (records?.length) {
-            const otIds = records.map(r => r.id);
-            const { data: assignments } = await supabaseAdminB
-                .from('v_overtime_ledger')
-                .select('id, overtime_id, employee_id, amount_earned, employee_name, employee_code')
-                .in('overtime_id', otIds);
-
-            // 3. Stitch assignments onto records
-            const assignMap = {};
-            (assignments || []).forEach(a => {
-                if (!assignMap[a.overtime_id]) assignMap[a.overtime_id] = [];
-                assignMap[a.overtime_id].push(a);
-            });
-            records.forEach(r => {
-                r.overtime_assignments = assignMap[r.id] || [];
-            });
-        }
 
         return jsonResponse({ data: records, count, limit, offset });
     }
@@ -82,43 +63,37 @@ export default withCors(async (req) => {
             .single();
         const hourlyRate = parseInt(rateSetting?.setting_value || '10000');
 
-        // Calculate total hours
+        // Calculate per-person metrics
         const [sh, sm] = start_time.split(':').map(Number);
         const [eh, em] = end_time.split(':').map(Number);
         let totalMins = (eh * 60 + em) - (sh * 60 + sm);
         if (totalMins < 0) totalMins += 24 * 60; // overnight
         const totalHours = parseFloat((totalMins / 60).toFixed(2));
         const totalAmount = Math.round(totalHours * hourlyRate);
-        const perPersonAmount = Math.round(totalAmount / technician_ids.length);
 
-        // Insert overtime record
-        const { data: ot, error: otErr } = await supabaseAdminB
+        // Insert separate records for each technician
+        const recordsToInsert = technician_ids.map(emp_id => ({
+            overtime_date,
+            start_time,
+            end_time,
+            description,
+            overtime_type,
+            total_hours: totalHours,
+            hourly_rate: hourlyRate,
+            total_amount: totalAmount, // Each person's share
+            employee_id: emp_id,       // Direct association
+            work_order_id,
+            created_by: user.id
+        }));
+
+        const { data: insertedRecords, error: otErr } = await supabaseAdminB
             .from('overtime_records')
-            .insert({
-                overtime_date, start_time, end_time,
-                description, overtime_type,
-                total_hours: totalHours,
-                hourly_rate: hourlyRate,
-                total_amount: totalAmount,
-                work_order_id,
-                created_by: user.id
-            })
-            .select()
-            .single();
+            .insert(recordsToInsert)
+            .select();
+
         if (otErr) return errorResponse(otErr.message, 500);
 
-        // Insert assignments (split evenly)
-        const assignments = technician_ids.map(emp_id => ({
-            overtime_id: ot.id,
-            employee_id: emp_id,
-            amount_earned: perPersonAmount
-        }));
-        const { error: assignErr } = await supabaseAdminB
-            .from('overtime_assignments')
-            .insert(assignments);
-        if (assignErr) return errorResponse(assignErr.message, 500);
-
-        return jsonResponse({ success: true, data: { ...ot, assignments } }, 201);
+        return jsonResponse({ success: true, data: insertedRecords }, 201);
     }
 
     // ──────────── DELETE ────────────
