@@ -626,4 +626,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast(type, message, options);
         };
     });
+
+    // Global Button Loading Utility
+    window.setBtnLoading = (btn, isLoading = true, loadingText = 'Processing...') => {
+        if (!btn) return;
+        if (isLoading) {
+            btn.dataset.originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${loadingText}`;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = btn.dataset.originalHtml || btn.innerHTML;
+        }
+    };
 });

@@ -325,8 +325,7 @@ async function showAssignConfirmPanel(wo) {
     }
 
     const saveHandler = async () => {
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
+        window.setBtnLoading(saveBtn, true, 'Menyimpan...');
 
         const selectedEmployeeId = employeeSelect ? (employeeSelect.value || null) : null;
 
@@ -342,8 +341,7 @@ async function showAssignConfirmPanel(wo) {
             showToast('Work order berhasil dikonfirmasi.', 'success');
         } catch (err) {
             showToast(`Error: ${err.message}`, 'error');
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = 'Simpan';
+            window.setBtnLoading(saveBtn, false);
             return;
         }
         
@@ -362,8 +360,7 @@ async function showAssignConfirmPanel(wo) {
     
     // Reset button state when modal is hidden
     modalEl.addEventListener('hidden.bs.modal', () => {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = 'Simpan';
+        window.setBtnLoading(saveBtn, false);
         if (saveBtn._clickHandler) {
             saveBtn.removeEventListener('click', saveBtn._clickHandler);
         }
@@ -523,7 +520,9 @@ async function showWorkOrderActions(wo) {
         });
     };
 
-    document.getElementById('action-close-wo').onclick = async () => {
+    document.getElementById('action-close-wo').onclick = async (e) => {
+        const btn = e.currentTarget;
+        window.setBtnLoading(btn, true, 'Menutup...');
         try {
             await apiCall('/work-orders/close', {
                 method: 'POST',
@@ -531,24 +530,26 @@ async function showWorkOrderActions(wo) {
             });
             showToast('Antrian berhasil ditutup', 'success');
             modal.hide();
-            // Refresh the correct tab
             window.reloadUnifiedKanban();
         } catch (err) {
             showToast(`Error: ${err.message}`, 'error');
+            window.setBtnLoading(btn, false);
         }
     };
 
-    document.getElementById('action-delete-wo').onclick = async () => {
+    document.getElementById('action-delete-wo').onclick = async (e) => {
         if (!confirm('Yakin ingin menghapus antrian ini?')) return;
+        const btn = e.currentTarget;
+        window.setBtnLoading(btn, true, 'Menghapus...');
 
         try {
             await apiCall(`/work-orders/${wo.id}`, { method: 'DELETE' });
             showToast('Antrian berhasil dihapus', 'success');
             modal.hide();
-            // Refresh the correct tab
             window.reloadUnifiedKanban();
         } catch (err) {
             showToast(`Error: ${err.message}`, 'error');
+            window.setBtnLoading(btn, false);
         }
     };
     // Note: modal.show() was already called at the top during loading phase
