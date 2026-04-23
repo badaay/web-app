@@ -150,3 +150,73 @@ input:focus {
 .tech-finance-input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Audit Variance Styles */
+.variance-neutral { color: #9ca3af; }
+.variance-balanced { color: #10b981; text-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+.variance-surplus { color: #0ea5e9; }
+.variance-deficit { color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+
+.tech-finance-input:focus {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Technical Hard-Edge Scroll Box */
+.tech-scroll-box {
+  max-height: 180px; /* Slightly taller for better scanning */
+  overflow-y: auto;
+  background-color: #1a1c23; /* Deep slate background */
+  border: 1px solid #374151 !important; /* Refined dark border */
+  border-radius: 4px; /* Sharp technical edge */
+  padding: 0; /* Remove padding for edge-to-edge hover */
+}
+
+/* Custom Webkit Scrollbar */
+.tech-scroll-box::-webkit-scrollbar {
+  width: 6px;
+}
+.tech-scroll-box::-webkit-scrollbar-track {
+  background: #121212;
+}
+.tech-scroll-box::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+.tech-scroll-box::-webkit-scrollbar-thumb:hover {
+  background: var(--teal-primary, #0d9488);
+}
+
+/* Edge-to-Edge Clickable Rows */
+.tech-scroll-box .tech-item {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  margin: 0;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color 0.15s ease;
+}
+
+.tech-scroll-box .tech-item:last-child {
+  border-bottom: none;
+}
+
+.tech-scroll-box .tech-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Custom Checkbox Styling */
+.tech-scroll-box .form-check-input {
+  background-color: #374151;
+  border-color: #4b5563;
+  cursor: pointer;
+}
+
+.tech-scroll-box .form-check-input:checked {
+  background-color: var(--teal-primary, #0d9488);
+  border-color: var(--teal-primary, #0d9488);
+}
+
+.tech-scroll-box .form-check-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(13, 148, 136, 0.25);
+}
