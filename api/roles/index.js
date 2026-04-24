@@ -1,45 +1,39 @@
 /**
  * GET  /api/roles   — List all roles (public, no auth required)
  * POST /api/roles   — Create a role (super-admin only)
+ *
+ * Thin handler — delegates to RoleService.
  */
 
 import { supabaseAdmin, verifyAuth, hasRole, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { listRoles, createRole } from '../_core/role.service.js';
+import { mapToHttpStatus } from '../_core/http-mapper.js';
 
 export const config = { runtime: 'edge' };
 
 export default withCors(async function handler(req) {
+  // ── GET ────────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('roles')
-        .select('*')
-        .order('name');
-      if (error) return errorResponse(`Database error: ${error.message}`, 500);
-      return jsonResponse({ data }, 200, { 'Cache-Control': 's-maxage=120' });
-    } catch (err) {
-      return errorResponse(err.message || 'Internal server error', 500);
-    }
+    const result = await listRoles(supabaseAdmin);
+
+    if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
+    return jsonResponse({ data: result.data }, 200, { 'Cache-Control': 's-maxage=120' });
   }
 
+  // ── POST ───────────────────────────────────────────────────────────────────
   if (req.method === 'POST') {
+    const { user, error: authError } = await verifyAuth(req);
+    if (authError) return errorResponse(authError, 401);
+    // Only super-admins and owners may create roles
+    const allowed = await hasRole(user.id, ['S_ADM', 'OWNER']);
+    if (!allowed) return errorResponse('Forbidden: Super-admin access required', 403);
+
     try {
-      const { user, error: authError } = await verifyAuth(req);
-      if (authError) return errorResponse(authError, 401);
-      // Only super-admins and owners may create roles
-      const allowed = await hasRole(user.id, ['S_ADM', 'OWNER']);
-      if (!allowed) return errorResponse('Forbidden: Super-admin access required', 403);
+      const body = await req.json();
+      const result = await createRole(supabaseAdmin, body);
 
-      const { name, code, description } = await req.json();
-      if (!name || !code) return errorResponse('name and code are required', 400);
-
-      const { data, error } = await supabaseAdmin
-        .from('roles')
-        .insert({ name, code, description: description || null })
-        .select()
-        .single();
-
-      if (error) return errorResponse(`Database error: ${error.message}`, 500);
-      return jsonResponse({ success: true, data }, 201);
+      if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
+      return jsonResponse({ success: true, data: result.data }, 201);
     } catch (err) {
       return errorResponse(err.message || 'Internal server error', 500);
     }

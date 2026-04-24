@@ -1,47 +1,27 @@
 /**
- * API Endpoint: /api/financial-transactions/summary
+ * GET /api/financial-transactions/summary
  *
- * - GET: Provides a summary of income and expenses over a specified period.
- *
- * Accessible only by finance-related roles (S_ADM, OWNER, TREASURER).
+ * Delegates to FinanceService.
  */
-import { supabaseAdmin, verifyAuth, withCors, jsonResponse, errorResponse, isFinance } from '../_lib/supabase.js';
+
+import { supabaseAdmin, verifyAuth, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { getFinancialSummary } from '../_core/finance.service.js';
+import { mapToHttpStatus } from '../_core/http-mapper.js';
 
 export const config = { runtime: 'edge' };
 
-export default withCors(async function handler(req) {
-    const { user, error: authError } = await verifyAuth(req);
-    if (authError) return errorResponse(authError, 401);
+export default withCors(async (req) => {
+  const { user, error: authErr } = await verifyAuth(req);
+  if (authErr) return errorResponse(authErr, 401);
 
-    const isFinanceUser = await isFinance(user.id);
-    if (!isFinanceUser) {
-        return errorResponse('Forbidden: Access is restricted to finance roles (Admins, Owner, or Treasurer).', 403);
-    }
+  if (req.method !== 'GET') return errorResponse('Method not allowed', 405);
 
-    if (req.method === 'GET') {
-        return handleGet(req, user);
-    }
+  const url = new URL(req.url);
+  const startDate = url.searchParams.get('startDate');
+  const endDate = url.searchParams.get('endDate');
 
-    return errorResponse('Method not allowed', 405);
+  const result = await getFinancialSummary(supabaseAdmin, { startDate, endDate });
+
+  if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
+  return jsonResponse(result.data);
 });
-
-async function handleGet(req, user) {
-    const { searchParams } = new URL(req.url);
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-
-    if (!startDate || !endDate) {
-        return errorResponse('Both startDate and endDate are required.', 400);
-    }
-
-    const { data, error } = await supabaseAdmin.rpc('get_financial_summary', {
-        start_date: startDate,
-        end_date: endDate
-    });
-
-    if (error) {
-        return errorResponse(error.message, 500);
-    }
-
-    return jsonResponse(data);
-}
