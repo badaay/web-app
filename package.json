@@ -7,15 +7,20 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "vercel-dev": "vercel dev",
+    "vercel-dev": "npx vercel dev",
+    "deploy": "npx vercel --prod",
+    "deploy:preview": "npx vercel",
     "seed:data": "node src/api/seed_data.js",
     "seed:auth": "node src/api/seed_auth.js",
-    "seed:all": "node src/api/seed_data.js && node src/api/seed_auth.js"
+    "seed:core": "node src/api/seed_core.js",
+    "seed:vault": "node src/api/seed_vault.js",
+    "seed:all": "node src/api/seed_core.js && node src/api/seed_vault.js && node src/api/seed_auth.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "supabase": "^2.89.0",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0"
   },
