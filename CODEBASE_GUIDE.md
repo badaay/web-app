@@ -36,17 +36,21 @@
 └─────────────────────────────────────────────────────────────────┘
 
 Entry Points:
+├── /index.html           → Main landing page (redirects to admin/ or enduser/)
 ├── /admin/index.html     → Admin Dashboard (primary)
-├── /admin/login.html     → Admin Authentication  
+├── /admin/login.html     → Admin Authentication
 ├── /admin/add-psb.html   → Standalone Registration Form
 ├── /enduser/dashboard.html → Customer Portal
-└── /activity.html        → Technician Activity View
+├── /enduser/login.html   → Customer Login
+└── /activity.html        → Public Technician Activity View
 
 Core Files to Understand First:
 1. src/admin/admin.js          ← Central orchestrator (routing, auth, module loading)
-2. src/api/supabase.js         ← Database client initialization
-3. src/api/schema.sql          ← Database structure & RLS policies
-4. src/admin/modules/*.js      ← Feature modules (11 total)
+2. src/api/supabase.js         ← Client-side Supabase client + apiCall helper
+3. api/_lib/supabase.js        ← Server-side Supabase helpers (node & admin clients)
+4. src/api/schema.sql          ← Database structure & RLS policies (Source of Truth)
+5. src/admin/modules/          ← Directory for all feature modules
+6. api/                          ← Directory for all Vercel Edge Functions (server-side logic)
 ```
 
 ### Key Concepts
@@ -184,17 +188,19 @@ async function initModule(targetId) {
 │                        DATA LAYER                                  │
 └───────────────────────────────────────────────────────────────────┘
 
-BROWSER (client-side) — src/api/supabase.js
-├── supabase client (anon key)  ← SELECT queries only (RLS-protected)
-└── apiCall(endpoint, options)  ← All INSERT/UPDATE/DELETE → /api/* proxy
+BROWSER (client-side) — src/
+├── src/api/supabase.js          ← Client + apiCall() helper
+└── src/admin/modules/           ← All UI-facing logic for admin panel features
 
 VERCEL EDGE FUNCTIONS (server-side) — api/
 ├── _lib/supabase.js             ← Shared helpers: verifyAuth, isAdmin, hasRole,
-│                                 withCors, generateCustomerCode
+│                                 withCors, generateCustomerCode, fonnte(sms)
 ├── admin/create-user.js         ← supabaseAdmin (service role) - creates auth users
 ├── admin/reset-password.js      ← supabaseAdmin - password reset
 ├── customers/index.js           ← GET list (anon client)
 ├── customers/[id].js            ← PATCH/DELETE (admin, validates phone uniqueness)
+├── customers/login.js           ← Handles customer login
+├── customers/register.js        ← Handles new customer registration from add-psb.html
 ├── work-orders/index.js         ← GET list + POST create
 ├── work-orders/[id].js          ← PATCH update + DELETE
 ├── work-orders/confirm.js       ← waiting→confirmed + monitoring record
@@ -204,6 +210,8 @@ VERCEL EDGE FUNCTIONS (server-side) — api/
 ├── inventory/index.js + [id].js ← CRUD inventory items
 ├── roles/index.js               ← GET list + POST (S_ADM/OWNER only)
 ├── settings/index.js            ← GET list + PATCH by key
+├── bills/                       ← Endpoints for bill generation and payment
+├── notifications/               ← Endpoints for sending notifications (e.g., WhatsApp)
 └── dashboard/stats.js           ← aggregated counts (cached 30s)
 
 SUPABASE (database)
@@ -211,21 +219,21 @@ SUPABASE (database)
 └── Auth (JWT issued on login)
 
 src/api/
-├── supabase.js          ← Client + apiCall() helper
+├── supabase.js          ← Client-side Supabase init + apiCall() helper
 ├── auth-service.js      ← Authentication wrapper
 ├── registration-service.js ← Customer registration logic
 ├── schema.sql           ← Database DDL (source of truth)
-└── migrations/          ← Schema evolution scripts
+└── seed_*.sql/.js       ← Seeding scripts for initial data
 
-Database Tables (10):
+Database Tables (12+):
 ┌─────────────────────┬─────────────────────┬─────────────────────┐
 │   CORE/AUTH         │   MASTER DATA       │   TRANSACTIONAL     │
 ├─────────────────────┼─────────────────────┼─────────────────────┤
 │ roles               │ employees           │ work_orders         │
 │ profiles            │ customers           │ installation_monitorings │
-│                     │ internet_packages   │                     │
-│                     │ inventory_items     │                     │
-│                     │ master_queue_types  │                     │
+│                     │ internet_packages   │ bills               │
+│                     │ inventory_items     │ payments            │
+│                     │ master_queue_types  │ notifications       │
 │                     │ app_settings        │                     │
 └─────────────────────┴─────────────────────┴─────────────────────┘
 
