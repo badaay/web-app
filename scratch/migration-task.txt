@@ -1,0 +1,20 @@
+# Task: Move Logic to API/Supabase
+
+## Objective
+Analyze the core functions of the project and move all business logic and complex functionality from the frontend to Vercel Edge Functions (API) or Supabase (Views/Functions/RPC).
+
+## Background
+- Current stack: Vite, Vanilla JS, Bootstrap 5, Supabase.
+- Mutations should go through `/api/*` (Vercel Edge Functions) for security and consistency.
+- Frontend modules in `src/admin/modules/` currently have a mix of direct Supabase calls and `apiCall`.
+
+## My Findings
+1. **Direct Mutations**: Files like `src/admin/modules/master/employees.js` and `src/admin/modules/hr/payroll.js` use `supabase.update()` or `supabase.insert()` directly for some operations.
+2. **Complex Logic**: `src/admin/modules/main/work-orders/index.js` calculates daily stats client-side.
+3. **API Coverage**: Many endpoints already exist in `api/` but aren't fully utilized for all CRUD operations.
+
+## Plan Requirements
+- Identify all client-side mutations (`.insert()`, `.update()`, `.delete()`, `.upsert()`) and move them to API endpoints.
+- Identify complex data aggregations and move them to Supabase Views or dedicated API endpoints.
+- Ensure all modules follow the pattern: UI only, data fetching/mutating via `apiCall`.
+- Verification checklist for each module.
