@@ -215,33 +215,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         const dashboardSection = document.getElementById('dashboard-section');
         const roleFeature = document.getElementById('role-feature');
         const masterDataContainer = document.getElementById('master-data-container');
-        const settingsContainer = document.getElementById('settings-container');
+        const appSettingsContainer = document.getElementById('app-settings-container');
+        const coreSettingsContainer = document.getElementById('core-settings-container');
 
         if (dashboardSection) dashboardSection.style.display = 'flex';
 
-        // Update UI elements
-        const displayEmail = document.getElementById('user-display-email');
-        if (displayEmail) displayEmail.innerText = user.email || 'Admin';
-
-        // Fetch precise role from employees table
+        // Fetch precise role and profile from employees table
         let role = 'TECHNICIAN';
+        let employeeName = null;
         try {
             const { data: roleData, error: roleError } = await supabase
                 .from('employees')
-                .select('roles(name)')
+                .select('name, roles(name)')
                 .eq('email', user.email)
                 .maybeSingle();
 
             if (roleError) console.warn('Role lookup error (likely missing email column):', roleError);
-            if (roleData?.roles?.name) {
-                role = roleData.roles.name;
+            if (roleData) {
+                if (roleData.roles?.name) role = roleData.roles.name;
+                employeeName = roleData.name;
             }
         } catch (err) {
             console.error('Failed to fetch role:', err);
         }
 
+        const nameElement = document.getElementById('user-display-name');
+        const dropdownName = document.getElementById('dropdown-user-name');
+        
+        // Priority: Show name if available, fallback to email
+        if (employeeName && employeeName.trim()) {
+            if (nameElement) {
+                nameElement.textContent = employeeName;
+                nameElement.style.display = '';
+            }
+            if (dropdownName) dropdownName.textContent = (employeeName.split(" ")[0] || "Admin").toUpperCase();
+        } else {
+            if (dropdownName) dropdownName.textContent = user.email ? user.email.split('@')[0] : 'Admin';
+        }
+
+        // Old Role Header fallback
         const roleHeader = document.getElementById('user-role-header');
         if (roleHeader) roleHeader.innerText = `Role: ${role.toUpperCase()}`;
+
+        // New Role Dropdown Items
+        const ddRole = document.getElementById('dropdown-user-role');
+        if (ddRole) ddRole.textContent = role.toUpperCase();
+        
+        const ddRoleBadge = document.getElementById('dropdown-role-badge');
+        if (ddRoleBadge) {
+            ddRoleBadge.textContent = role.toUpperCase();
+            ddRoleBadge.className = 'badge rounded-pill px-2 py-1 role-badge';
+            if (role.toUpperCase().includes('ADMIN')) {
+                ddRoleBadge.classList.add('bg-danger');
+            } else if (role.toUpperCase().includes('TECH')) {
+                ddRoleBadge.classList.add('bg-warning', 'text-dark');
+            } else {
+                ddRoleBadge.classList.add('bg-info', 'text-dark');
+            }
+        }
 
         // Sidebar Toggle for Mobile
         const sidebar = document.getElementById('admin-sidebar');
@@ -264,7 +295,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderSidebar(guardRole);
 
         // 2. Initialize navigation (Now called AFTER sidebar is rendered)
-        initNavigation(roleFeature, masterDataContainer, settingsContainer);
+        initNavigation(roleFeature, masterDataContainer, appSettingsContainer, coreSettingsContainer);
 
         // Logout handlers
         const logoutHandler = async () => {
@@ -275,6 +306,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const btnSidebar = document.getElementById('nav-logout-btn-sidebar');
         if (btnHeader) btnHeader.onclick = logoutHandler;
         if (btnSidebar) btnSidebar.onclick = logoutHandler;
+
+        const btnSettingsDropdown = document.getElementById('nav-settings-dropdown');
+        if (btnSettingsDropdown) {
+            btnSettingsDropdown.onclick = (e) => {
+                e.preventDefault();
+                document.dispatchEvent(new CustomEvent('navigate', { detail: 'core-settings-module' }));
+            };
+        }
 
         // Hash-based navigation support with guards
         window.addEventListener('hashchange', () => {
@@ -380,7 +419,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function initNavigation(roleFeature, masterDataContainer, settingsContainer) {
+    function initNavigation(roleFeature, masterDataContainer, appSettingsContainer, coreSettingsContainer) {
         const navButtons = document.querySelectorAll('.nav-item-custom, .admin-mobile-nav .menu-item');
         const masterPanes = document.querySelectorAll('#masterDataTabsContent .tab-pane');
         const sidebar = document.getElementById('admin-sidebar');
@@ -406,7 +445,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             // 2. Hide all primary section containers
-            [roleFeature, masterDataContainer, settingsContainer].forEach(el => {
+            [roleFeature, masterDataContainer, appSettingsContainer, coreSettingsContainer].forEach(el => {
                 if (el) el.classList.add('d-none');
             });
 
@@ -417,10 +456,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 initModule('dashboard');
                 pageTitle = 'Beranda';
             } else if (target === 'settings-module') {
-                settingsContainer.classList.remove('d-none');
+                appSettingsContainer.classList.remove('d-none');
                 initModule('settings-content');
+                pageTitle = 'Pengaturan Aplikasi';
+            } else if (target === 'core-settings-module') {
+                coreSettingsContainer.classList.remove('d-none');
                 initModule('roles-content');
-                pageTitle = 'Settings';
+                initModule('theme-pane'); // Pre-load theme settings if needed
+                pageTitle = 'Pengaturan Inti';
             } else if (target === 'financial-reports-content' || target === 'financial-ledger-content') {
                 masterDataContainer.classList.remove('d-none');
                 masterPanes.forEach(pane => pane.classList.remove('show', 'active'));

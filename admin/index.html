@@ -93,9 +93,9 @@
                 <div class="nav-group" data-group="hr">
                     <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
                         style="font-size: 0.65rem; letter-spacing: 1.5px;">Payroll & HR</div>
-                    <!-- <button class="nav-item-custom nav-module-link" data-module="attendance-content">
+                    <button class="nav-item-custom nav-module-link" data-module="attendance-content">
                         <i class="bi bi-calendar-check"></i> Kehadiran
-                    </button> -->
+                    </button>
                     <button class="nav-item-custom nav-module-link" data-module="overtime-content">
                         <i class="bi bi-clock-history"></i> Lembur
                     </button>
@@ -107,9 +107,9 @@
                 <div class="nav-group" data-group="finance">
                     <div class="px-4 py-2 mt-3 small text-uppercase text-white-50 fw-bold"
                         style="font-size: 0.65rem; letter-spacing: 1.5px;">Keuangan</div>
-                    <!-- <button class="nav-item-custom nav-module-link" data-module="billing-content">
+                    <button class="nav-item-custom nav-module-link" data-module="billing-content">
                         <i class="bi bi-receipt-cutoff"></i> Tagihan
-                    </button> -->
+                    </button>
                     <button class="nav-item-custom nav-module-link" data-module="finance-content">
                         <i class="bi bi-graph-up-arrow"></i> Laporan Keuangan
                     </button>
@@ -153,21 +153,38 @@
                         <button
                             class="btn btn-link text-white dropdown-toggle d-flex align-items-center p-0 text-decoration-none"
                             type="button" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span id="user-display-email" class="small me-2 d-none d-md-inline">admin@sifatih.com</span>
-                            <div class="rounded-circle bg-accent d-flex align-items-center justify-content-center"
-                                style="width: 32px; height: 32px;">
-                                <i class="bi bi-person text-white"></i>
+                            <span id="user-display-name" class="small me-2 d-none d-md-inline fw-medium">Admin</span>
+                            <div class="position-relative">
+                                <div class="rounded-circle bg-accent d-flex align-items-center justify-content-center"
+                                    style="width: 32px; height: 32px;">
+                                    <i class="bi bi-person text-white"></i>
+                                </div>
+                                <span class="position-absolute bottom-0 end-0 p-1 bg-success rounded-circle border border-dark"
+                                    style="width: 10px; height: 10px;" title="Online"></span>
                             </div>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2"
-                            aria-labelledby="userProfileDropdown">
-                            <li>
-                                <div class="dropdown-header fw-bold" id="user-role-header">Role: SUPER ADMIN</div>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2 user-profile-dropdown"
+                            aria-labelledby="userProfileDropdown" style="min-width: 220px;">
+                            <li class="px-3 py-2 border-bottom border-secondary border-opacity-10">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-accent d-flex align-items-center justify-content-center me-3"
+                                        style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person text-white fs-5"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold text-white" id="dropdown-user-name"></div>
+                                    </div>
+                                </div>
                             </li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li><button class="dropdown-item text-danger" id="nav-logout-btn"><i
+                          
+                            <!-- <li><button class="dropdown-item text-white d-flex align-items-center" id="nav-help">
+                                <i class="bi bi-question-circle me-2 text-success"></i>Bantuan
+                            </button></li> -->
+                            <li><button class="dropdown-item text-white d-flex align-items-center" id="nav-settings-dropdown">
+                                <i class="bi bi-gear me-2 text-secondary"></i>Pengaturan
+                            </button></li>
+                            <li><hr class="dropdown-divider border-secondary border-opacity-25"></li>
+                            <li><button class="dropdown-item text-danger d-flex align-items-center" id="nav-logout-btn"><i
                                         class="bi bi-box-arrow-right me-2"></i>Keluar</button></li>
                         </ul>
                     </div>
@@ -180,29 +197,18 @@
                     <!-- Role-specific content will go here -->
                 </div>
 
-                <div id="settings-container" class="d-none">
+                <div id="app-settings-container" class="d-none">
                     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
                         <h4 class="mb-0 text-white"><i
-                                class="bi bi-gear-wide-connected me-2 text-primary"></i>Pengaturan Sistem</h4>
+                                class="bi bi-sliders me-2 text-primary"></i>Pengaturan Aplikasi</h4>
                     </div>
 
-                    <!-- Tabs for Settings -->
-                    <ul class="nav nav-tabs admin-tabs-custom mb-3" id="settingsTabs" role="tablist">
+                    <ul class="nav nav-tabs admin-tabs-custom mb-3" id="appSettingsTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="app-settings-tab" data-bs-toggle="tab"
                                 data-bs-target="#app-settings-pane" type="button" role="tab"
                                 aria-controls="app-settings-pane" aria-selected="true"><i
                                     class="bi bi-sliders me-1"></i> Konfigurasi</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles-pane"
-                                type="button" role="tab" aria-controls="roles-pane" aria-selected="false"><i
-                                    class="bi bi-shield-lock me-1"></i> Role & Akses</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="theme-tab" data-bs-toggle="tab" data-bs-target="#theme-pane"
-                                type="button" role="tab" aria-controls="theme-pane" aria-selected="false"><i
-                                    class="bi bi-palette me-1"></i> Tema & Tampilan</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="whatsapp-tab" data-bs-toggle="tab"
@@ -228,8 +234,7 @@
                         </li>
                     </ul>
 
-                    <div class="tab-content" id="settingsTabsContent">
-                        <!-- App Settings -->
+                    <div class="tab-content" id="appSettingsTabsContent">
                         <div class="tab-pane fade show active" id="app-settings-pane" role="tabpanel"
                             aria-labelledby="app-settings-tab">
                             <div class="card bg-vscode border-secondary shadow-sm">
@@ -238,40 +243,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Roles Section -->
-                        <div class="tab-pane fade" id="roles-pane" role="tabpanel" aria-labelledby="roles-tab">
-                            <div id="roles-module-section">
-                                <div id="roles-content" class="card bg-vscode border-secondary shadow-sm">
-                                    <div id="roles-list" class="card-body text-center">Memuat data role...</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Empty Placeholder Tabs -->
-                        <div class="tab-pane fade" id="theme-pane" role="tabpanel" aria-labelledby="theme-tab">
-                            <div class="card bg-vscode border-secondary shadow-sm">
-                                <div class="card-body p-4">
-                                    <h5 class="text-white mb-4"><i class="bi bi-palette me-2 text-accent"></i>Personalisasi Tampilan</h5>
-                                    
-                                    <div class="row g-3" id="theme-selector-grid">
-                                        <!-- Themes will be injected here by theme.js -->
-                                        <div class="col-12 text-center py-5 text-white-50">
-                                            <div class="spinner-border spinner-border-sm me-2"></div>
-                                            Memuat daftar tema...
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-5 pt-4 border-top border-secondary">
-                                        <h6 class="text-white-50 mb-3">Informasi Sistem</h6>
-                                        <p class="small text-white-50">
-                                            Perubahan tema akan disimpan secara lokal di browser Anda. Beberapa elemen desain mungkin memerlukan reload halaman untuk diterapkan sepenuhnya.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
 
                         <div class="tab-pane fade" id="whatsapp-pane" role="tabpanel" aria-labelledby="whatsapp-tab">
                             <div id="whatsapp-module-root">
@@ -288,8 +259,7 @@
                                 <div class="card-body text-center py-5">
                                     <i class="bi bi-bell fs-1 text-warning d-block mb-3"></i>
                                     <h5 class="text-white">Pengaturan Notifikasi</h5>
-                                    <p class="text-white-50 mb-0">Atur notifikasi push dan event system yang memicu
-                                        alert.</p>
+                                    <p class="text-white-50 mb-0">Atur notifikasi push dan event system yang memicu alert.</p>
                                 </div>
                             </div>
                         </div>
@@ -308,6 +278,58 @@
                             <div class="card bg-vscode border-secondary shadow-sm">
                                 <div class="card-body" id="payments-settings-content">
                                     <div class="text-center py-5 text-white-50">Memuat pengaturan pembayaran...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="core-settings-container" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+                        <h4 class="mb-0 text-white"><i
+                                class="bi bi-gear-wide-connected me-2 text-primary"></i>Pengaturan Inti Sistem</h4>
+                    </div>
+
+                    <ul class="nav nav-tabs admin-tabs-custom mb-3" id="coreSettingsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles-pane"
+                                type="button" role="tab" aria-controls="roles-pane" aria-selected="true"><i
+                                    class="bi bi-shield-lock me-1"></i> Role & Akses</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="theme-tab" data-bs-toggle="tab" data-bs-target="#theme-pane"
+                                type="button" role="tab" aria-controls="theme-pane" aria-selected="false"><i
+                                    class="bi bi-palette me-1"></i> Tema & Tampilan</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="coreSettingsTabsContent">
+                        <div class="tab-pane fade show active" id="roles-pane" role="tabpanel" aria-labelledby="roles-tab">
+                            <div id="roles-module-section">
+                                <div id="roles-content" class="card bg-vscode border-secondary shadow-sm">
+                                    <div id="roles-list" class="card-body text-center">Memuat data role...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="theme-pane" role="tabpanel" aria-labelledby="theme-tab">
+                            <div class="card bg-vscode border-secondary shadow-sm">
+                                <div class="card-body p-4">
+                                    <h5 class="text-white mb-4"><i class="bi bi-palette me-2 text-accent"></i>Personalisasi Tampilan</h5>
+                                    
+                                    <div class="row g-3" id="theme-selector-grid">
+                                        <div class="col-12 text-center py-5 text-white-50">
+                                            <div class="spinner-border spinner-border-sm me-2"></div>
+                                            Memuat daftar tema...
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-5 pt-4 border-top border-secondary">
+                                        <h6 class="text-white-50 mb-3">Informasi Sistem</h6>
+                                        <p class="small text-white-50">
+                                            Perubahan tema akan disimpan secara lokal di browser Anda. Beberapa elemen desain mungkin memerlukan reload halaman untuk diterapkan sepenuhnya.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
