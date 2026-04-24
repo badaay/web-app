@@ -2,7 +2,8 @@
  * Bill Service — Unit Tests
  * TDD Phase: RED (Fixing Mock Paths)
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/bill.repository.js');
 vi.mock('../../repositories/customer.repository.js');
@@ -41,12 +42,8 @@ import {
 } from '../../services/bill.service.js';
 
 describe('BillService', () => {
-  const mockDb = {};
-  const mockDbB = {}; // Vault
+  const { mockDb, mockDbB } = setupServiceTest();
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   describe('generateMonthlyBills', () => {
     it('should reject invalid period', async () => {

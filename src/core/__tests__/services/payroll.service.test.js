@@ -1,7 +1,8 @@
 /**
  * Payroll Service — Unit Tests
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/payroll.repository.js');
 
@@ -17,11 +18,8 @@ import * as payrollRepo from '../../repositories/payroll.repository.js';
 import { calculatePayroll } from '../../services/payroll.service.js';
 
 describe('PayrollService', () => {
-  const mockDb = {};
+  const { mockDb } = setupServiceTest();
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   describe('calculatePayroll', () => {
     it('should reject missing periodId', async () => {

@@ -1,8 +1,8 @@
 /**
  * Role Service — Unit Tests
- * TDD Phase: RED
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/role.repository.js');
 
@@ -10,11 +10,7 @@ import * as roleRepo from '../../repositories/role.repository.js';
 import { listRoles, createRole } from '../../services/role.service.js';
 
 describe('RoleService', () => {
-  const mockDb = {};
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  const { mockDb } = setupServiceTest();
 
   describe('listRoles', () => {
     it('should return all roles', async () => {

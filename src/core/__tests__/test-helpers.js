@@ -31,24 +31,16 @@ export function createMockDbClient() {
     limit:       vi.fn().mockReturnThis(),
     single:      vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockReturnThis(),
-    // Terminal — override in tests to resolve final values
-    then:        vi.fn(),
+    // Terminal — must call onResolved to resolve the promise
+    then:        vi.fn((onRes) => Promise.resolve({ data: null, error: null }).then(onRes)),
   };
 
   // Allow tests to set the final resolved value
-  // Usage: db._setResult({ data: [...], error: null, count: 5 })
   const setResult = (result) => {
     const resolvedResult = { data: null, error: null, count: null, ...result };
-    // Make the builder itself thenable (like Supabase client)
-    builder.select.mockReturnValue(Object.assign(Object.create(builder), resolvedResult));
-    builder.insert.mockReturnValue(Object.assign(Object.create(builder), resolvedResult));
-    builder.update.mockReturnValue(Object.assign(Object.create(builder), resolvedResult));
-    builder.delete.mockReturnValue(Object.assign(Object.create(builder), resolvedResult));
-    // Also set on terminal methods
+    builder.then.mockImplementation((onRes) => Promise.resolve(resolvedResult).then(onRes));
     builder.single.mockResolvedValue(resolvedResult);
     builder.maybeSingle.mockResolvedValue(resolvedResult);
-    // Make builder itself resolve
-    Object.assign(builder, resolvedResult);
   };
 
   const client = {

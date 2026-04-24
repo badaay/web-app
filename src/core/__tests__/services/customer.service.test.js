@@ -2,7 +2,8 @@
  * Customer Service — Unit Tests
  * TDD Phase: RED
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/customer.repository.js');
 
@@ -16,17 +17,8 @@ import {
 } from '../../services/customer.service.js';
 
 describe('CustomerService', () => {
-  const mockDb = {};
-  const mockAuthClient = {
-    auth: { 
-      admin: { deleteUser: vi.fn() },
-      signInWithPassword: vi.fn()
-    },
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  const { mockDb, mockAuth } = setupServiceTest();
+  mockAuth.auth.signInWithPassword = vi.fn();
 
   // ── listCustomers ─────────────────────────────────────────────────────────
   describe('listCustomers', () => {
@@ -54,7 +46,7 @@ describe('CustomerService', () => {
     it('should reject deletion if customer has active work orders', async () => {
       customerRepo.findById.mockResolvedValue({ data: { id: 'uuid-1', name: 'Andi' } });
       customerRepo.countActiveWorkOrders.mockResolvedValue({ count: 2 });
-      const result = await deleteCustomer(mockDb, mockAuthClient, 'uuid-1');
+      const result = await deleteCustomer(mockDb, mockAuth, 'uuid-1');
       expect(result.statusHint).toBe('conflict');
     });
   });
@@ -85,7 +77,7 @@ describe('CustomerService', () => {
   describe('loginCustomer', () => {
     it('should reject invalid credentials', async () => {
       customerRepo.findByPhone.mockResolvedValue({ data: null });
-      const result = await loginCustomer(mockDb, mockAuthClient, '0812', 'pass');
+      const result = await loginCustomer(mockDb, mockAuth, '0812', 'pass');
       expect(result.statusHint).toBe('unauthorized');
     });
 

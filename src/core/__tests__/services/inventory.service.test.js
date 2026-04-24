@@ -1,7 +1,8 @@
 /**
  * Inventory Service — Unit Tests
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/inventory.repository.js');
 
@@ -14,11 +15,7 @@ import {
 } from '../../services/inventory.service.js';
 
 describe('InventoryService', () => {
-  const mockDb = {};
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  const { mockDb } = setupServiceTest();
 
   describe('listInventory', () => {
     it('should return inventory items', async () => {
@@ -29,6 +26,13 @@ describe('InventoryService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(items);
+    });
+
+    it('should return server_error on db failure', async () => {
+      inventoryRepo.findAll.mockResolvedValue({ error: { message: 'DB down' } });
+      const result = await listInventory(mockDb);
+      expect(result.success).toBe(false);
+      expect(result.statusHint).toBe('server_error');
     });
   });
 
@@ -47,6 +51,12 @@ describe('InventoryService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(newItem);
     });
+
+    it('should return server_error on create failure', async () => {
+      inventoryRepo.create.mockResolvedValue({ error: { message: 'Insert failed' } });
+      const result = await createItem(mockDb, { name: 'ONT', stock: 10 });
+      expect(result.statusHint).toBe('server_error');
+    });
   });
 
   describe('updateItem', () => {
@@ -58,6 +68,12 @@ describe('InventoryService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(updated);
+    });
+
+    it('should return not_found if item does not exist', async () => {
+      inventoryRepo.updateById.mockResolvedValue({ data: null, error: null });
+      const result = await updateItem(mockDb, '1', { name: 'ONT New' });
+      expect(result.statusHint).toBe('not_found');
     });
   });
 

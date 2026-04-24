@@ -2,7 +2,8 @@
  * Work Order Service — Unit Tests
  * TDD Phase: RED
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/work-order.repository.js');
 vi.mock('../../../../api/_lib/fonnte.js', () => ({
@@ -31,14 +32,10 @@ import {
 } from '../../services/work-order.service.js';
 
 describe('WorkOrderService', () => {
-  const mockDb = {};
-  const mockAuthClient = {
-    auth: { admin: { createUser: vi.fn(), deleteUser: vi.fn() } }
-  };
+  const { mockDb, mockAuth } = setupServiceTest();
+  // Ensure the admin mock has createUser
+  mockAuth.auth.admin.createUser = vi.fn();
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   // ── listWorkOrders ──────────────────────────────────────────────────────
 
@@ -193,7 +190,7 @@ describe('WorkOrderService', () => {
   describe('closeWorkOrder', () => {
     it('should reject if WO not found', async () => {
       woRepo.findByIdWithAssignments.mockResolvedValue({ data: null });
-      const result = await closeWorkOrder(mockDb, mockAuthClient, '1', {}, { id: 'user-1' }, false);
+      const result = await closeWorkOrder(mockDb, mockAuth, '1', {}, { id: 'user-1' }, false);
       expect(result.success).toBe(false);
       expect(result.statusHint).toBe('not_found');
     });
@@ -204,7 +201,7 @@ describe('WorkOrderService', () => {
       });
       employeeRepo.findById.mockResolvedValue({ data: { id: 'tech-2', email: 'tech2@test.com' } });
       
-      const result = await closeWorkOrder(mockDb, mockAuthClient, '1', {}, { id: 'user-1', email: 'tech1@test.com' }, false);
+      const result = await closeWorkOrder(mockDb, mockAuth, '1', {}, { id: 'user-1', email: 'tech1@test.com' }, false);
       expect(result.success).toBe(false);
       expect(result.statusHint).toBe('forbidden');
     });
@@ -216,7 +213,7 @@ describe('WorkOrderService', () => {
       woRepo.closeWithPointsRpc.mockResolvedValue({ data: {}, error: null });
       woRepo.updateAssignmentsPoints.mockResolvedValue({ error: null });
 
-      const result = await closeWorkOrder(mockDb, mockAuthClient, '1', { notes: 'done' }, { id: 'tech-1' }, false);
+      const result = await closeWorkOrder(mockDb, mockAuth, '1', { notes: 'done' }, { id: 'tech-1' }, false);
 
       expect(result.success).toBe(true);
       expect(woRepo.closeWithPointsRpc).toHaveBeenCalledWith(mockDb, '1', { notes: 'done' });

@@ -1,7 +1,8 @@
 /**
  * Finance Service — Unit Tests
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/finance.repository.js');
 
@@ -13,11 +14,8 @@ import {
 } from '../../services/finance.service.js';
 
 describe('FinanceService', () => {
-  const mockDb = {};
+  const { mockDb } = setupServiceTest();
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   describe('listTransactions', () => {
     it('should return transactions', async () => {
@@ -52,12 +50,12 @@ describe('FinanceService', () => {
       ];
       financeRepo.findSummary.mockResolvedValue({ data, error: null });
 
-      const result = await getFinancialSummary(mockDb, {});
+      const result = await getFinancialSummary(mockDb, { month: 4, year: 2026 });
 
       expect(result.success).toBe(true);
-      expect(result.data.income).toBe(1000);
-      expect(result.data.expense).toBe(400);
-      expect(result.data.balance).toBe(600);
+      expect(result.data.total_income).toBe(1000);
+      expect(result.data.total_expense).toBe(400);
     });
+
   });
 });

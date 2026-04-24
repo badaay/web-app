@@ -32,17 +32,48 @@ export async function createTransaction(dbClient, body, userId) {
   return ok(data);
 }
 
-export async function getFinancialSummary(dbClient, { startDate, endDate } = {}) {
+export async function getFinancialSummary(dbClient, { month, year } = {}) {
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
   const { data, error } = await financeRepo.findSummary(dbClient, { startDate, endDate });
   if (error) return serverError(`Database error: ${error.message}`);
 
-  const income = data.filter(t => t.transaction_type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = data.filter(t => t.transaction_type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const summary = {
+    total_income: 0,
+    total_expense: 0,
+    income_by_category: {},
+    expense_by_category: {}
+  };
 
-  return ok({
-    income,
-    expense,
-    balance: income - expense,
-    count: data.length
+  data.forEach(tx => {
+    const amt = parseFloat(tx.amount);
+    if (tx.transaction_type === 'income') {
+      summary.total_income += amt;
+      const cat = tx.category || 'other';
+      summary.income_by_category[cat] = (summary.income_by_category[cat] || 0) + amt;
+    } else {
+      summary.total_expense += amt;
+      const cat = tx.category || 'other';
+      summary.expense_by_category[cat] = (summary.expense_by_category[cat] || 0) + amt;
+    }
   });
+
+  return ok(summary);
 }
+
+export async function getDailyRecap(dbClient, date) {
+  const { data, error } = await financeRepo.findDailyRecap(dbClient, date);
+  if (error) return serverError(`Database error: ${error.message}`);
+
+  const recap = {};
+  data.forEach(tx => {
+    const bankName = tx.bank_name || 'Lainnya';
+    if (!recap[bankName]) recap[bankName] = { income: 0, expense: 0 };
+    if (tx.type === 'income') recap[bankName].income += parseFloat(tx.amount);
+    else recap[bankName].expense += parseFloat(tx.amount);
+  });
+
+  return ok({ date, recap });
+}
+

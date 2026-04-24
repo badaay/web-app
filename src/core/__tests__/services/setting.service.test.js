@@ -1,8 +1,8 @@
 /**
  * Setting Service — Unit Tests
- * TDD Phase: RED
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/setting.repository.js');
 
@@ -10,11 +10,7 @@ import * as settingRepo from '../../repositories/setting.repository.js';
 import { listSettings, updateSetting } from '../../services/setting.service.js';
 
 describe('SettingService', () => {
-  const mockDb = {};
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  const { mockDb } = setupServiceTest();
 
   describe('listSettings', () => {
     it('should return all settings', async () => {

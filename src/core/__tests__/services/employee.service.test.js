@@ -2,7 +2,8 @@
  * Employee Service — Unit Tests
  * TDD Phase: RED
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/employee.repository.js');
 
@@ -17,11 +18,7 @@ import {
 } from '../../services/employee.service.js';
 
 describe('EmployeeService', () => {
-  const mockDb = {};
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  const { mockDb, mockAuth } = setupServiceTest();
 
   // ── listEmployees ─────────────────────────────────────────────────────────
 

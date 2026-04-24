@@ -42,3 +42,11 @@ export async function findBankAccounts(dbClient) {
     .select('*')
     .order('account_name');
 }
+
+export async function findDailyRecap(dbClient, date) {
+  return dbClient
+    .from('v_financial_recap')
+    .select('amount, type, bank_account_id, bank_name')
+    .eq('transaction_date', date);
+}
+

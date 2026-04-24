@@ -1,7 +1,8 @@
 /**
  * Package Service — Unit Tests
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { setupServiceTest } from './setup.js';
 
 vi.mock('../../repositories/package.repository.js');
 
@@ -14,11 +15,7 @@ import {
 } from '../../services/package.service.js';
 
 describe('PackageService', () => {
-  const mockDb = {};
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  const { mockDb } = setupServiceTest();
 
   describe('listPackages', () => {
     it('should return packages', async () => {
@@ -29,6 +26,13 @@ describe('PackageService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(items);
+    });
+
+    it('should return server_error on db failure', async () => {
+      packageRepo.findAll.mockResolvedValue({ error: { message: 'DB down' } });
+      const result = await listPackages(mockDb);
+      expect(result.success).toBe(false);
+      expect(result.statusHint).toBe('server_error');
     });
   });
 
@@ -50,6 +54,12 @@ describe('PackageService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(newItem);
     });
+
+    it('should return server_error on create failure', async () => {
+      packageRepo.create.mockResolvedValue({ error: { message: 'Insert failed' } });
+      const result = await createPackage(mockDb, { name: 'P1', price: 100 });
+      expect(result.statusHint).toBe('server_error');
+    });
   });
 
   describe('updatePackage', () => {
@@ -61,6 +71,12 @@ describe('PackageService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(updated);
+    });
+
+    it('should return not_found if package does not exist', async () => {
+      packageRepo.updateById.mockResolvedValue({ data: null, error: null });
+      const result = await updatePackage(mockDb, '1', { name: 'P1 New' });
+      expect(result.statusHint).toBe('not_found');
     });
   });
 
