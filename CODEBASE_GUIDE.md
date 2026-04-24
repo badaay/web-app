@@ -181,61 +181,43 @@ async function initModule(targetId) {
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
-│                        DATA LAYER                                  │
+│                        DATA LAYER ARCHITECTURE                     │
 └───────────────────────────────────────────────────────────────────┘
 
-BROWSER (client-side) — src/api/supabase.js
-├── supabase client (anon key)  ← SELECT queries only (RLS-protected)
-└── apiCall(endpoint, options)  ← All INSERT/UPDATE/DELETE → /api/* proxy
+### 2.3 Layered Approach (Server-Side)
 
-VERCEL EDGE FUNCTIONS (server-side) — api/
-├── _lib/supabase.js             ← Shared helpers: verifyAuth, isAdmin, hasRole,
-│                                 withCors, generateCustomerCode
-├── admin/create-user.js         ← supabaseAdmin (service role) - creates auth users
-├── admin/reset-password.js      ← supabaseAdmin - password reset
-├── customers/index.js           ← GET list (anon client)
-├── customers/[id].js            ← PATCH/DELETE (admin, validates phone uniqueness)
-├── work-orders/index.js         ← GET list + POST create
-├── work-orders/[id].js          ← PATCH update + DELETE
-├── work-orders/confirm.js       ← waiting→confirmed + monitoring record
-├── work-orders/claim.js         ← atomic confirmed→open (race-safe)
-├── work-orders/close.js         ← open→closed + award points
-├── packages/index.js + [id].js  ← CRUD internet packages
-├── inventory/index.js + [id].js ← CRUD inventory items
-├── roles/index.js               ← GET list + POST (S_ADM/OWNER only)
-├── settings/index.js            ← GET list + PATCH by key
-└── dashboard/stats.js           ← aggregated counts (cached 30s)
+To ensure testability and separation of concerns, all server-side logic follows a strict 3-layer pattern:
 
-SUPABASE (database)
-├── PostgreSQL with RLS policies
-└── Auth (JWT issued on login)
+1.  **Handlers (`api/*.js`)**:
+    - Thin controllers using Vercel Edge Runtime.
+    - Handle authentication (`verifyAuth`), CORS, and request body parsing.
+    - Delegate all business logic to Services.
+2.  **Services (`src/core/services/`)**:
+    - Plain JS functions (no framework dependencies).
+    - Contain the "Brain" of the application: validation, authorization logic, and orchestration.
+    - Interact with Repositories for data persistence.
+3.  **Repositories (`src/core/repositories/`)**:
+    - Isolated data access logic.
+    - Use Supabase client to perform CRUD operations.
+    - Return raw Supabase results (`{ data, error, count }`).
 
-src/api/
-├── supabase.js          ← Client + apiCall() helper
-├── auth-service.js      ← Authentication wrapper
-├── registration-service.js ← Customer registration logic
-├── schema.sql           ← Database DDL (source of truth)
-└── migrations/          ← Schema evolution scripts
+```mermaid
+graph TD
+    Client[Browser/apiCall] --> Handler[api/work-orders/claim.js]
+    Handler --> Service[src/core/services/work-order.service.js]
+    Service --> Repo[src/core/repositories/work-order.repository.js]
+    Repo --> DB[(Supabase)]
+```
 
-Database Tables (10):
-┌─────────────────────┬─────────────────────┬─────────────────────┐
-│   CORE/AUTH         │   MASTER DATA       │   TRANSACTIONAL     │
-├─────────────────────┼─────────────────────┼─────────────────────┤
-│ roles               │ employees           │ work_orders         │
-│ profiles            │ customers           │ installation_monitorings │
-│                     │ internet_packages   │                     │
-│                     │ inventory_items     │                     │
-│                     │ master_queue_types  │                     │
-│                     │ app_settings        │                     │
-└─────────────────────┴─────────────────────┴─────────────────────┘
+### 2.4 Testing Strategy (TDD)
 
-Key Relationships:
-- employees.role_id → roles.id
-- customers.role_id → roles.id
-- work_orders.customer_id → customers.id
-- work_orders.employee_id → employees.id
-- work_orders.type_id → master_queue_types.id
-- installation_monitorings.work_order_id → work_orders.id (UNIQUE)
+The codebase uses **Vitest** for unit and integration testing with a focus on 100% logic coverage in the Service layer.
+
+- **Mocking**: 
+    - Services are tested in isolation by mocking repositories.
+    - Repositories are tested by mocking the Supabase client using `createMockDbClient`.
+- **Helpers**: `src/core/__tests__/test-helpers.js` provides factories for mock database clients and query builders.
+- **TDD Flow**: Red (Write failing test) → Green (Implement logic) → Refactor (Clean up).
 ```
 
 ### 2.3a Shared API Library (`api/_lib/supabase.js`)
