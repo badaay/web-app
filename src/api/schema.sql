@@ -299,6 +299,15 @@ RETURNS BOOLEAN AS $$
     );
 $$ LANGUAGE sql SECURITY DEFINER;
 
+-- 5b. Update Timestamp Function
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 5b. Check if User is Admin-class (S_ADM, OWNER, or ADM)
 CREATE OR REPLACE FUNCTION public.is_admin_class()
 RETURNS BOOLEAN AS $$
@@ -380,8 +389,15 @@ CREATE POLICY "wo_tech_update" ON public.work_orders FOR UPDATE USING (
 CREATE POLICY "wo_cust_view" ON public.work_orders FOR SELECT USING (customer_id = auth.uid());
 
 -- Installation Monitorings: Admin/SPV full; Tech assigned
-CREATE POLICY "monitor_admin_all" ON public.installation_monitorings FOR ALL USING (is_admin_class() OR has_role('SPV_TECH'));
-CREATE POLICY "monitor_tech_all"  ON public.installation_monitorings FOR ALL USING (employee_id = auth.uid());
+-- Installation Monitorings: Managers see all; Techs see assigned
+CREATE POLICY "Managers can view all monitorings" ON public.installation_monitorings 
+    FOR SELECT USING (is_admin_class() OR has_any_role(ARRAY['SPV_TECH', 'TREASURER']));
+CREATE POLICY "Technicians can view/update assigned monitorings" ON public.installation_monitorings 
+    FOR ALL USING (
+        EXISTS (SELECT 1 FROM public.work_order_assignments wa WHERE wa.work_order_id = installation_monitorings.work_order_id AND wa.employee_id = auth.uid())
+        OR employee_id = auth.uid()
+        OR is_admin_class()
+    );
 
 -- Master Queue Types: Read for all authenticated; Admin modify
 CREATE POLICY "queue_types_admin_all" ON public.master_queue_types FOR ALL USING (is_admin_class());

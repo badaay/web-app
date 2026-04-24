@@ -89,6 +89,7 @@ CREATE TABLE public.psb_registrations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     phone TEXT NOT NULL,
+    alt_phone TEXT NOT NULL,
     address TEXT NOT NULL,
     packet TEXT,
     lat DOUBLE PRECISION,
