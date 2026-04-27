@@ -9,3 +9,4 @@ dist
 .agent/*
 /docs/*
 /tmp
+coverage

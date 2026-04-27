@@ -13,6 +13,13 @@ This document serves as a guide for AI agents working on this project. It outlin
 - `/src/admin/`: Main admin logic and styles.
     - `admin.js`: central hub for routing, session management, and module initialization.
     - `modules/`: Feature-specific logic (e.g., `employees.js`, `customers.js`).
+- `/src/core/`: Core Business Logic (3-Layer Architecture).
+    - `services/`: Business logic orchestration.
+    - `repositories/`: Isolated database access (Supabase).
+    - `__tests__/`: Unit and integration tests.
+- `/api/`: Entry point for Vercel Edge Functions (Handlers).
+    - `_core/`: Barrel re-exports for services.
+    - `_lib/`: Shared server-side utilities.
 - `/src/api/`: Data layer.
     - `supabase.js`: Supabase client initialization.
     - `schema.sql`: Database schema definition.
@@ -40,7 +47,8 @@ This document serves as a guide for AI agents working on this project. It outlin
 - **Points System**: Automated point calculation for completed work orders.
 
 ### ⏳ Pending / Future
-- **Extended Analytics**: More detailed reporting and trends on work order completion and customer growth.
+- **Extended Analytics**: Detailed reporting and trends on work order completion and customer growth.
+- **TDD Coverage**: Expanding test coverage for Handlers and Repositories.
 
 ## 🎫 Ticket & Queue Logic
 - **Access Model**: Claim-based (First come, first served for confirmed tickets).
@@ -93,30 +101,42 @@ async function initModule(targetId) {
 - **Modals**: A single shared modal structure (`#crudModal`) is defined in `admin/index.html`. Modules should populate `#crudModalTitle` and `#crudModalBody`, then handle the `#save-crud-btn` click event.
 - **Tables**: Use `<table class="table table-dark table-hover align-middle">` for consistency.
 
-### 4. Data Handling (Supabase + API)
-- **READ operations** (SELECT): Use the `supabase` client from `../../api/supabase.js` directly — RLS-protected.
-- **WRITE operations** (INSERT/UPDATE/DELETE): Use `apiCall(endpoint, options)` from `../../api/supabase.js` — routes through Vercel Edge Functions.
-- The `apiCall()` helper automatically attaches the user's JWT in the `Authorization` header.
-- Prefer `async/await` for all operations. Handle errors by displaying them in the UI.
+### 4. 3-Layer Architecture (Backend/API)
+
+All API logic must follow the **Handler → Service → Repository** pattern:
+
+1.  **Handler** (`api/*.js`):
+    - Responsibilities: HTTP parsing, Auth validation, CORS, Response mapping.
+    - Dependency: Injects `dbClient` and calls a **Service**.
+2.  **Service** (`src/core/services/*.js`):
+    - Responsibilities: Business logic, external API calls (e.g., WhatsApp), complex calculations.
+    - Dependency: Calls one or more **Repositories**.
+3.  **Repository** (`src/core/repositories/*.js`):
+    - Responsibilities: Pure Supabase/DB queries. No business logic.
+    - Dependency: Receives `dbClient` as a parameter.
 
 ```javascript
-import { supabase, apiCall } from '../../api/supabase.js';
-
-// Reads: direct Supabase (OK — RLS-protected)
-const { data } = await supabase.from('customers').select('*');
-
-// Writes: via API endpoint (required — server-side auth + validation)
-await apiCall('/customers/uuid-here', {
-    method: 'PATCH',
-    body: JSON.stringify({ name: 'New Name' })
-});
-
-// POST with body shorthand
-await apiCall('/work-orders', {
-    method: 'POST',
-    body: JSON.stringify({ type_id, title, customer_id })
-});
+// Pattern: Service Function
+export async function claimWorkOrder(dbClient, id, body, user, isAuthorizedParam = false) {
+    // 1. Business logic / Auth checks
+    // 2. Call Repository
+    const { data, error } = await woRepo.claimAtomic(dbClient, id, ...);
+    // 3. Return standardized response (ok, created, badRequest, etc.)
+}
 ```
+
+### 5. TDD Workflow & Testing Standards
+
+We follow a **Test-Driven Development (TDD)** approach for all core logic.
+
+- **Tools**: Vitest.
+- **Location**: `src/core/__tests__/`.
+- **Naming**: `{name}.service.test.js` or `{name}.repository.test.js`.
+- **Mocking Rules**:
+    - **Service Tests**: MUST mock all Repository functions using `vi.mock`.
+    - **Handler Tests**: MUST mock all Service functions.
+    - **Database**: Use `createMockDbClient()` from `test-helpers.js`.
+- **Requirement**: All new features must include tests covering happy paths, validation failures, and database edge cases (e.g., race conditions).
 
 ## 📚 Documentation Structure
 
