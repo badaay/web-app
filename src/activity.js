@@ -4,6 +4,7 @@ import { APP_BASE_URL } from './config.js';
 import { APP_CONFIG } from './api/config.js';
 import { createGoogleMapsLink } from './utils/map.js';
 import { initPWAInstall } from './utils/pwa-install.js';
+import { createOfflineIndicator } from './components/offline/OfflineIndicator.js';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -859,4 +860,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // Initialize offline indicator
+    const offlineIndicatorContainer = document.createElement('div');
+    offlineIndicatorContainer.id = 'offline-indicator-container';
+    document.body.appendChild(offlineIndicatorContainer);
+    
+    const offlineIndicator = createOfflineIndicator(offlineIndicatorContainer, {
+      showText: true,
+      position: 'top-right',
+      size: 'medium'
+    });
+
+    // Listen for offline status changes
+    offlineIndicator.on('statusChanged', (data) => {
+      console.log('Connection status changed:', data);
+      // You can add custom logic here based on online/offline status
+      if (!data.isOnline) {
+        // Show offline notification
+        showToast('Anda sedang offline. Beberapa fitur mungkin tidak tersedia.', 'warning');
+      }
+    });
 });

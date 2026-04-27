@@ -2,6 +2,7 @@ import { AuthService } from '../api/auth-service.js';
 import { supabase } from '../api/supabase.js';
 import { APP_BASE_URL } from '../config.js';
 import { showToast } from './utils/toast.js';
+import { createOfflineIndicator } from '../components/offline/OfflineIndicator.js';
 
 console.log('Admin App Initialized');
 
@@ -682,4 +683,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = btn.dataset.originalHtml || btn.innerHTML;
         }
     };
+
+    // Initialize offline indicator
+    const offlineIndicatorContainer = document.getElementById('offline-indicator-container');
+    if (offlineIndicatorContainer) {
+        const offlineIndicator = createOfflineIndicator(offlineIndicatorContainer, {
+            showText: true,
+            position: 'top-right',
+            size: 'medium'
+        });
+
+        // Listen for offline status changes
+        offlineIndicator.on('statusChanged', (data) => {
+            console.log('Admin connection status changed:', data);
+            // You can add custom logic here based on online/offline status
+            if (!data.isOnline) {
+                // Show offline notification
+                showToast('Anda sedang offline. Beberapa fitur mungkin tidak tersedia.', 'warning');
+            }
+        });
+    }
 });
