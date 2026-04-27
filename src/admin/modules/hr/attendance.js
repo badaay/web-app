@@ -154,7 +154,7 @@ async function loadAttendance() {
                     <button class="btn btn-xs btn-outline-secondary" onclick="window.editAttendance('${r.id}', ${JSON.stringify(r).replace(/"/g,'&quot;')})">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-xs btn-outline-danger ms-1" onclick="window.deleteAttendance('${r.id}')">
+                    <button class="btn btn-xs btn-outline-danger ms-1" onclick="window.deleteAttendance('${r.id}', this)">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -218,6 +218,7 @@ async function openAttendanceModal(existing = null) {
             is_absent:      document.getElementById('att-absent').checked,
             notes:          document.getElementById('att-notes').value || null,
         };
+        window.setBtnLoading(saveBtn, true, 'Menyimpan...');
         try {
             if (existing) {
                 await apiCall(`/attendance/${existing.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
@@ -227,16 +228,23 @@ async function openAttendanceModal(existing = null) {
             showToast('success', 'Data kehadiran berhasil disimpan');
             modal.hide();
             loadAttendance();
-        } catch (err) { showToast('error', err.message); }
+        } catch (err) {
+            showToast('error', err.message);
+            window.setBtnLoading(saveBtn, false);
+        }
     };
 }
 
 window.editAttendance = (id, data) => openAttendanceModal(data);
-window.deleteAttendance = async (id) => {
+window.deleteAttendance = async (id, btnEl) => {
     if (!confirm('Hapus record kehadiran ini?')) return;
+    if (btnEl) window.setBtnLoading(btnEl, true, '');
     try {
         await apiCall(`/attendance/${id}`, { method: 'DELETE' });
         showToast('info', 'Data dihapus');
         loadAttendance();
-    } catch (err) { showToast('error', err.message); }
+    } catch (err) {
+        showToast('error', err.message);
+        if (btnEl) window.setBtnLoading(btnEl, false);
+    }
 };

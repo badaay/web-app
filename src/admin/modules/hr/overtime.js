@@ -76,9 +76,12 @@ export async function initOvertime() {
     document.getElementById('ot-filter-to').value   = lastDay;
 
     await loadOvertime();
-    document.getElementById('btn-ot-filter').addEventListener('click', () => {
+    document.getElementById('btn-ot-filter').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        window.setBtnLoading(btn, true, 'Filter');
         currentPage = 1;
-        loadOvertime();
+        await loadOvertime();
+        window.setBtnLoading(btn, false);
     });
     document.getElementById('btn-add-overtime').addEventListener('click', openOvertimeModal);
 }
@@ -123,7 +126,7 @@ async function loadOvertime() {
                     <small class="text-muted">${r.technician_code}</small>
                 </td>
                 <td>
-                    <button class="btn btn-xs btn-outline-danger" onclick="window.deleteOvertime('${r.id}')">
+                    <button class="btn btn-xs btn-outline-danger" onclick="window.deleteOvertime('${r.id}', this)">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -305,9 +308,7 @@ async function openOvertimeModal() {
             technician_ids: techIds
         };
 
-        const originalHtml = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+        window.setBtnLoading(saveBtn, true, 'Menyimpan...');
 
         try {
             await apiCall('/overtime', { method: 'POST', body: JSON.stringify(payload) });
@@ -316,18 +317,20 @@ async function openOvertimeModal() {
             loadOvertime();
         } catch (err) { 
             showToast('error', 'Error: ' + err.message); 
-            // Revert button if error
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalHtml;
+            window.setBtnLoading(saveBtn, false);
         }
     };
 }
 
-window.deleteOvertime = async (id) => {
+window.deleteOvertime = async (id, btnEl) => {
     if (!confirm('Hapus data lembur ini?')) return;
+    if (btnEl) window.setBtnLoading(btnEl, true, '');
     try {
         await apiCall(`/overtime/${id}`, { method: 'DELETE' });
         showToast('info', 'Data lembur dihapus');
         loadOvertime();
-    } catch (err) { showToast('error', err.message); }
+    } catch (err) {
+        showToast('error', err.message);
+        if (btnEl) window.setBtnLoading(btnEl, false);
+    }
 };

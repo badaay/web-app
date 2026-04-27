@@ -92,7 +92,6 @@ html[data-bs-theme="dark"] body.auth-page {
 
 .auth-btn {
     background: var(--brand-gradient) !important;
-    border: none !important;
     color: white !important;
     padding: 1rem !important;
     border-radius: 12px !important;
@@ -104,7 +103,7 @@ html[data-bs-theme="dark"] body.auth-page {
 
 .auth-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(45, 212, 191, 0.3);
+    box-shadow: 0 4px 10px rgba(45, 212, 191, 0.3);
 }
 
 .auth-btn:active {

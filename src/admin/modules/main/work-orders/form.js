@@ -163,6 +163,7 @@ function getTypeFields(typeId) {
 async function saveTypeSpecificWorkOrder(modal) {
     const form = document.getElementById('type-form');
     const formData = new FormData(form);
+    const saveBtn = document.getElementById('save-crud-btn');
 
     const newWO = {
         type_id: formData.get('type_id'),
@@ -173,6 +174,7 @@ async function saveTypeSpecificWorkOrder(modal) {
         payment_status: formData.get('payment_status'),
     };
 
+    window.setBtnLoading(saveBtn, true, 'Menyimpan...');
     try {
         await apiCall('/work-orders', {
             method: 'POST',
@@ -183,6 +185,7 @@ async function saveTypeSpecificWorkOrder(modal) {
         window.location.reload();
     } catch (err) {
         showToast(`Error: ${err.message}`, 'error');
+        window.setBtnLoading(saveBtn, false);
     }
 }
 
@@ -261,6 +264,7 @@ async function saveFullWorkOrder(woId, modal) {
         return;
     }
 
+    const saveBtn = document.getElementById('save-crud-btn');
     const formData = new FormData(form);
     const updates = {
         title: formData.get('title'),
@@ -271,6 +275,7 @@ async function saveFullWorkOrder(woId, modal) {
         payment_status: formData.get('payment_status'),
     };
 
+    window.setBtnLoading(saveBtn, true, 'Menyimpan...');
     try {
         await apiCall(`/work-orders/${woId}`, {
             method: 'PATCH',
@@ -281,5 +286,6 @@ async function saveFullWorkOrder(woId, modal) {
         window.location.reload();
     } catch (err) {
         showToast(`Error: ${err.message}`, 'error');
+        window.setBtnLoading(saveBtn, false);
     }
 }

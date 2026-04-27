@@ -305,7 +305,7 @@ window.manageAdjustments = async (periodId, employeeId, employeeName) => {
             adjustment_type: document.getElementById('adj-type').value,
             amount: parseInt(document.getElementById('adj-amount').value),
             reason: document.getElementById('adj-reason').value,
-            status: 'approved' // Direct approval for now since added by Admin
+            status: 'approved'
         };
 
         if (!payload.amount || !payload.reason) {
@@ -313,16 +313,15 @@ window.manageAdjustments = async (periodId, employeeId, employeeName) => {
             return;
         }
 
+        window.setBtnLoading(saveBtn, true, 'Menyimpan...');
         try {
-            saveBtn.disabled = true;
             await apiCall('/payroll/adjustments', { method: 'POST', body: JSON.stringify(payload) });
             showToast('success', 'Penyesuaian ditambahkan');
-            saveBtn.disabled = false;
+            window.setBtnLoading(saveBtn, false);
             await loadAdjustments();
-            // Refresh main table if possible, or user can re-calculate
         } catch (err) {
             showToast('error', err.message);
-            saveBtn.disabled = false;
+            window.setBtnLoading(saveBtn, false);
         }
     };
 };
@@ -341,7 +340,7 @@ window.deleteAdjustment = async (adjId, periodId, employeeId, employeeName) => {
 window.calculatePayroll = async (periodId) => {
     if (!confirm('Mulai hitung payroll? Ini akan menghitung ulang semua data.')) return;
     const btn = event.target.closest('button');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menghitung...';
+    window.setBtnLoading(btn, true, 'Menghitung...');
     try {
         await apiCall('/payroll/calculate', { method: 'POST', body: JSON.stringify({ period_id: periodId }) });
         showToast('success', 'Payroll berhasil dihitung');
@@ -350,24 +349,30 @@ window.calculatePayroll = async (periodId) => {
         window.selectPeriod(periodId, p);
     } catch (err) {
         showToast('error', 'Gagal: ' + err.message);
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-calculator"></i> Hitung';
+        window.setBtnLoading(btn, false);
     }
 };
 
 window.approvePayroll = async (periodId) => {
     if (!confirm('Setujui payroll ini? Status akan berubah menjadi "approved".')) return;
+    const btn = event.target.closest('button');
+    window.setBtnLoading(btn, true, 'Menyetujui...');
     try {
         await apiCall(`/payroll/approve`, { method: 'POST', body: JSON.stringify({ period_id: periodId }) });
         showToast('success', 'Payroll disetujui');
         await loadPeriods();
         const { data: p } = await supabaseB.from('payroll_periods').select('*').eq('id', periodId).single();
         window.selectPeriod(periodId, p);
-    } catch (err) { showToast('error', 'Gagal: ' + err.message); }
+    } catch (err) {
+        showToast('error', 'Gagal: ' + err.message);
+        window.setBtnLoading(btn, false);
+    }
 };
 
 window.markPayrollPaid = async (periodId) => {
     if (!confirm('Tandai payroll periode ini sebagai LUNAS?')) return;
+    const btn = event.target.closest('button');
+    window.setBtnLoading(btn, true, 'Memproses...');
     try {
         const { error } = await supabaseB.from('payroll_periods').update({
             status: 'paid', paid_at: new Date().toISOString(), updated_at: new Date().toISOString()
@@ -377,7 +382,10 @@ window.markPayrollPaid = async (periodId) => {
         await loadPeriods();
         const { data: p } = await supabaseB.from('payroll_periods').select('*').eq('id', periodId).single();
         window.selectPeriod(periodId, p);
-    } catch (err) { showToast('error', 'Gagal: ' + err.message); }
+    } catch (err) {
+        showToast('error', 'Gagal: ' + err.message);
+        window.setBtnLoading(btn, false);
+    }
 };
 
 window.viewPayslip = (periodId, employeeId) => {
@@ -444,14 +452,17 @@ function openCreatePeriodModal() {
             month:        parseInt(document.getElementById('pp-month').value),
             period_start: document.getElementById('pp-start').value,
             period_end:   document.getElementById('pp-end').value,
-            // notes:        document.getElementById('pp-notes').value || null,
         };
+        window.setBtnLoading(saveBtn, true, 'Membuat...');
         try {
             const { error } = await supabaseB.from('payroll_periods').insert(payload);
             if (error) throw error;
             showToast('success', 'Periode baru dibuat');
             modal.hide();
             loadPeriods();
-        } catch (err) { showToast('error', 'Gagal: ' + err.message); }
+        } catch (err) {
+            showToast('error', 'Gagal: ' + err.message);
+            window.setBtnLoading(saveBtn, false);
+        }
     };
 }
