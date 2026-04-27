@@ -8,6 +8,7 @@ export function getStatusColor(status) {
         'waiting': '#FFA500',      // Orange
         'confirmed': '#3B82F6',    // Blue
         'open': '#10B981',         // Green
+        'completed': '#F59E0B',    // Amber (Verification)
         'closed': '#6B7280'        // Gray
     };
     return colors[status] || '#6B7280';
@@ -21,6 +22,7 @@ export function getStatusDisplayText(status) {
         'waiting': 'Menunggu',
         'confirmed': 'Divalidasi',
         'open': 'Pengerjaan',
+        'completed': 'Verifikasi',
         'closed': 'Selesai'
     };
     return labels[status] || status;

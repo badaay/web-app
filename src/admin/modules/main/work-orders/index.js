@@ -133,6 +133,18 @@ export async function initWorkOrders() {
         }
     });
 
+    // [WO-006] Listen for verification requests
+    document.addEventListener('request-wo-verify', async (e) => {
+        const { woId } = e.detail;
+        await handleVerifyWo(woId);
+    });
+
+    // [WO-007] Listen for revision requests
+    document.addEventListener('request-wo-revision', async (e) => {
+        const { woId } = e.detail;
+        await handleRevisionWo(woId);
+    });
+
     // Render target statistics
     await renderTargetStatistics(pemasanganTypeId, perbaikanTypeId);
 }
@@ -162,9 +174,10 @@ async function renderTargetStatistics(pemasanganTypeId, perbaikanTypeId) {
             waiting: todayWorkOrders?.filter(wo => wo.status === 'waiting').length || 0,
             confirmed: todayWorkOrders?.filter(wo => wo.status === 'confirmed').length || 0,
             inProgress: todayWorkOrders?.filter(wo => wo.status === 'open').length || 0,
+            pendingVerify: todayWorkOrders?.filter(wo => wo.status === 'completed').length || 0,
             completed: todayWorkOrders?.filter(wo => wo.status === 'closed').length || 0,
             leftOver: todayWorkOrders?.filter(wo => {
-                // Leftover: confirmed on a previous day but not completed today
+                // Leftover: confirmed on a previous day but not closed today
                 const confirmedDate = new Date(wo.created_at).toISOString().split('T')[0];
                 return wo.status !== 'closed' && confirmedDate < today;
             }).length || 0,
@@ -177,27 +190,33 @@ async function renderTargetStatistics(pemasanganTypeId, perbaikanTypeId) {
 
         let html = `
             <div class="row g-3">
-                <div class="col-6 col-sm-3 mt-0">
+                <div class="col-6 col-sm-4 mt-0 col-lg-2">
                     <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
                         <div class="small fw-semibold mb-1" style="color: #f59e0b;">Menunggu</div>
                         <div class="h4 fw-bold text-white mb-0 lh-1">${stats.waiting}</div>
                     </div>
                 </div>
-                <div class="col-6 col-sm-3 mt-0">
+                <div class="col-6 col-sm-4 mt-0 col-lg-2">
                     <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
                         <div class="small fw-semibold mb-1" style="color: #0ea5e9;">Diproses</div>
                         <div class="h4 fw-bold text-white mb-0 lh-1">${stats.inProgress}</div>
                     </div>
                 </div>
-                <div class="col-6 col-sm-3 mt-0">
+                <div class="col-6 col-sm-4 mt-0 col-lg-2">
+                    <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
+                        <div class="small fw-semibold mb-1" style="color: #f59e0b;">Verifikasi</div>
+                        <div class="h4 fw-bold text-white mb-0 lh-1">${stats.pendingVerify}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 mt-0 col-lg-2">
                     <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
                         <div class="small fw-semibold mb-1" style="color: #10b981;">Selesai</div>
                         <div class="h4 fw-bold text-white mb-0 lh-1">${stats.completed}</div>
                     </div>
                 </div>
-                <div class="col-6 col-sm-3 mt-0">
+                <div class="col-6 col-sm-4 mt-0 col-lg-4">
                     <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
-                        <div class="small fw-semibold mb-1" style="color: #ef4444;">Leftover</div>
+                        <div class="small fw-semibold mb-1" style="color: #ef4444;">Leftover (Outstanding)</div>
                         <div class="h4 fw-bold text-white mb-0 lh-1">${stats.leftOver}</div>
                     </div>
                 </div>
@@ -369,6 +388,35 @@ async function showAssignConfirmPanel(wo) {
     modal.show();
 }
 
+async function handleVerifyWo(woId) {
+    if (!confirm('Verifikasi pekerjaan ini dan berikan poin?')) return;
+    try {
+        await apiCall('/work-orders/verify', {
+            method: 'POST',
+            body: JSON.stringify({ workOrderId: woId })
+        });
+        showToast('Pekerjaan berhasil diverifikasi dan ditutup.', 'success');
+        window.reloadUnifiedKanban();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+async function handleRevisionWo(woId) {
+    const reason = prompt('Masukkan alasan revisi:');
+    if (!reason) return;
+    try {
+        await apiCall('/work-orders/revision', {
+            method: 'POST',
+            body: JSON.stringify({ workOrderId: woId, reason })
+        });
+        showToast('Permintaan revisi berhasil dikirim ke teknisi.', 'success');
+        window.reloadUnifiedKanban();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
 
 /**
  * Show action menu for work order
@@ -460,18 +508,37 @@ async function showWorkOrderActions(wo) {
                 <!-- Actions Panel -->
                 <div class="tab-pane fade show active" id="actions-panel" role="tabpanel">
                     <div class="row g-3">
-                        <div class="col-12 col-md-6">
-                            <button class="btn btn-primary w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-monitor-wo" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6); border:none;">
-                                <i class="bi bi-graph-up fs-5"></i>
-                                <span class="fw-semibold">Pantau / Update</span>
-                            </button>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <button class="btn btn-success w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-close-wo">
-                                <i class="bi bi-check-circle-fill fs-5"></i>
-                                <span class="fw-semibold">Tandai Selesai</span>
-                            </button>
-                        </div>
+                        ${wo.status === 'open' ? `
+                            <div class="col-12 col-md-6">
+                                <button class="btn btn-primary w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-monitor-wo" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6); border:none;">
+                                    <i class="bi bi-graph-up fs-5"></i>
+                                    <span class="fw-semibold">Pantau / Update</span>
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <button class="btn btn-success w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-complete-wo">
+                                    <i class="bi bi-check-circle-fill fs-5"></i>
+                                    <span class="fw-semibold">Finish Job</span>
+                                </button>
+                            </div>
+                        ` : wo.status === 'completed' ? `
+                            <div class="col-12 col-md-6">
+                                <button class="btn btn-success w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-verify-wo" style="background: linear-gradient(135deg, #10b981, #059669); border:none;">
+                                    <i class="bi bi-shield-check fs-5"></i>
+                                    <span class="fw-semibold">Verify & Close</span>
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <button class="btn btn-warning w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-revision-wo">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                    <span class="fw-semibold">Request Revision</span>
+                                </button>
+                            </div>
+                        ` : `
+                           <div class="col-12 text-center text-white-50 small py-3">
+                               Tidak ada aksi tambahan untuk status <strong>${getStatusDisplayText(wo.status)}</strong>.
+                           </div>
+                        `}
                         <div class="col-12 border-top border-secondary border-opacity-25 mt-4 pt-3 d-flex gap-2 justify-content-end align-items-center">
                             <span class="small text-white-50 me-auto">Opsi Lanjutan</span>
                             <button class="btn btn-outline-light btn-sm px-3 rounded-pill" id="action-edit-wo">
@@ -513,28 +580,42 @@ async function showWorkOrderActions(wo) {
         });
     };
 
-    document.getElementById('action-monitor-wo').onclick = () => {
+    const monitorBtn = document.getElementById('action-monitor-wo');
+    if (monitorBtn) monitorBtn.onclick = () => {
         modal.hide();
         showInstallationMonitoringModal(wo, () => {
-            location.reload();
+            window.reloadUnifiedKanban();
         });
     };
 
-    document.getElementById('action-close-wo').onclick = async (e) => {
+    const completeBtn = document.getElementById('action-complete-wo');
+    if (completeBtn) completeBtn.onclick = async (e) => {
         const btn = e.currentTarget;
-        window.setBtnLoading(btn, true, 'Menutup...');
+        window.setBtnLoading(btn, true, 'Menyelesaikan...');
         try {
-            await apiCall('/work-orders/close', {
+            await apiCall('/work-orders/complete', {
                 method: 'POST',
                 body: JSON.stringify({ workOrderId: wo.id })
             });
-            showToast('Antrian berhasil ditutup', 'success');
+            showToast('Pekerjaan ditandai selesai. Menunggu verifikasi admin.', 'success');
             modal.hide();
             window.reloadUnifiedKanban();
         } catch (err) {
             showToast(`Error: ${err.message}`, 'error');
             window.setBtnLoading(btn, false);
         }
+    };
+
+    const verifyBtn = document.getElementById('action-verify-wo');
+    if (verifyBtn) verifyBtn.onclick = async (e) => {
+        modal.hide();
+        await handleVerifyWo(wo.id);
+    };
+
+    const revisionBtn = document.getElementById('action-revision-wo');
+    if (revisionBtn) revisionBtn.onclick = async (e) => {
+        modal.hide();
+        await handleRevisionWo(wo.id);
     };
 
     document.getElementById('action-delete-wo').onclick = async (e) => {

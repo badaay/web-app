@@ -116,12 +116,12 @@ export async function claimWorkOrder(dbClient, id, body, user, isAuthorizedParam
   return ok(wo);
 }
 
-export async function closeWorkOrder(dbClient, authClient, id, closeData, user, isAuthorizedParam = false) {
+export async function completeWorkOrder(dbClient, id, body, user, isAuthorizedParam = false) {
   if (!id) return badRequest('Work order id is required');
 
   const { data: wo, error: fetchErr } = await woRepo.findByIdWithAssignments(dbClient, id);
   if (fetchErr || !wo) return notFound('Work order not found');
-  if (wo.status === 'closed') return badRequest('Work order is already closed');
+  if (wo.status !== 'open') return conflict(`Cannot complete: current status is '${wo.status}'`);
 
   const assignments = wo.work_order_assignments || [];
   let isAuthorized = assignments.some(a => a.employee_id === user.id) || isAuthorizedParam;
@@ -137,19 +137,51 @@ export async function closeWorkOrder(dbClient, authClient, id, closeData, user, 
     }
   }
 
-  if (!isAuthorized) return forbidden('You can only close work orders assigned to you');
+  if (!isAuthorized) return forbidden('You can only finish work orders assigned to you');
 
-  // 1. Mark as closed + Award points (Project B)
+  // 1. Transition to 'completed'
+  const { data: updatedWO, error: updateErr } = await woRepo.transitionStatus(dbClient, id, 'open', 'completed', {
+    completed_at: new Date().toISOString()
+  });
+  if (updateErr) return serverError(`Failed to complete: ${updateErr.message}`);
+
+  // 2. Update Monitoring Record (Technician evidence)
+  const monitoringUpdates = whitelist(body, ['notes', 'mac_address', 'sn_modem', 'cable_label', 'photos']);
+  if (Object.keys(monitoringUpdates).length > 0) {
+    await dbClient.from('installation_monitorings').update(monitoringUpdates).eq('work_order_id', id);
+  }
+
+  await notifyWorkOrderEvent(id, 'wo_completed').catch(e => console.error('[WO-NOTIF] Error:', e));
+
+  return ok(updatedWO);
+}
+
+export async function verifyWorkOrder(dbClient, authClient, id, user) {
+  if (!id) return badRequest('Work order id is required');
+
+  const { data: wo, error: fetchErr } = await woRepo.findByIdWithAssignments(dbClient, id);
+  if (fetchErr || !wo) return notFound('Work order not found');
+  if (wo.status !== 'completed') return conflict(`Cannot verify: current status is '${wo.status}'`);
+
+  // 1. Get monitoring data for the point RPC
+  const { data: monitor } = await dbClient.from('installation_monitorings').select('*').eq('work_order_id', id).maybeSingle();
+  const closeData = {
+    mac_address: monitor?.mac_address,
+    sn_modem: monitor?.sn_modem,
+    damping: monitor?.damping
+  };
+
+  // 2. Mark as closed + Award points (Project B)
   const { data: rpcResult, error: rpcError } = await woRepo.closeWithPointsRpc(dbClient, id, closeData);
-  if (rpcError) return serverError(`Failed to close work order: ${rpcError.message}`);
+  if (rpcError) return serverError(`Failed to verify/close: ${rpcError.message}`);
 
-  // 2. Handle PSB lifecycle if applicable
+  // 3. Handle PSB lifecycle if applicable
   if (wo.customer_id) {
     const { data: psb } = await psbRepo.findById(dbClient, wo.customer_id);
     
     if (psb && psb.status !== 'completed') {
       const generatedPassword = Math.random().toString(36).slice(-8);
-      const email = `${psb.phone}${APP_CONFIG?.AUTH_DOMAIN_SUFFIX || '@sifatih.com'}`;
+      const email = `${psb.phone}${APP_CONFIG?.AUTH_DOMAIN_SUFFIX || '@sifatih.id'}`;
       
       const { error: authErr } = await authClient.auth.admin.createUser({
         id: wo.customer_id,
@@ -162,11 +194,10 @@ export async function closeWorkOrder(dbClient, authClient, id, closeData, user, 
       if (!authErr) {
         await psbRepo.updateStatus(dbClient, psb.id, 'completed');
         await customerRepo.updateById(dbClient, psb.id, { email });
-        console.log(`[PSB-AUTO] Auth created for ${psb.phone}. Pwd: ${generatedPassword}`);
       }
     }
 
-    // 3. Hardware sync
+    // 4. Hardware sync
     if (closeData.mac_address || closeData.damping) {
       await customerRepo.updateById(dbClient, wo.customer_id, {
         mac_address: closeData.mac_address || undefined,
@@ -175,7 +206,8 @@ export async function closeWorkOrder(dbClient, authClient, id, closeData, user, 
     }
   }
 
-  // 4. Update assignment points for local reference
+  // 5. Update assignment points for local reference
+  const assignments = wo.work_order_assignments || [];
   if (assignments.length > 0 && wo.master_queue_types?.base_point) {
     const basePoint = wo.master_queue_types.base_point;
     for (const assignment of assignments) {
@@ -187,4 +219,23 @@ export async function closeWorkOrder(dbClient, authClient, id, closeData, user, 
   await notifyWorkOrderEvent(id, 'wo_closed').catch(e => console.error('[WO-NOTIF] Error:', e));
 
   return ok(rpcResult);
+}
+
+export async function requestRevision(dbClient, id, body, user) {
+  if (!id) return badRequest('Work order id is required');
+  const { reason } = body;
+  if (!reason) return badRequest('Revision reason is required');
+
+  const { data: wo, error: fetchErr } = await woRepo.findById(dbClient, id);
+  if (fetchErr || !wo) return notFound('Work order not found');
+  if (wo.status !== 'completed') return conflict(`Cannot revise: current status is '${wo.status}'`);
+
+  const { data: updatedWO, error: updateErr } = await woRepo.transitionStatus(dbClient, id, 'completed', 'open', {
+    ket: `[REVISION] ${reason}`
+  });
+  if (updateErr) return serverError(`Failed to request revision: ${updateErr.message}`);
+
+  await notifyWorkOrderEvent(id, 'wo_revision').catch(e => console.error('[WO-NOTIF] Error:', e));
+
+  return ok(updatedWO);
 }

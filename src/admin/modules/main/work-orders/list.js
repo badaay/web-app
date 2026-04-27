@@ -47,7 +47,7 @@ export function renderStatusSummary(allWorkOrders, currentFilter, onFilterChange
         return acc;
     }, {});
 
-    const statuses = ['waiting', 'confirmed', 'open', 'closed'];
+    const statuses = ['waiting', 'confirmed', 'open', 'completed', 'closed'];
     const total = allWorkOrders.length;
 
     // Simplified Summary implementation for Kanban
@@ -270,6 +270,7 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
     const mainKanbanColumns = [
         { id: 'waiting', title: '🟡 Menunggu', statuses: ['waiting'], width: '320px' },
         { id: 'progress', title: '🔵 Diproses', statuses: ['confirmed', 'open', 'pending'], width: '320px' },
+        { id: 'completed', title: '🟠 Verifikasi', statuses: ['completed'], width: '320px' },
         { id: 'issues', title: '🔴 Kendala', statuses: ['odp_full', 'cancelled', 'kendala'], width: '320px' }
     ];
 
@@ -307,6 +308,18 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                         <button class="btn btn-sm btn-success rounded-circle shadow assign-confirm-wo d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Konfirmasi & Tugaskan" style="width:32px; height:32px; padding:0;">
                             <i class="bi bi-check-lg"></i>
                         </button>
+                    ` : wo.status === 'completed' ? `
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-success rounded-circle shadow verify-wo-btn d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Verifikasi & Selesai" style="width:32px; height:32px; padding:0;">
+                                <i class="bi bi-shield-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning rounded-circle shadow revision-wo-btn d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Request Revision" style="width:32px; height:32px; padding:0;">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-light rounded-circle view-wo-details-btn d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Detail" style="width:32px; height:32px; padding:0; border-color: rgba(255,255,255,0.2);">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                        </div>
                     ` : `
                         <button class="btn btn-sm btn-outline-light rounded-circle view-wo-details-btn d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Lihat Aksi" style="width:32px; height:32px; padding:0; border-color: rgba(255,255,255,0.2);">
                             <i class="bi bi-three-dots"></i>
@@ -408,7 +421,7 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
         
         parentEl.querySelectorAll('.view-wo-details-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent bubbling issues
+                e.preventDefault();
                 const woId = btn.dataset.id;
                 const wo = filteredOrders.find(w => w.id === woId);
                 if (onRowClick) onRowClick(wo);
@@ -421,6 +434,26 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                 const woId = btn.dataset.id;
                 const wo = filteredOrders.find(w => w.id === woId);
                 if (onConfirmClick) onConfirmClick(wo);
+            });
+        });
+
+        parentEl.querySelectorAll('.verify-wo-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const woId = btn.dataset.id;
+                const wo = filteredOrders.find(w => w.id === woId);
+                // Trigger global event or pass callback
+                document.dispatchEvent(new CustomEvent('request-wo-verify', { detail: { woId } }));
+            });
+        });
+
+        parentEl.querySelectorAll('.revision-wo-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const woId = btn.dataset.id;
+                const wo = filteredOrders.find(w => w.id === woId);
+                // Trigger global event or pass callback
+                document.dispatchEvent(new CustomEvent('request-wo-revision', { detail: { woId } }));
             });
         });
     };

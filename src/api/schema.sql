@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS public.work_orders (
     type_id UUID REFERENCES public.master_queue_types(id),
     title TEXT NOT NULL,
     description TEXT,
-    status TEXT DEFAULT 'waiting', -- waiting, confirmed, open, closed
+    status TEXT DEFAULT 'waiting', -- waiting, confirmed, open, completed, closed
     source TEXT DEFAULT 'admin', -- admin, technician, customer
     claimed_by UUID, -- no FK — assignments tracked via work_order_assignments table
     claimed_at TIMESTAMPTZ,
