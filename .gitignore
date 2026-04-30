@@ -4,9 +4,12 @@ dist
 .env.local
 .vercel
 .env*.local
+test_output.txt
 
 *.md
 .agent/*
 /docs/*
 /tmp
 coverage
+.agents
+_bmad

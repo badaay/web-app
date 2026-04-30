@@ -177,6 +177,9 @@ CREATE TABLE IF NOT EXISTS public.work_order_assignments (
     assignment_role TEXT NOT NULL DEFAULT 'member', -- 'lead' | 'member'
     assigned_at TIMESTAMPTZ DEFAULT now(),
     points_earned INTEGER DEFAULT 0,
+    bonus_points INTEGER DEFAULT 0,
+    deduction_points INTEGER DEFAULT 0,
+    adjustment_reason TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE (work_order_id, employee_id)
 );

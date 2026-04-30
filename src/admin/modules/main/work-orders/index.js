@@ -6,7 +6,7 @@ import { getStatusColor, getStatusDisplayText } from './utils.js';
 import { getSpinner } from '../../../utils/ui-common.js';
 import { ActivityLog } from '../../../utils/activity-log.js';
 import { showWorkOrderModal } from './form.js';
-import { showInstallationMonitoringModal } from './monitoring.js';
+import { showInstallationMonitoringModal, showVerificationModal } from './monitoring.js';
 import { exposeMapGlobal } from './map.js';
 
 let allWorkOrders = [];
@@ -334,7 +334,7 @@ async function showAssignConfirmPanel(wo) {
             await apiCall('/work-orders/confirm', {
                 method: 'POST',
                 body: JSON.stringify({
-                    workOrderId: wo.id,
+                    id: wo.id,
                     employeeId: selectedEmployeeId
                 })
             });
@@ -467,11 +467,24 @@ async function showWorkOrderActions(wo) {
                             </button>
                         </div>
                         <div class="col-12 col-md-6">
-                            <button class="btn btn-success w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-close-wo">
-                                <i class="bi bi-check-circle-fill fs-5"></i>
-                                <span class="fw-semibold">Tandai Selesai</span>
+                            ${wo.status === 'completed' 
+                                ? `<button class="btn btn-warning w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-verify-wo">
+                                    <i class="bi bi-shield-check fs-5"></i>
+                                    <span class="fw-semibold">Verifikasi & Tutup</span>
+                                   </button>`
+                                : `<button class="btn btn-success w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-complete-wo">
+                                    <i class="bi bi-check-circle-fill fs-5"></i>
+                                    <span class="fw-semibold">Tandai Selesai</span>
+                                   </button>`
+                            }
+                        </div>
+                        ${wo.status === 'completed' ? `
+                        <div class="col-12">
+                            <button class="btn btn-outline-warning w-100 py-2" id="action-revision-wo">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Minta Revisi
                             </button>
                         </div>
+                        ` : ''}
                         <div class="col-12 border-top border-secondary border-opacity-25 mt-4 pt-3 d-flex gap-2 justify-content-end align-items-center">
                             <span class="small text-white-50 me-auto">Opsi Lanjutan</span>
                             <button class="btn btn-outline-light btn-sm px-3 rounded-pill" id="action-edit-wo">
@@ -520,22 +533,54 @@ async function showWorkOrderActions(wo) {
         });
     };
 
-    document.getElementById('action-close-wo').onclick = async (e) => {
-        const btn = e.currentTarget;
-        window.setBtnLoading(btn, true, 'Menutup...');
-        try {
-            await apiCall('/work-orders/close', {
-                method: 'POST',
-                body: JSON.stringify({ workOrderId: wo.id })
-            });
-            showToast('Antrian berhasil ditutup', 'success');
+    if (document.getElementById('action-complete-wo')) {
+        document.getElementById('action-complete-wo').onclick = async (e) => {
+            const btn = e.currentTarget;
+            window.setBtnLoading(btn, true, 'Memproses...');
+            try {
+                const response = await apiCall('/api/work-orders/complete', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: wo.id })
+                });
+                if (response.error) throw new Error(response.error);
+                showToast('Antrian berhasil ditandai selesai (Menunggu Verifikasi)', 'success');
+                modal.hide();
+                window.reloadUnifiedKanban();
+            } catch (err) {
+                showToast(`Error: ${err.message}`, 'error');
+                window.setBtnLoading(btn, false);
+            }
+        };
+    }
+
+    if (document.getElementById('action-verify-wo')) {
+        document.getElementById('action-verify-wo').onclick = () => {
             modal.hide();
-            window.reloadUnifiedKanban();
-        } catch (err) {
-            showToast(`Error: ${err.message}`, 'error');
-            window.setBtnLoading(btn, false);
-        }
-    };
+            showVerificationModal(wo, () => {
+                window.reloadUnifiedKanban();
+            });
+        };
+    }
+
+    if (document.getElementById('action-revision-wo')) {
+        document.getElementById('action-revision-wo').onclick = async () => {
+            const reason = prompt('Masukkan alasan permintaan revisi:');
+            if (!reason) return;
+            
+            try {
+                const response = await apiCall('/api/work-orders/revision', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: wo.id, reason })
+                });
+                if (response.error) throw new Error(response.error);
+                showToast('Permintaan revisi berhasil dikirim', 'success');
+                modal.hide();
+                window.reloadUnifiedKanban();
+            } catch (err) {
+                showToast(`Error: ${err.message}`, 'error');
+            }
+        };
+    }
 
     document.getElementById('action-delete-wo').onclick = async (e) => {
         if (!confirm('Yakin ingin menghapus antrian ini?')) return;
