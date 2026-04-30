@@ -127,7 +127,8 @@ export async function completeWorkOrder(dbClient, id, user) {
 
   const assignments = wo.work_order_assignments || [];
   const isAssigned = assignments.some(a => a.employee_id === user.id);
-  if (!isAssigned) return forbidden('You are not assigned to this work order');
+  const canComplete = isAssigned || (await isAdmin(dbClient, user.id));
+  if (!canComplete) return forbidden('You are not assigned to this work order');
 
   const { data: updatedWO, error } = await woRepo.transitionStatus(dbClient, id, 'open', 'completed', {
     completed_at: new Date().toISOString()

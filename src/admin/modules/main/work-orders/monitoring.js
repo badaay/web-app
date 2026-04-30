@@ -107,18 +107,20 @@ export async function showInstallationMonitoringModal(wo, onSave) {
     // Wire up save button
     document.getElementById('save-crud-btn').style.display = 'block';
     document.getElementById('save-crud-btn').onclick = async () => {
-        await saveInstallationMonitoring(wo.id, monData.id, photoInput.files, onSave, modal);
+        await saveInstallationMonitoring(wo.id, monData, photoInput.files, onSave, modal);
     };
 }
 
 /**
  * Save installation monitoring data and photos
  */
-async function saveInstallationMonitoring(woId, monitoringId, photoFiles, onSave, modal) {
+async function saveInstallationMonitoring(woId, monData, photoFiles, onSave, modal) {
     const form = document.getElementById('monitoring-form');
     const formData = new FormData(form);
+    const monitoringId = monData?.id;
+    const saveBtn = document.getElementById('save-crud-btn');
 
-    const photoUrls = monData?.photos || [];
+    const photoUrls = monData?.photos ? [...monData.photos] : [];
 
     // Compress and upload new photos
     if (photoFiles && photoFiles.length > 0) {

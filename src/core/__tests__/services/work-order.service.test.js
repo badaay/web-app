@@ -247,13 +247,27 @@ describe('WorkOrderService', () => {
       expect(notifyWorkOrderEvent).toHaveBeenCalledWith('1', 'wo_completed');
     });
 
-    it('should reject if not assigned', async () => {
+    it('should reject if not assigned (technician)', async () => {
+      isAdmin.mockResolvedValue(false);
       woRepo.findByIdWithAssignments.mockResolvedValue({ 
         data: { id: '1', status: 'open', work_order_assignments: [{ employee_id: 'tech-2' }] } 
       });
       const result = await completeWorkOrder(mockDb, '1', { id: 'tech-1' });
       expect(result.success).toBe(false);
       expect(result.statusHint).toBe('forbidden');
+    });
+
+    it('should allow admin to complete even if not assigned', async () => {
+      isAdmin.mockResolvedValue(true);
+      woRepo.findByIdWithAssignments.mockResolvedValue({ 
+        data: { id: '1', status: 'open', work_order_assignments: [{ employee_id: 'tech-2' }] } 
+      });
+      woRepo.transitionStatus.mockResolvedValue({ data: { id: '1', status: 'completed' }, error: null });
+
+      const result = await completeWorkOrder(mockDb, '1', { id: 'admin-1' });
+
+      expect(result.success).toBe(true);
+      expect(result.data.status).toBe('completed');
     });
   });
 
