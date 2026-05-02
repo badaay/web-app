@@ -12,14 +12,20 @@ vi.mock('../../../../api/_lib/fonnte.js', () => ({
 vi.mock('../../repositories/employee.repository.js');
 vi.mock('../../repositories/customer.repository.js');
 vi.mock('../../repositories/psb.repository.js');
+vi.mock('../../repositories/inventory.repository.js');
 vi.mock('../../../../src/api/config.js', () => ({
   APP_CONFIG: { AUTH_DOMAIN_SUFFIX: '@test.com' }
+}));
+vi.mock('../../../../api/_lib/supabase.js', () => ({
+  isAdmin: vi.fn().mockResolvedValue(true)
 }));
 
 import * as woRepo from '../../repositories/work-order.repository.js';
 import * as employeeRepo from '../../repositories/employee.repository.js';
 import * as customerRepo from '../../repositories/customer.repository.js';
 import * as psbRepo from '../../repositories/psb.repository.js';
+import * as inventoryRepo from '../../repositories/inventory.repository.js';
+import { isAdmin } from '../../../../api/_lib/supabase.js';
 import { notifyWorkOrderEvent } from '../../../../api/_lib/fonnte.js';
 import {
   listWorkOrders,
@@ -30,7 +36,8 @@ import {
   claimWorkOrder,
   completeWorkOrder,
   verifyWorkOrder,
-  requestRevision
+  requestRevision,
+  closeWorkOrder
 } from '../../services/work-order.service.js';
 
 describe('WorkOrderService', () => {
@@ -187,8 +194,6 @@ describe('WorkOrderService', () => {
     });
   });
 
-  // ── closeWorkOrder ──────────────────────────────────────────────────────
-
   // ── completeWorkOrder ───────────────────────────────────────────────────
 
   describe('completeWorkOrder', () => {
@@ -211,52 +216,151 @@ describe('WorkOrderService', () => {
         eq: vi.fn().mockReturnThis()
       });
 
-      const result = await completeWorkOrder(mockDb, '1', { mac: 'AA:BB' }, { id: 'tech-1' }, false);
+      const result = await completeWorkOrder(mockDb, '1', { mac_address: 'AA:BB' }, { id: 'tech-1' }, false);
 
       expect(result.success).toBe(true);
       expect(woRepo.transitionStatus).toHaveBeenCalledWith(mockDb, '1', 'open', 'completed', expect.objectContaining({ completed_at: expect.any(String) }));
       expect(notifyWorkOrderEvent).toHaveBeenCalledWith('1', 'wo_completed');
     });
-  });
 
-  // ── verifyWorkOrder ─────────────────────────────────────────────────────
-
-  describe('verifyWorkOrder', () => {
-    it('should call rpc to close and notify', async () => {
+    it('should reject if not assigned (technician)', async () => {
+      isAdmin.mockResolvedValue(false);
       woRepo.findByIdWithAssignments.mockResolvedValue({ 
-        data: { id: '1', status: 'completed', master_queue_types: { base_point: 10 }, work_order_assignments: [{ id: 'a1', employee_id: 'tech-1', assignment_role: 'lead' }] } 
+        data: { id: '1', status: 'open', work_order_assignments: [{ employee_id: 'tech-2' }] } 
       });
-      
-      // Mock monitoring data fetch
-      mockDb.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: { mac_address: 'M1' } }),
-        update: vi.fn().mockReturnThis()
-      });
-      
-      woRepo.closeWithPointsRpc.mockResolvedValue({ data: {}, error: null });
+      const result = await completeWorkOrder(mockDb, '1', {}, { id: 'tech-1' });
+      expect(result.success).toBe(false);
+      expect(result.statusHint).toBe('forbidden');
+    });
 
-      const result = await verifyWorkOrder(mockDb, mockAuth, '1', { id: 'admin-1' });
+    it('should allow admin to complete even if not assigned', async () => {
+      isAdmin.mockResolvedValue(true);
+      woRepo.findByIdWithAssignments.mockResolvedValue({ 
+        data: { id: '1', status: 'open', work_order_assignments: [{ employee_id: 'tech-2' }] } 
+      });
+      woRepo.transitionStatus.mockResolvedValue({ data: { id: '1', status: 'completed' }, error: null });
+
+      const result = await completeWorkOrder(mockDb, '1', {}, { id: 'admin-1' });
 
       expect(result.success).toBe(true);
-      expect(woRepo.closeWithPointsRpc).toHaveBeenCalledWith(mockDb, '1', expect.objectContaining({ mac_address: 'M1' }));
-      expect(notifyWorkOrderEvent).toHaveBeenCalledWith('1', 'wo_closed');
+      expect(result.data.status).toBe('completed');
     });
   });
 
   // ── requestRevision ─────────────────────────────────────────────────────
 
   describe('requestRevision', () => {
-    it('should return to open status', async () => {
-      woRepo.findById.mockResolvedValue({ data: { id: '1', status: 'completed' } });
+    it('should transition status back to open with notes', async () => {
+      isAdmin.mockResolvedValue(true);
       woRepo.transitionStatus.mockResolvedValue({ data: { id: '1', status: 'open' }, error: null });
 
-      const result = await requestRevision(mockDb, '1', { reason: 'bad photo' }, { id: 'admin-1' });
+      const result = await requestRevision(mockDb, '1', { reason: 'Foto tidak jelas' }, { id: 'admin-1' });
 
       expect(result.success).toBe(true);
-      expect(woRepo.transitionStatus).toHaveBeenCalledWith(mockDb, '1', 'completed', 'open', expect.objectContaining({ ket: '[REVISION] bad photo' }));
-      expect(notifyWorkOrderEvent).toHaveBeenCalledWith('1', 'wo_revision');
+      expect(woRepo.transitionStatus).toHaveBeenCalledWith(mockDb, '1', 'completed', 'open', {
+        ket: '[REVISION] Foto tidak jelas'
+      });
+      expect(notifyWorkOrderEvent).toHaveBeenCalledWith('1', 'wo_revision_requested');
+    });
+  });
+
+  // ── verifyWorkOrder (Story 1.2 + 2.3) ──────────────────────────────────────────
+
+  describe('verifyWorkOrder', () => {
+    it('should calculate final points with bonus and deductions', async () => {
+      const wo = { 
+        id: '1', 
+        status: 'completed', 
+        master_queue_types: { base_point: 100 },
+        work_order_assignments: [
+          { id: 'a1', employee_id: 'lead-1', assignment_role: 'lead' },
+          { id: 'a2', employee_id: 'mem-1', assignment_role: 'member' }
+        ]
+      };
+      woRepo.findByIdWithAssignments.mockResolvedValue({ data: wo });
+      woRepo.transitionStatus.mockResolvedValue({ data: { ...wo, status: 'closed' }, error: null });
+      woRepo.closeWithPointsRpc.mockResolvedValue({ data: {}, error: null });
+      woRepo.updateAssignmentPoints.mockResolvedValue({ error: null });
+
+      const adjustments = [
+        { employee_id: 'lead-1', bonus_points: 20, deduction_points: 10, adjustment_reason: 'Good work' },
+        { employee_id: 'mem-1', bonus_points: 0, deduction_points: 80, adjustment_reason: 'Late' }
+      ];
+
+      isAdmin.mockResolvedValue(true);
+      const result = await verifyWorkOrder(mockDb, mockAuth, '1', { adjustments }, { id: 'admin-1' });
+
+      expect(result.success).toBe(true);
+      
+      // Lead: 100 (base) + 20 (bonus) - 10 (deduction) = 110
+      expect(woRepo.updateAssignmentPoints).toHaveBeenCalledWith(mockDb, 'a1', expect.objectContaining({
+        points_earned: 110,
+        bonus_points: 20,
+        deduction_points: 10
+      }));
+
+      // Member: 70 (base) + 0 (bonus) - 80 (deduction) = -10 -> Floor 0
+      expect(woRepo.updateAssignmentPoints).toHaveBeenCalledWith(mockDb, 'a2', expect.objectContaining({
+        points_earned: 0,
+        bonus_points: 0,
+        deduction_points: 80
+      }));
+    });
+
+    it('should calculate material cost and decrement stock during verification', async () => {
+      const wo = { 
+        id: '1', 
+        status: 'completed', 
+        master_queue_types: { base_point: 100 },
+        work_order_assignments: [{ id: 'a1', employee_id: 'lead-1', assignment_role: 'lead' }]
+      };
+      woRepo.findByIdWithAssignments.mockResolvedValue({ data: wo });
+      woRepo.transitionStatus.mockResolvedValue({ data: { ...wo, status: 'closed' }, error: null });
+      woRepo.closeWithPointsRpc.mockResolvedValue({ data: {}, error: null });
+      woRepo.updateAssignmentPoints.mockResolvedValue({ error: null });
+      
+      const inventory_used = [
+        { item_id: 'inv-1', quantity: 2 },
+        { item_id: 'inv-2', quantity: 5 }
+      ];
+      
+      inventoryRepo.findManyByIds.mockResolvedValue({
+        data: [
+          { id: 'inv-1', name: 'ONT', unit_cost: 200000, unit: 'pcs' },
+          { id: 'inv-2', name: 'Cable', unit_cost: 5000, unit: 'm' }
+        ],
+        error: null
+      });
+      inventoryRepo.decrementStock.mockResolvedValue({ error: null });
+
+      isAdmin.mockResolvedValue(true);
+      const result = await verifyWorkOrder(mockDb, mockAuth, '1', { inventory_used }, { id: 'admin-1' });
+
+      expect(result.success).toBe(true);
+      
+      // Total cost: (2 * 200000) + (5 * 5000) = 400000 + 25000 = 425000
+      expect(woRepo.transitionStatus).toHaveBeenCalledWith(
+        mockDb, '1', 'completed', 'closed', 
+        expect.objectContaining({
+          material_cost: 425000,
+          inventory_used: expect.arrayContaining([
+            expect.objectContaining({ item_id: 'inv-1', name: 'ONT', subtotal: 400000 }),
+            expect.objectContaining({ item_id: 'inv-2', name: 'Cable', subtotal: 25000 })
+          ])
+        })
+      );
+
+      expect(inventoryRepo.decrementStock).toHaveBeenCalledTimes(2);
+      expect(inventoryRepo.decrementStock).toHaveBeenCalledWith(mockDb, 'inv-1', 2);
+      expect(inventoryRepo.decrementStock).toHaveBeenCalledWith(mockDb, 'inv-2', 5);
+    });
+
+    it('should reject if not in completed status', async () => {
+      woRepo.findByIdWithAssignments.mockResolvedValue({ data: { id: '1', status: 'open' } });
+      isAdmin.mockResolvedValue(true);
+      const result = await verifyWorkOrder(mockDb, mockAuth, '1', {}, { id: 'admin-1' });
+      expect(result.success).toBe(false);
+      expect(result.statusHint).toBe('bad_request');
     });
   });
 });

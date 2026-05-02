@@ -8,5 +8,8 @@ export {
   deleteWorkOrder,
   confirmWorkOrder,
   claimWorkOrder,
+  completeWorkOrder,
+  verifyWorkOrder,
+  requestRevision,
   closeWorkOrder
 } from '../../src/core/services/work-order.service.js';
