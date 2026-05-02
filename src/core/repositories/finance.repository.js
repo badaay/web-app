@@ -55,7 +55,7 @@ export async function findDailyRecap(dbClient, date) {
 export async function findAllPayrollPeriods(dbClient, { limit = 24, offset = 0 } = {}) {
   return dbClient
     .from('payroll_periods')
-    .select('id, year, month, period_start, period_end, status, calculated_at, approved_at, paid_at', { count: 'exact' })
+    .select('id, year, month, period_start, period_end, status, calculated_at', { count: 'exact' })
     .order('year', { ascending: false })
     .order('month', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -83,7 +83,6 @@ export async function markPeriodAsPaid(dbClient, periodId, userId) {
     .from('payroll_periods')
     .update({
       status: 'paid',
-      paid_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
     .eq('id', periodId);
