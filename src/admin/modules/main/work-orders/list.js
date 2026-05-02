@@ -16,7 +16,7 @@ export async function loadWorkOrders(listContainer, typeId, onLoaded) {
             id, title, status, created_at, registration_date, ket, customer_id, employee_id, type_id, claimed_by, claimed_at, completed_at,
             customers(id, name, phone, address, lat, lng, packet),
             master_queue_types(id, name, color, icon, base_point),
-            work_order_assignments(id, assignment_role, employee_id, employees(id, name))
+            work_order_assignments(id, assignment_role, employee_id, points_earned, bonus_points, deduction_points, adjustment_reason, employees(id, name))
         `)
         .order('created_at', { ascending: true });
 
@@ -288,6 +288,84 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
             <div class="small mb-3 lh-sm" style="font-size:0.85rem; color: #94a3b8; border-left: 2px solid #334155; padding-left: 10px; margin-top: 8px;">
                 ${wo.ket?.substring(0, 60) || wo.master_queue_types?.name || 'PSB'}${wo.ket?.length > 60 ? '...' : ''}
             </div>
+            
+            ${(['closed', 'completed'].includes(wo.status)) ? (() => {
+                const assignments = wo.work_order_assignments || [];
+                const totalPoints = assignments.reduce((sum, a) => sum + (a.points_earned || 0), 0);
+                const basePoints = wo.master_queue_types?.base_point || 0;
+                
+                const detailsHtml = assignments.map(a => {
+                    const isLead = a.assignment_role === 'lead';
+                    const baseCalc = isLead ? basePoints : Math.floor(basePoints * 0.7);
+                    const bonus = a.bonus_points || 0;
+                    const deduction = a.deduction_points || 0;
+                    const finalPts = a.points_earned || Math.max(0, baseCalc + bonus - deduction);
+
+                    return `
+                        <div class="hud-math-grid mt-1 mb-2 p-2 rounded" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.05);">
+                            <div class="fw-bold mb-1" style="font-size: 0.75rem; color: #14b8a6;">${a.employees?.name} <span class="badge bg-secondary ms-1" style="font-size: 0.55rem;">${a.assignment_role.toUpperCase()}</span></div>
+                            <div class="hud-math-row" style="font-size: 0.7rem;">
+                                <span class="hud-label">Base</span>
+                                <span class="hud-value">${baseCalc}</span>
+                            </div>
+                            ${bonus > 0 ? `
+                            <div class="hud-math-row hud-bonus" style="font-size: 0.7rem;">
+                                <span class="hud-label">Bonus</span>
+                                <span class="hud-value hud-positive">+${bonus}</span>
+                            </div>` : ''}
+                            ${deduction > 0 ? `
+                            <div class="hud-math-row hud-deduction" style="font-size: 0.7rem;">
+                                <span class="hud-label">Potongan</span>
+                                <span class="hud-value hud-negative">-${deduction}</span>
+                            </div>` : ''}
+                            <div class="hud-math-row hud-total mt-1 pt-1" style="font-size: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.1);">
+                                <span class="hud-label">Total</span>
+                                <span class="hud-value fw-bold" style="color: #14b8a6;">${finalPts} pts</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                const accordionId = 'acc-' + wo.id;
+
+                return `
+                <div class="accordion accordion-flush mb-2" id="accordion-${accordionId}">
+                    <div class="accordion-item" style="background: transparent; border: none;">
+                        <h2 class="accordion-header" id="heading-${accordionId}">
+                            <button class="accordion-button collapsed px-2 py-2 rounded" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}" style="background: rgba(20, 184, 166, 0.1); border: 1px solid rgba(20, 184, 166, 0.25); box-shadow: none;">
+                                <div class="d-flex w-100 justify-content-between align-items-center me-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-gem" style="color: #14b8a6; font-size: 0.8rem;"></i>
+                                        <span class="text-white-50" style="font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;">EARNED:</span>
+                                    </div>
+                                    <div class="fw-bold" style="color: #14b8a6; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem;">
+                                        ${totalPoints} <span class="text-white-50" style="font-size: 0.65rem;">pts</span>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse-${accordionId}" class="accordion-collapse collapse" data-bs-parent="#accordion-${accordionId}">
+                            <div class="accordion-body px-0 py-1" onclick="event.stopPropagation()">
+                                ${detailsHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    #accordion-${accordionId} .accordion-button::after {
+                        filter: invert(72%) sepia(86%) saturate(366%) hue-rotate(125deg) brightness(91%) contrast(85%); /* Approx #14b8a6 */
+                        transform: scale(0.8);
+                        margin-left: auto;
+                    }
+                    #accordion-${accordionId} .accordion-button:not(.collapsed)::after {
+                        filter: invert(72%) sepia(86%) saturate(366%) hue-rotate(125deg) brightness(91%) contrast(85%);
+                    }
+                    #accordion-${accordionId} .accordion-button {
+                        padding-right: 0.5rem !important;
+                    }
+                </style>
+                `;
+            })() : ''}
             
             <div class="d-flex justify-content-between align-items-end mt-auto pt-3 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
                 <div class="small px-3 py-1 rounded-pill ${wo.work_order_assignments?.length ? 'tech-gradient-badge' : 'bg-dark text-warning border border-warning border-opacity-25'}" style="font-weight: 600; font-size: 0.75rem;">

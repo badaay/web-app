@@ -405,8 +405,83 @@ async function showWorkOrderActions(wo) {
         color: getStatusColor(m.status) || 'var(--vscode-secondary)',
         icon: 'bi-clock-history'
     }));
-
     const timelineHtml = ActivityLog.renderTimeline(logs);
+
+    // Build Points HUD breakdown (AC1 + AC2)
+    const isPointsVisible = ['closed', 'completed'].includes(wo.status);
+    const basePoints = wo.master_queue_types?.base_point || 0;
+
+    let pointsHudHtml = '';
+    if (isPointsVisible) {
+        const pointAssignments = assignments.map(a => {
+            const isLead = a.assignment_role === 'lead';
+            const multiplier = isLead ? 1.0 : 0.7;
+            const baseCalc = isLead ? basePoints : Math.floor(basePoints * 0.7);
+            const bonus = a.bonus_points || 0;
+            const deduction = a.deduction_points || 0;
+            const finalPts = a.points_earned || Math.max(0, baseCalc + bonus - deduction);
+            const reason = a.adjustment_reason || '';
+
+            return `
+                <div class="hud-assignment-card mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-white" style="font-size: 0.95rem;">
+                            <i class="bi bi-person-fill me-1" style="color: #14b8a6;"></i>${a.employees?.name || 'Teknisi'}
+                        </span>
+                        <span class="hud-role-badge">${a.assignment_role.toUpperCase()}</span>
+                    </div>
+                    <div class="hud-math-grid">
+                        <div class="hud-math-row">
+                            <span class="hud-label">Base (${wo.master_queue_types?.name || 'Job'})</span>
+                            <span class="hud-value">${basePoints}</span>
+                        </div>
+                        ${!isLead ? `
+                        <div class="hud-math-row hud-multiplier">
+                            <span class="hud-label">× ${multiplier} <span class="text-white-50">(Member)</span></span>
+                            <span class="hud-value">= ${baseCalc}</span>
+                        </div>
+                        ` : ''}
+                        ${bonus > 0 ? `
+                        <div class="hud-math-row hud-bonus">
+                            <span class="hud-label">Bonus</span>
+                            <span class="hud-value hud-positive">+${bonus}</span>
+                        </div>
+                        ` : ''}
+                        ${deduction > 0 ? `
+                        <div class="hud-math-row hud-deduction">
+                            <span class="hud-label">Potongan</span>
+                            <span class="hud-value hud-negative">−${deduction}</span>
+                        </div>
+                        ` : ''}
+                        ${reason ? `
+                        <div class="hud-reason-row">
+                            <i class="bi bi-chat-left-text me-1"></i>${reason}
+                        </div>
+                        ` : ''}
+                        <div class="hud-math-row hud-total">
+                            <span class="hud-label">TOTAL</span>
+                            <span class="hud-value hud-total-value">${finalPts} pts</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        const grandTotal = assignments.reduce((s, a) => s + (a.points_earned || 0), 0);
+
+        pointsHudHtml = `
+            <div class="hud-panel">
+                <div class="hud-header mb-3">
+                    <i class="bi bi-gem me-2"></i>Points Breakdown
+                </div>
+                ${pointAssignments.join('')}
+                <div class="hud-grand-total">
+                    <span>GRAND TOTAL</span>
+                    <span class="hud-grand-value">${grandTotal} pts</span>
+                </div>
+            </div>
+        `;
+    }
 
     body.innerHTML = `
         <div class="px-1 kanban-modal-wrapper">
@@ -446,13 +521,20 @@ async function showWorkOrderActions(wo) {
                 </div>
             </div>
 
-            <!-- Tab Navigation (Simplified Pill Design) -->
+            <!-- Tab Navigation -->
             <ul class="nav nav-pills mb-4 d-flex bg-dark rounded-pill p-1 shadow-sm border border-secondary border-opacity-25" id="woTabs" role="tablist">
                 <li class="nav-item flex-fill text-center" role="presentation">
                     <button class="nav-link active rounded-pill w-100 fw-semibold transition-all" id="actions-tab" data-bs-toggle="pill" data-bs-target="#actions-panel" type="button" role="tab" style="font-size: 0.9rem;">Tindakan</button>
                 </li>
+                ${isPointsVisible ? `
                 <li class="nav-item flex-fill text-center" role="presentation">
-                    <button class="nav-link rounded-pill w-100 fw-semibold text-white-50 transition-all" id="history-tab" data-bs-toggle="pill" data-bs-target="#history-panel" type="button" role="tab" style="font-size: 0.9rem;">Riwayat Aktivitas</button>
+                    <button class="nav-link rounded-pill w-100 fw-semibold text-white-50 transition-all" id="points-tab" data-bs-toggle="pill" data-bs-target="#points-panel" type="button" role="tab" style="font-size: 0.9rem;">
+                        <i class="bi bi-gem me-1"></i>Poin
+                    </button>
+                </li>
+                ` : ''}
+                <li class="nav-item flex-fill text-center" role="presentation">
+                    <button class="nav-link rounded-pill w-100 fw-semibold text-white-50 transition-all" id="history-tab" data-bs-toggle="pill" data-bs-target="#history-panel" type="button" role="tab" style="font-size: 0.9rem;">Riwayat</button>
                 </li>
             </ul>
 
@@ -496,6 +578,13 @@ async function showWorkOrderActions(wo) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Points HUD Panel (AC1 + AC2) -->
+                ${isPointsVisible ? `
+                <div class="tab-pane fade" id="points-panel" role="tabpanel">
+                    ${pointsHudHtml}
+                </div>
+                ` : ''}
 
                 <!-- History Panel -->
                 <div class="tab-pane fade" id="history-panel" role="tabpanel">
