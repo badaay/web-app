@@ -4,5 +4,8 @@
 export {
   listTransactions,
   createTransaction,
-  getFinancialSummary
+  getFinancialSummary,
+  listPayrollPeriods,
+  getPayrollRekap,
+  markPayrollPaid
 } from '../../src/core/services/finance.service.js';

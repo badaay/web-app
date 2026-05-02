@@ -10,3 +10,10 @@ dist
 /docs/*
 /tmp
 coverage
+
+.github
+_bmad
+_bmad-output
+.agent
+.agents
+.windsurf

@@ -220,3 +220,122 @@ input:focus {
 .tech-scroll-box .form-check-input:focus {
   box-shadow: 0 0 0 0.25rem rgba(13, 148, 136, 0.25);
 }
+
+/* ── Shepherd.js Tour — HUD Theme ─────────────────────────────────────── */
+.shepherd-theme-hud .shepherd-content {
+  background: var(--primary, #0f172a);
+  border: 1px solid var(--accent, #0ea5e9);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.25), 0 8px 32px rgba(0,0,0,0.5);
+  color: var(--slate-100, #f1f5f9);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.shepherd-theme-hud .shepherd-header {
+  background: transparent;
+  padding: 12px 16px 4px;
+}
+
+.shepherd-theme-hud .shepherd-title {
+  color: var(--accent, #0ea5e9);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.shepherd-theme-hud .shepherd-text {
+  color: var(--slate-200, #e2e8f0);
+  padding: 4px 16px 12px;
+}
+
+.shepherd-theme-hud .shepherd-text strong {
+  color: var(--accent, #0ea5e9);
+}
+
+.shepherd-theme-hud .shepherd-footer {
+  background: transparent;
+  border-top: 1px solid rgba(14, 165, 233, 0.2);
+  padding: 8px 16px 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.shepherd-theme-hud .shepherd-button {
+  background: transparent;
+  border: 1px solid var(--slate-600, #475569);
+  border-radius: 4px;
+  color: var(--slate-300, #cbd5e1);
+  font-size: 0.8rem;
+  padding: 4px 14px;
+  transition: all 0.15s ease;
+}
+
+.shepherd-theme-hud .shepherd-button:hover {
+  background: var(--accent, #0ea5e9);
+  border-color: var(--accent, #0ea5e9);
+  color: var(--primary, #0f172a);
+}
+
+.shepherd-theme-hud .shepherd-button-primary {
+  background: var(--accent, #0ea5e9);
+  border-color: var(--accent, #0ea5e9);
+  color: var(--primary, #0f172a);
+  font-weight: 600;
+}
+
+.shepherd-theme-hud .shepherd-button-primary:hover {
+  background: #38bdf8;
+  border-color: #38bdf8;
+}
+
+.shepherd-theme-hud .shepherd-button-secondary {
+  color: var(--slate-400, #94a3b8);
+  border-color: var(--slate-700, #334155);
+}
+
+.shepherd-theme-hud .shepherd-button-secondary:hover {
+  color: var(--slate-200, #e2e8f0);
+  border-color: var(--slate-500, #64748b);
+  background: var(--slate-800, #1e293b);
+}
+
+.shepherd-theme-hud .shepherd-cancel-icon {
+  color: var(--slate-400, #94a3b8);
+}
+
+.shepherd-theme-hud .shepherd-cancel-icon:hover {
+  color: var(--danger, #ef4444);
+}
+
+/* Shepherd arrow */
+.shepherd-theme-hud .shepherd-arrow {
+  border: none;
+}
+
+.shepherd-theme-hud .shepherd-arrow::before {
+  background: var(--primary, #0f172a);
+  border: 1px solid var(--accent, #0ea5e9);
+}
+
+/* Highlight target element */
+.shepherd-target-highlight {
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.5) !important;
+  border-radius: 4px;
+}
+
+/* Modal overlay */
+.shepherd-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+/* Responsive: smaller popups on mobile */
+@media (max-width: 768px) {
+  .shepherd-theme-hud .shepherd-content {
+    max-width: 280px;
+    font-size: 0.8rem;
+  }
+}

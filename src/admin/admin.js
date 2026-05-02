@@ -23,6 +23,7 @@ const ROLE_PERMISSIONS = {
         'attendance-content',
         'overtime-content',
         'billing-content',
+        'payroll-rekap-content',
         'theme-pane',
         'whatsapp-pane',
         'notifications-pane'
@@ -37,8 +38,8 @@ const ROLE_PERMISSIONS = {
         'overtime-content',
         'payroll-content',
         'billing-content',
-        'billing-content',
         'finance-content',
+        'payroll-rekap-content',
         'hr-dashboard-content',
         'payments-pane'
     ],
@@ -107,7 +108,8 @@ const MENU_SCHEMA = [
         roles: ['S_ADM', 'OWNER', 'TREASURER'],
         items: [
             // { id: 'billing-content', label: 'Tagihan', icon: 'bi-receipt-cutoff', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
-            { id: 'finance-content', label: 'Laporan Keuangan', icon: 'bi-graph-up-arrow', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
+            { id: 'finance-content', label: 'Laporan Keuangan', icon: 'bi-graph-up-arrow', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
+            { id: 'payroll-rekap-content', label: 'Rekap Gaji', icon: 'bi-file-earmark-text', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
         ]
     },
     {
@@ -625,6 +627,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (targetId === 'finance-content') {
                 const { initFinance } = await import('./modules/finance/finance.js');
                 initFinance();
+            } else if (targetId === 'payroll-rekap-content') {
+                const { initPayrollRekap } = await import('./modules/finance/payroll-rekap.js');
+                initPayrollRekap();
             }
         } catch (error) {
             console.error(`Failed to load module '${targetId}':`, error);
