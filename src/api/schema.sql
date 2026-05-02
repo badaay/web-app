@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE TABLE IF NOT EXISTS public.master_queue_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT UNIQUE NOT NULL,
+    short_code TEXT UNIQUE,
     base_point INTEGER DEFAULT 0,
     color TEXT DEFAULT '#6b7280',
     icon TEXT DEFAULT 'bi-ticket-detailed',
@@ -48,6 +49,7 @@ CREATE TABLE IF NOT EXISTS public.internet_packages (
 CREATE TABLE IF NOT EXISTS public.inventory_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT UNIQUE NOT NULL,
+    item_code TEXT UNIQUE,
     stock INTEGER DEFAULT 0,
     unit TEXT NOT NULL,
     category TEXT,
@@ -132,6 +134,7 @@ CREATE TABLE IF NOT EXISTS public.work_orders (
     customer_id UUID REFERENCES public.customers(id),
     employee_id UUID REFERENCES public.employees(id),
     type_id UUID REFERENCES public.master_queue_types(id),
+    item_code TEXT UNIQUE,
     title TEXT NOT NULL,
     description TEXT,
     status TEXT DEFAULT 'waiting', -- waiting, confirmed, open, completed, closed
@@ -227,6 +230,15 @@ CREATE TABLE IF NOT EXISTS public.expense_categories (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 16. Item Code Sequences
+CREATE TABLE IF NOT EXISTS public.item_code_sequences (
+    prefix TEXT NOT NULL,
+    period TEXT NOT NULL,
+    sequence INTEGER DEFAULT 1,
+    last_updated TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (prefix, period)
+);
+
 -- IV. FUNCTIONS & TRIGGERS
 
 -- 1. Get Work Order Stats
@@ -310,6 +322,102 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 6. Item Code System Functions
+CREATE OR REPLACE FUNCTION public.get_inventory_prefix(p_category TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    RETURN CASE p_category
+        WHEN 'Modem' THEN 'MOD'
+        WHEN 'Cable' THEN 'CAB'
+        WHEN 'Antenna' THEN 'ANT'
+        WHEN 'Connector' THEN 'CON'
+        WHEN 'Power' THEN 'PWR'
+        WHEN 'Tools' THEN 'TLS'
+        WHEN 'Accessories' THEN 'ACC'
+        WHEN 'Materials' THEN 'MAT'
+        ELSE 'OTH'
+    END;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.generate_work_order_code(p_type_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+    v_prefix TEXT;
+    v_period TEXT;
+    v_seq INTEGER;
+BEGIN
+    SELECT short_code INTO v_prefix FROM public.master_queue_types WHERE id = p_type_id;
+    IF v_prefix IS NULL OR v_prefix = '' THEN v_prefix := 'WO'; END IF;
+    v_period := to_char(now(), 'YYMM');
+    INSERT INTO public.item_code_sequences (prefix, period, sequence)
+    VALUES (v_prefix, v_period, 1)
+    ON CONFLICT (prefix, period)
+    DO UPDATE SET sequence = item_code_sequences.sequence + 1, last_updated = now()
+    RETURNING sequence INTO v_seq;
+    RETURN v_prefix || v_period || lpad(v_seq::text, 3, '0');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.generate_inventory_code(p_category TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    v_prefix TEXT;
+    v_period TEXT;
+    v_seq INTEGER;
+BEGIN
+    v_prefix := public.get_inventory_prefix(p_category);
+    v_period := to_char(now(), 'YY');
+    INSERT INTO public.item_code_sequences (prefix, period, sequence)
+    VALUES (v_prefix, v_period, 1)
+    ON CONFLICT (prefix, period)
+    DO UPDATE SET sequence = item_code_sequences.sequence + 1, last_updated = now()
+    RETURNING sequence INTO v_seq;
+    RETURN v_prefix || v_period || lpad(v_seq::text, 4, '0');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. Item Code Triggers
+CREATE OR REPLACE FUNCTION public.trg_fn_generate_work_order_item_code()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.item_code IS NULL OR NEW.item_code = '' THEN
+        BEGIN
+            NEW.item_code := public.generate_work_order_code(NEW.type_id);
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'Item code generation failed for work_order: %', SQLERRM;
+            NEW.item_code := NULL;
+        END;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_work_orders_item_code ON public.work_orders;
+CREATE TRIGGER trg_work_orders_item_code
+    BEFORE INSERT ON public.work_orders
+    FOR EACH ROW EXECUTE FUNCTION public.trg_fn_generate_work_order_item_code();
+
+CREATE OR REPLACE FUNCTION public.trg_fn_generate_inventory_item_code()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.item_code IS NULL OR NEW.item_code = '' THEN
+        BEGIN
+            NEW.item_code := public.generate_inventory_code(NEW.category);
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'Item code generation failed for inventory_item: %', SQLERRM;
+            NEW.item_code := NULL;
+        END;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_inventory_items_item_code ON public.inventory_items;
+CREATE TRIGGER trg_inventory_items_item_code
+    BEFORE INSERT ON public.inventory_items
+    FOR EACH ROW EXECUTE FUNCTION public.trg_fn_generate_inventory_item_code();
 
 -- V. SECURITY (RLS)
 
@@ -429,6 +537,9 @@ CREATE INDEX IF NOT EXISTS idx_bills_token ON public.customer_bills(secret_token
 CREATE INDEX IF NOT EXISTS idx_notif_queue_dispatch
     ON public.notification_queue (status, priority, scheduled_at)
     WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_work_orders_item_code ON public.work_orders(item_code);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_item_code ON public.inventory_items(item_code);
+CREATE INDEX IF NOT EXISTS idx_master_queue_types_short_code ON public.master_queue_types(short_code);
 
 
 -- VII. SEED DATA
@@ -445,13 +556,14 @@ ON CONFLICT (code) DO UPDATE SET
   name        = EXCLUDED.name,
   description = EXCLUDED.description;
 
-INSERT INTO public.master_queue_types (name, base_point, color, icon) VALUES 
-('PSB', 100, '#22c55e', 'bi-house-add-fill'),
-('Repair', 50, '#ef4444', 'bi-tools'),
-('Relocation', 75, '#f59e0b', 'bi-arrow-left-right'),
-('Upgrade', 50, '#3b82f6', 'bi-arrow-up-circle-fill'),
-('Cancel', 0, '#6b7280', 'bi-x-circle-fill')
+INSERT INTO public.master_queue_types (name, short_code, base_point, color, icon) VALUES 
+('PSB', 'PSN', 100, '#22c55e', 'bi-house-add-fill'),
+('Repair', 'REP', 50, '#ef4444', 'bi-tools'),
+('Relocation', 'REL', 75, '#f59e0b', 'bi-arrow-left-right'),
+('Upgrade', 'UPG', 50, '#3b82f6', 'bi-arrow-up-circle-fill'),
+('Cancel', 'CAN', 0, '#6b7280', 'bi-x-circle-fill')
 ON CONFLICT (name) DO UPDATE SET
+  short_code = EXCLUDED.short_code,
   base_point = EXCLUDED.base_point,
   color = EXCLUDED.color,
   icon = EXCLUDED.icon;
