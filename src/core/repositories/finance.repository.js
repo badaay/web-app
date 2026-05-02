@@ -50,3 +50,42 @@ export async function findDailyRecap(dbClient, date) {
     .eq('transaction_date', date);
 }
 
+// ── Payroll Rekap Queries (Story 2.4) ─────────────────────────────────────
+
+export async function findAllPayrollPeriods(dbClient, { limit = 24, offset = 0 } = {}) {
+  return dbClient
+    .from('payroll_periods')
+    .select('id, year, month, period_start, period_end, status, calculated_at, approved_at, paid_at', { count: 'exact' })
+    .order('year', { ascending: false })
+    .order('month', { ascending: false })
+    .range(offset, offset + limit - 1);
+}
+
+export async function findPayrollPeriodById(dbClient, periodId) {
+  return dbClient
+    .from('payroll_periods')
+    .select('*')
+    .eq('id', periodId)
+    .single();
+}
+
+export async function findPayrollSummariesForPeriod(dbClient, periodId, { limit = 100, offset = 0 } = {}) {
+  return dbClient
+    .from('v_payroll_summaries')
+    .select('*', { count: 'exact' })
+    .eq('payroll_period_id', periodId)
+    .order('employee_name', { ascending: true })
+    .range(offset, offset + limit - 1);
+}
+
+export async function markPeriodAsPaid(dbClient, periodId, userId) {
+  return dbClient
+    .from('payroll_periods')
+    .update({
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', periodId);
+}
+

@@ -3,7 +3,7 @@
  * Handles financial transactions and ledger reporting.
  */
 import * as financeRepo from '../repositories/finance.repository.js';
-import { ok, badRequest, serverError } from '../utils/http-mapper.js';
+import { ok, badRequest, notFound, conflict, serverError } from '../utils/http-mapper.js';
 
 export async function listTransactions(dbClient, { limit = 50, offset = 0, search = '' } = {}) {
   const { data, error, count } = await financeRepo.findAllTransactions(dbClient, { limit, offset, search });
@@ -75,5 +75,52 @@ export async function getDailyRecap(dbClient, date) {
   });
 
   return ok({ date, recap });
+}
+
+// ── Payroll Rekap (Story 2.4) ──────────────────────────────────────────────
+
+export async function listPayrollPeriods(dbClient, { limit = 24, offset = 0 } = {}) {
+  const { data, error, count } = await financeRepo.findAllPayrollPeriods(dbClient, { limit, offset });
+  if (error) return serverError(`Database error: ${error.message}`);
+  return ok({ data, count, limit, offset });
+}
+
+export async function getPayrollRekap(dbClient, periodId, { limit = 100, offset = 0 } = {}) {
+  if (!periodId) return badRequest('period_id is required');
+
+  const { data: period, error: periodErr } = await financeRepo.findPayrollPeriodById(dbClient, periodId);
+  if (periodErr || !period) return notFound('Payroll period not found');
+
+  const { data: summaries, error: sumErr, count } = await financeRepo.findPayrollSummariesForPeriod(dbClient, periodId, { limit, offset });
+  if (sumErr) return serverError(`Database error: ${sumErr.message}`);
+
+  const totalGross = (summaries || []).reduce((s, r) => s + (r.gross_earnings || 0), 0);
+  const totalDeductions = (summaries || []).reduce((s, r) => s + (r.total_deductions || 0), 0);
+  const totalNet = (summaries || []).reduce((s, r) => s + (r.take_home_pay || 0), 0);
+
+  return ok({
+    period,
+    summaries: summaries || [],
+    totals: { gross_earnings: totalGross, total_deductions: totalDeductions, take_home_pay: totalNet, employee_count: count || 0 },
+    count,
+    limit,
+    offset
+  });
+}
+
+export async function markPayrollPaid(dbClient, periodId, userId) {
+  if (!periodId) return badRequest('period_id is required');
+
+  const { data: period, error: periodErr } = await financeRepo.findPayrollPeriodById(dbClient, periodId);
+  if (periodErr || !period) return notFound('Payroll period not found');
+
+  if (period.status !== 'approved') {
+    return conflict(`Cannot mark as paid: period status is '${period.status}'. Must be 'approved' first.`);
+  }
+
+  const { data, error } = await financeRepo.markPeriodAsPaid(dbClient, periodId, userId);
+  if (error) return serverError(`Database error: ${error.message}`);
+
+  return ok({ message: `Period ${period.month}/${period.year} marked as paid`, period_id: periodId });
 }
 

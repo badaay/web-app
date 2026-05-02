@@ -625,6 +625,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (targetId === 'finance-content') {
                 const { initFinance } = await import('./modules/finance/finance.js');
                 initFinance();
+            } else if (targetId === 'payroll-rekap-content') {
+                const { initPayrollRekap } = await import('./modules/finance/payroll-rekap.js');
+                initPayrollRekap();
             }
         } catch (error) {
             console.error(`Failed to load module '${targetId}':`, error);
