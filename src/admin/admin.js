@@ -431,6 +431,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const navigate = (target) => {
             if (!target) return;
 
+            // Save current page to localStorage (except for dashboard)
+            if (target !== 'dashboard') {
+                localStorage.setItem('sifatih-admin-last-page', target);
+                // Update URL hash to support direct linking
+                window.location.hash = target;
+            } else {
+                // Clear localStorage and hash when going to dashboard
+                localStorage.removeItem('sifatih-admin-last-page');
+                window.location.hash = '';
+            }
+
             // Close sidebar on mobile after selection
             if (sidebar?.classList.contains('show')) {
                 sidebar.classList.remove('show');
@@ -518,8 +529,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        // Set Dashboard as active by default on load
-        navigate('dashboard');
+        // Restore last visited page or default to dashboard
+        const lastVisitedPage = localStorage.getItem('sifatih-admin-last-page');
+        const initialTarget = lastVisitedPage || 'dashboard';
+        
+        // Check if hash is present, it takes priority over localStorage
+        const hashTarget = window.location.hash.replace('#', '');
+        const finalTarget = hashTarget && hashTarget !== 'dashboard' ? hashTarget : initialTarget;
+        
+        navigate(finalTarget);
 
         // Global listener for sub-tabs (e.g. Settings tabs)
         document.addEventListener('shown.bs.tab', (e) => {
