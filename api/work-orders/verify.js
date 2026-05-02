@@ -17,9 +17,9 @@ async function handler(req) {
   }
 
   try {
-    const { id, adjustments, closeData } = await req.json();
+    const { id, adjustments, closeData, inventory_used } = await req.json();
     const authClient = createAdminClient(); // Service role for customer creation
-    const result = await verifyWorkOrder(supabaseAdmin, authClient, id, { adjustments, closeData }, user);
+    const result = await verifyWorkOrder(supabaseAdmin, authClient, id, { adjustments, closeData, inventory_used }, user);
     if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
     return jsonResponse(result.data);
   } catch (err) {

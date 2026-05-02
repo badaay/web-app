@@ -6,6 +6,8 @@ import * as woRepo from '../repositories/work-order.repository.js';
 import * as psbRepo from '../repositories/psb.repository.js';
 import * as customerRepo from '../repositories/customer.repository.js';
 import * as employeeRepo from '../repositories/employee.repository.js';
+import * as inventoryRepo from '../repositories/inventory.repository.js';
+import { processWorkOrderInventory } from './inventory.service.js';
 import { ok, created, badRequest, notFound, conflict, serverError, forbidden } from '../utils/http-mapper.js';
 import { ALLOWED_WORK_ORDER_FIELDS } from '../utils/constants.js';
 import { whitelist } from '../utils/validators.js';
@@ -162,8 +164,8 @@ export async function requestRevision(dbClient, id, reason, user) {
 }
 
 /**
- * verifyWorkOrder (Story 1.1 + 1.2)
- * Approves a completed job and awards adjusted points.
+ * verifyWorkOrder (Story 1.1 + 1.2 + 2.3)
+ * Approves a completed job, awards points, and tracks inventory costs.
  */
 export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAuthorizedParam = false) {
   if (!id) return badRequest('Work order id is required');
@@ -173,14 +175,21 @@ export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAu
   const isAuthorized = isAuthorizedParam || (await isAdmin(dbClient, user.id));
   if (!isAuthorized) return forbidden('Only admins can verify work orders');
 
-  const { adjustments = [], closeData = {} } = body;
+  const { adjustments = [], closeData = {}, inventory_used = [] } = body;
 
   const { data: wo, error: fetchErr } = await woRepo.findByIdWithAssignments(dbClient, id);
   if (fetchErr || !wo) return notFound('Work order not found');
   if (wo.status !== 'completed') return badRequest(`Work order is not in 'completed' status (current: ${wo.status})`);
 
-  // 1. Transition status to closed
-  const { data: updatedWO, error: transitionErr } = await woRepo.transitionStatus(dbClient, id, 'completed', 'closed');
+  // 0. Process Inventory Usage (Story 2.3)
+  const { totalMaterialCost, inventorySnapshot } = await processWorkOrderInventory(dbClient, inventory_used);
+
+
+  // 1. Transition status to closed + Record Financial Metadata (AC3)
+  const { data: updatedWO, error: transitionErr } = await woRepo.transitionStatus(dbClient, id, 'completed', 'closed', {
+    material_cost: totalMaterialCost,
+    inventory_used: inventorySnapshot
+  });
   if (transitionErr || !updatedWO) return serverError('Failed to transition work order to closed');
 
   // 2. Award Points with Adjustments (Project B)

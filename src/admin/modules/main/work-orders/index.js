@@ -411,6 +411,11 @@ async function showWorkOrderActions(wo) {
     const isPointsVisible = ['closed', 'completed'].includes(wo.status);
     const basePoints = wo.master_queue_types?.base_point || 0;
 
+    // Fetch user role for financial visibility (Story 2.3 AC4/5)
+    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: profile } = await supabase.from('profiles').select('roles(code)').eq('id', sessionData?.session?.user?.id).single();
+    const isAdminUser = ['S_ADM', 'OWNER', 'ADM'].includes(profile?.roles?.code);
+
     let pointsHudHtml = '';
     if (isPointsVisible) {
         const pointAssignments = assignments.map(a => {
@@ -469,6 +474,31 @@ async function showWorkOrderActions(wo) {
 
         const grandTotal = assignments.reduce((s, a) => s + (a.points_earned || 0), 0);
 
+        // Material Cost Section (Story 2.3)
+        let materialHtml = '';
+        if (isAdminUser && wo.material_cost !== undefined) {
+            const invUsed = wo.inventory_used || [];
+            materialHtml = `
+                <div class="hud-panel mt-3 border-info border-opacity-25" style="background: rgba(14, 165, 233, 0.05);">
+                    <div class="hud-header mb-2 text-info">
+                        <i class="bi bi-box-seam me-2"></i>Job Material Cost
+                    </div>
+                    <div class="hud-math-grid">
+                        ${invUsed.map(inv => `
+                            <div class="hud-math-row">
+                                <span class="hud-label">${inv.name} (x${inv.quantity})</span>
+                                <span class="hud-value text-white-50">Rp ${(inv.subtotal || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                        `).join('')}
+                        <div class="hud-math-row hud-total pt-2 border-top border-secondary border-opacity-25 mt-2">
+                            <span class="hud-label text-info">TOTAL MATERIAL</span>
+                            <span class="hud-value text-info fw-bold">Rp ${(wo.material_cost || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         pointsHudHtml = `
             <div class="hud-panel">
                 <div class="hud-header mb-3">
@@ -480,6 +510,7 @@ async function showWorkOrderActions(wo) {
                     <span class="hud-grand-value">${grandTotal} pts</span>
                 </div>
             </div>
+            ${materialHtml}
         `;
     }
 

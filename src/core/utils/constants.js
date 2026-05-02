@@ -4,7 +4,7 @@
 
 export const ALLOWED_PACKAGE_FIELDS = ['name', 'price', 'speed', 'description'];
 
-export const ALLOWED_INVENTORY_FIELDS = ['name', 'stock', 'unit', 'category'];
+export const ALLOWED_INVENTORY_FIELDS = ['name', 'stock', 'unit', 'category', 'unit_cost'];
 
 export const ALLOWED_CUSTOMER_FIELDS = [
   'name', 'ktp', 'phone', 'alt_phone', 'packet', 'address',

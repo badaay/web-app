@@ -12,6 +12,7 @@ vi.mock('../../../../api/_lib/fonnte.js', () => ({
 vi.mock('../../repositories/employee.repository.js');
 vi.mock('../../repositories/customer.repository.js');
 vi.mock('../../repositories/psb.repository.js');
+vi.mock('../../repositories/inventory.repository.js');
 vi.mock('../../../../src/api/config.js', () => ({
   APP_CONFIG: { AUTH_DOMAIN_SUFFIX: '@test.com' }
 }));
@@ -23,6 +24,7 @@ import * as woRepo from '../../repositories/work-order.repository.js';
 import * as employeeRepo from '../../repositories/employee.repository.js';
 import * as customerRepo from '../../repositories/customer.repository.js';
 import * as psbRepo from '../../repositories/psb.repository.js';
+import * as inventoryRepo from '../../repositories/inventory.repository.js';
 import { isAdmin } from '../../../../api/_lib/supabase.js';
 import { notifyWorkOrderEvent } from '../../../../api/_lib/fonnte.js';
 import {
@@ -329,6 +331,54 @@ describe('WorkOrderService', () => {
         bonus_points: 0,
         deduction_points: 80
       }));
+    });
+
+    it('should calculate material cost and decrement stock during verification', async () => {
+      const wo = { 
+        id: '1', 
+        status: 'completed', 
+        master_queue_types: { base_point: 100 },
+        work_order_assignments: [{ id: 'a1', employee_id: 'lead-1', assignment_role: 'lead' }]
+      };
+      woRepo.findByIdWithAssignments.mockResolvedValue({ data: wo });
+      woRepo.transitionStatus.mockResolvedValue({ data: { ...wo, status: 'closed' }, error: null });
+      woRepo.closeWithPointsRpc.mockResolvedValue({ data: {}, error: null });
+      woRepo.updateAssignmentPoints.mockResolvedValue({ error: null });
+      
+      const inventory_used = [
+        { item_id: 'inv-1', quantity: 2 },
+        { item_id: 'inv-2', quantity: 5 }
+      ];
+      
+      inventoryRepo.findManyByIds.mockResolvedValue({
+        data: [
+          { id: 'inv-1', name: 'ONT', unit_cost: 200000, unit: 'pcs' },
+          { id: 'inv-2', name: 'Cable', unit_cost: 5000, unit: 'm' }
+        ],
+        error: null
+      });
+      inventoryRepo.decrementStock.mockResolvedValue({ error: null });
+
+      isAdmin.mockResolvedValue(true);
+      const result = await verifyWorkOrder(mockDb, mockAuth, '1', { inventory_used }, { id: 'admin-1' });
+
+      expect(result.success).toBe(true);
+      
+      // Total cost: (2 * 200000) + (5 * 5000) = 400000 + 25000 = 425000
+      expect(woRepo.transitionStatus).toHaveBeenCalledWith(
+        mockDb, '1', 'completed', 'closed', 
+        expect.objectContaining({
+          material_cost: 425000,
+          inventory_used: expect.arrayContaining([
+            expect.objectContaining({ item_id: 'inv-1', name: 'ONT', subtotal: 400000 }),
+            expect.objectContaining({ item_id: 'inv-2', name: 'Cable', subtotal: 25000 })
+          ])
+        })
+      );
+
+      expect(inventoryRepo.decrementStock).toHaveBeenCalledTimes(2);
+      expect(inventoryRepo.decrementStock).toHaveBeenCalledWith(mockDb, 'inv-1', 2);
+      expect(inventoryRepo.decrementStock).toHaveBeenCalledWith(mockDb, 'inv-2', 5);
     });
 
     it('should reject if not in completed status', async () => {
