@@ -125,19 +125,4 @@ export async function updateAssignmentPoints(dbClient, assignmentId, data) {
     .eq('id', assignmentId);
 }
 
-/**
- * Atomic status transition with safety check
- */
-export async function transitionStatus(dbClient, id, fromStatus, toStatus, extraUpdates = {}) {
-  return dbClient
-    .from('work_orders')
-    .update({
-      status: toStatus,
-      updated_at: new Date().toISOString(),
-      ...extraUpdates
-    })
-    .eq('id', id)
-    .eq('status', fromStatus)
-    .select('*')
-    .maybeSingle();
-}
+

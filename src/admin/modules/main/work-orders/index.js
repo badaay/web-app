@@ -520,7 +520,12 @@ async function showWorkOrderActions(wo) {
             `;
         });
 
-        const grandTotal = assignments.reduce((s, a) => s + (a.points_earned || 0), 0);
+        const grandTotal = assignments.reduce((s, a) => {
+            const isLead = a.assignment_role === 'lead';
+            const baseCalc = isLead ? basePoints : Math.floor(basePoints * 0.7);
+            const finalPts = a.points_earned || Math.max(0, baseCalc + (a.bonus_points || 0) - (a.deduction_points || 0));
+            return s + finalPts;
+        }, 0);
 
         // Material Cost Section (Story 2.3)
         let materialHtml = '';

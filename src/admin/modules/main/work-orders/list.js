@@ -292,8 +292,13 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
             
             ${(['closed', 'completed'].includes(wo.status)) ? (() => {
                 const assignments = wo.work_order_assignments || [];
-                const totalPoints = assignments.reduce((sum, a) => sum + (a.points_earned || 0), 0);
                 const basePoints = wo.master_queue_types?.base_point || 0;
+                const totalPoints = assignments.reduce((sum, a) => {
+                    const isLead = a.assignment_role === 'lead';
+                    const baseCalc = isLead ? basePoints : Math.floor(basePoints * 0.7);
+                    const finalPts = a.points_earned || Math.max(0, baseCalc + (a.bonus_points || 0) - (a.deduction_points || 0));
+                    return sum + finalPts;
+                }, 0);
                 
                 const detailsHtml = assignments.map(a => {
                     const isLead = a.assignment_role === 'lead';
