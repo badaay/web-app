@@ -1,6 +1,6 @@
 // Data loading and table rendering for work-orders
 import { supabase } from '../../../../api/supabase.js';
-import { getSpinner } from '../../../utils/ui-common.js';
+import { getSpinner, copyItemCode } from '../../../utils/ui-common.js';
 import { getStatusColor, getStatusDisplayText } from './utils.js';
 
 /**
@@ -13,9 +13,9 @@ export async function loadWorkOrders(listContainer, typeId, onLoaded) {
     let query = supabase
         .from('work_orders')
         .select(`
-            id, title, status, created_at, registration_date, ket, customer_id, employee_id, type_id, claimed_by, claimed_at, completed_at,
+            id, title, status, created_at, registration_date, ket, customer_id, employee_id, type_id, claimed_by, claimed_at, completed_at, item_code,
             customers(id, name, phone, address, lat, lng, packet),
-            master_queue_types(id, name, color, icon, base_point),
+            master_queue_types(id, name, color, icon, base_point, short_code),
             work_order_assignments(id, assignment_role, employee_id, employees(id, name))
         `)
         .order('created_at', { ascending: true });
@@ -95,7 +95,7 @@ export function renderSearchBar(onSearch) {
             </div>
             <input id="wo-search-input" type="text" 
                 class="form-control form-control-sm border-0 bg-transparent text-white shadow-none py-2" 
-                placeholder="Cari pelanggan, teknisi, atau keterangan..."
+                placeholder="Cari pelanggan, teknisi, keterangan, atau kode item..."
                 style="font-size: 0.9rem;">
             <button class="btn btn-link btn-sm text-white-50 p-2 me-1 hover-scale d-none" id="wo-clear-search">
                 <i class="bi bi-x-lg"></i>
@@ -146,8 +146,9 @@ export function getFilteredOrders(allWorkOrders, currentFilter, searchQuery) {
             const phone = wo.customers?.phone?.toLowerCase() || '';
             const emp = wo.employees?.name?.toLowerCase() || '';
             const ket = wo.ket?.toLowerCase() || '';
-            return name.includes(searchQuery) || phone.includes(searchQuery) || 
-                   emp.includes(searchQuery) || ket.includes(searchQuery);
+            const itemCode = wo.item_code?.toLowerCase() || '';
+            return name.includes(searchQuery) || phone.includes(searchQuery) ||
+                   emp.includes(searchQuery) || ket.includes(searchQuery) || itemCode.includes(searchQuery);
         });
     }
 
@@ -282,8 +283,17 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                 </span>
                 <span class="wo-time-pro"><i class="bi bi-clock"></i> ${formatTimeAgo(wo.created_at)}</span>
             </div>
-            
-            <div class="fw-bold mb-1 mt-2" style="font-size:1.05rem; color: #f8fafc; letter-spacing: -0.2px;">${wo.customers?.name || '-'}</div>
+
+            ${wo.item_code ? `
+            <div class="mb-2">
+                <span class="inv-chip-hard" 
+                      data-item-code="${wo.item_code}"
+                      >
+                    <i class="bi bi-upc-scan me-2"></i>${wo.item_code}
+                </span>
+            </div>` : ''}
+
+            <div class="fw-bold mb-1" style="font-size:1.05rem; color: #f8fafc; letter-spacing: -0.2px;">${wo.customers?.name || '-'}</div>
             <div class="small mb-2" style="color: #cbd5e1;"><i class="bi bi-telephone text-primary me-2"></i>${wo.customers?.phone || '-'}</div>
             
             <div class="small mb-3 lh-sm" style="font-size:0.85rem; color: #94a3b8; border-left: 2px solid #334155; padding-left: 10px; margin-top: 8px;">
@@ -456,6 +466,7 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                 document.dispatchEvent(new CustomEvent('request-wo-revision', { detail: { woId } }));
             });
         });
+
     };
 
     attachEvents(heroContainer);

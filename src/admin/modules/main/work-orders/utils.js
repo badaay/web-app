@@ -28,3 +28,11 @@ export function getStatusDisplayText(status) {
     return labels[status] || status;
 }
 
+/**
+ * Copy item code to clipboard with visual feedback on the triggering element.
+ * Supports modern Clipboard API with a textarea fallback for older browsers.
+ * @param {string} text - The text to copy
+ * @param {HTMLElement} el - Element that triggered the copy (for feedback)
+ * @param {number} duration - ms to show feedback (default 2000)
+ */
+// export function copyItemCode moved to ui-common.js

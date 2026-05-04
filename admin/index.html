@@ -44,7 +44,7 @@
                 </div>
             </div>
 
-            <div class="sidebar-nav">
+            <div class="sidebar-nav precision-scroll">
                 <div class="nav-group" data-group="main">
                     <div class="px-4 py-2 small text-uppercase text-white-50 fw-bold"
                         style="font-size: 0.65rem; letter-spacing: 1.5px;">Menu Utama</div>
@@ -434,9 +434,14 @@
                             </div>
                         </div>
                         <div class="tab-pane fade" id="inventory-content" role="tabpanel">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                                 <h4 class="mb-0 text-white" hidden>Manajemen Inventaris</h4>
-                                <button class="btn btn-primary btn-sm" id="add-inventory-btn">
+                                <div class="position-relative flex-grow-1" style="max-width: 400px;">
+                                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-white-50"></i>
+                                    <input type="text" id="inventory-search-input" class="form-control form-control-sm bg-vscode-input border-secondary ps-5 py-2" 
+                                           placeholder="Cari barang, kategori, atau kode item...">
+                                </div>
+                                <button class="btn btn-primary btn-sm px-4" id="add-inventory-btn">
                                     <i class="bi bi-plus-lg me-1"></i> Tambah Barang
                                 </button>
                             </div>

@@ -705,4 +705,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = btn.dataset.originalHtml || btn.innerHTML;
         }
     };
+
+    // ── Hard-Tech UI Global Listeners ──
+    
+    // 1. Click-to-Copy Utility for .inv-chip-hard
+    document.addEventListener('click', (e) => {
+        const chip = e.target.closest('.inv-chip-hard');
+        if (chip) {
+            const code = chip.dataset.code || chip.getAttribute('data-code') || chip.dataset.itemCode || chip.getAttribute('data-item-code');
+            if (code) {
+                navigator.clipboard.writeText(code).then(() => {
+                    chip.classList.add("copied");
+                    setTimeout(() => {
+                        chip.classList.remove("copied");
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Failed to copy text: ", err);
+                });
+        }
+    }
+});
 });

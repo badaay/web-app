@@ -1,8 +1,11 @@
 /* Auth CSS with Smooth Dark/Light Transition */
 body.auth-page {
-    /* Uses the background image requested */
-    background: url('/src/assets/login-bg.png') center center no-repeat !important;
-    background-size: cover !important;
+    /* Hard-Tech Ambient Grid */
+    background-color: var(--tech-bg-base) !important;
+    background-image: 
+        linear-gradient(var(--tech-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--tech-grid) 1px, transparent 1px) !important;
+    background-size: 40px 40px !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -19,9 +22,8 @@ body.auth-page::before {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #0f172a;
-    opacity: 0.85;
-    backdrop-filter: none;
+    /* Subtle radial glow to soften the grid */
+    background: radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.05) 0%, transparent 80%);
     z-index: 1;
 }
 
@@ -36,12 +38,11 @@ html[data-bs-theme="dark"] body.auth-page {
 }
 
 .admin-login-card {
-    border-radius: var(--ui-radius-sm, 2px) !important;
-    background-color: #0f172a !important;
-    border: 1px solid var(--brand-primary, #0047AB) !important;
-    box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.2) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    background-color: var(--tech-surface) !important;
+    border: 1px solid var(--tech-border) !important;
+    border-top: 3px solid var(--tech-accent-teal) !important;
+    border-radius: var(--tech-radius) !important;
+    box-shadow: 12px 12px 0px var(--tech-shadow) !important;
     max-width: 420px;
     width: 90%;
     animation: fadeInScale 0.8s cubic-bezier(0.16, 1, 0.3, 1);

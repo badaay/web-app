@@ -1,7 +1,7 @@
 // Modal forms for creating and editing work orders
 import { supabase, apiCall } from '../../../../api/supabase.js';
 import { showToast } from '../../../utils/toast.js';
-import { getSpinner } from '../../../utils/ui-common.js';
+import { getSpinner, copyItemCode } from '../../../utils/ui-common.js';
 
 /**
  * Main modal for work order creation/editing
@@ -34,16 +34,25 @@ async function showTypePickerModal(modal) {
         return;
     }
 
+    const yymm = new Date().toISOString().slice(2, 4) + String(new Date().getMonth() + 1).padStart(2, '0');
     const body = document.getElementById('crudModalBody');
     body.innerHTML = `
         <div class="mb-3">
             <label class="form-label">Pilih Tipe Antrian</label>
+            <div class="alert alert-info small mb-3 border-0" style="background: rgba(14,165,233,0.1); color: #7dd3fc;">
+                <i class="bi bi-info-circle me-2"></i>
+                Kode item di-generate otomatis: 
+                <span class="badge ms-1 px-2 py-1" style="background: linear-gradient(135deg, #0047AB, #14b8a6); color:#fff; font-size:0.7rem;">PREFIX${yymm}001</span>
+            </div>
             <div class="row gap-2 justify-content-center">
                 ${types.map(t => `
                     <div class="col-auto">
-                        <button class="btn border-2" style="min-width:120px;border-color:${t.color}!important;color:${t.color};" 
-                            data-type-id="${t.id}" data-type-name="${t.name}">
-                            <i class="bi ${t.icon}"></i><br><small>${t.name}</small>
+                        <button class="btn border-2 d-flex flex-column align-items-center p-3" 
+                            style="min-width:140px;border-color:${t.color}!important;color:${t.color};" 
+                            data-type-id="${t.id}" data-type-name="${t.name}" data-short-code="${t.short_code || '???'}">
+                            <i class="bi ${t.icon} fs-4 mb-2"></i>
+                            <div class="small fw-bold">${t.name}</div>
+                            <div class="text-muted" style="font-size:0.65rem;">${t.short_code || '???'}${yymm}001</div>
                         </button>
                     </div>
                 `).join('')}
@@ -204,6 +213,20 @@ async function renderFullWorkOrderForm(wo) {
     const body = document.getElementById('crudModalBody');
     body.innerHTML = `
         <form id="edit-form">
+
+            ${wo.item_code ? `
+            <div class="mb-3">
+                <label class="form-label text-white-50 small"><i class="bi bi-upc-scan me-1"></i>Kode Item (Auto-Generated)</label>
+                <div class="d-block">
+                    <span class="inv-chip-hard w-100 justify-content-between" data-code="${wo.item_code}" >
+                        <span><i class="bi bi-upc-scan me-2"></i>${wo.item_code}</span>
+                        <i class="bi bi-clipboard small opacity-50"></i>
+                    </span>
+                </div>
+                <small class="text-muted">Klik chip di atas untuk menyalin kode</small>
+            </div>
+            ` : ''}
+
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">Judul</label>
@@ -252,6 +275,7 @@ async function renderFullWorkOrderForm(wo) {
             </div>
         </form>
     `;
+
 }
 
 /**

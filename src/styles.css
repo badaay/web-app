@@ -29,6 +29,17 @@
     --glass-blur: 12px;
     --shadow-premium: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ── Hard-Tech Design Tokens (Extracted from idea.html) ── */
+    --tech-bg-base: #020617;     
+    --tech-surface: #0f172a;     
+    --tech-element: #1e293b;     
+    --tech-border: rgba(255, 255, 255, 0.12);      
+    --tech-shadow: rgba(0, 0, 0, 0.5);
+    --tech-grid: rgba(255, 255, 255, 0.03);
+    --tech-accent-teal: #14b8a6;
+    --tech-radius: 2px;
+    --font-mono: 'Fira Code', 'Cascadia Code', monospace;
 }
 
 * {
@@ -338,4 +349,81 @@ input:focus {
     max-width: 280px;
     font-size: 0.8rem;
   }
+}
+/* ── Hard-Tech Components (Extracted from idea.html) ── */
+
+.tech-grid-ambient {
+    background-color: var(--tech-bg-base);
+    background-image: 
+        linear-gradient(var(--tech-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--tech-grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.tech-card-solid {
+    background-color: var(--tech-surface);
+    border: 1px solid var(--tech-border);
+    border-top: 3px solid var(--tech-accent-teal);
+    border-radius: var(--tech-radius);
+    box-shadow: 8px 8px 0px var(--tech-shadow);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.inv-chip-hard {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--tech-element);
+    border: 1px solid var(--tech-border);
+    border-left: 3px solid var(--tech-accent-teal);
+    color: var(--slate-50);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--tech-radius);
+    cursor: pointer;
+    transition: all 0.1s ease;
+    text-transform: uppercase;
+}
+
+.inv-chip-hard:hover {
+    background-color: var(--tech-element);
+    border-color: var(--tech-accent-teal);
+}
+
+.inv-chip-hard:active {
+    opacity: 0.8;
+}
+
+.inv-chip-hard.copied {
+    border-left-color: #22c55e !important;
+}
+
+/* ── Precision Scroll Utility ── */
+.precision-scroll {
+    overflow-x: auto;
+    scrollbar-width:none;
+    scrollbar-color: var(var(--tech-shadow)) var(--tech-surface);
+}
+
+.precision-scroll::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+}
+
+.precision-scroll::-webkit-scrollbar-track {
+    background: var(--tech-surface); 
+    border-radius: 0px;
+    border-top: 1px solid var(--tech-border);
+}
+
+.precision-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--tech-border); 
+    border-radius: 0px;
+    transition: background-color 0.2s ease;
+}
+
+.precision-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--tech-accent-teal);
 }
