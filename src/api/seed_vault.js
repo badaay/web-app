@@ -1,97 +1,71 @@
+/**
+ * seed_vault.js — Vault / Project B Seeder
+ * ============================================================
+ * Seeds the Financial Vault / Project B with data linked to Project A.
+ */
+
 const { createClient } = require('@supabase/supabase-js');
 const dotenv = require('dotenv');
 const path = require('path');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-const urlA = process.env.SUPABASE_URL_A;
-const keyA = process.env.SUPABASE_SERVICE_ROLE_KEY_A;
-const urlB = process.env.SUPABASE_URL_B;
-const keyB = process.env.SUPABASE_SERVICE_ROLE_KEY_B;
+// Main Project (A)
+const urlMain = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const keyMain = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!urlA || !keyA || !urlB || !keyB) {
-  console.error('Error: Project A and B URLs and Service Role Keys must be set in .env');
+// Vault Project (B)
+const urlVault = process.env.SUPABASE_VAULT_URL || urlMain; // Default to same if not set
+const keyVault = process.env.SUPABASE_VAULT_SERVICE_ROLE_KEY || keyMain;
+
+if (!urlMain || !keyMain) {
+  console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env');
   process.exit(1);
 }
 
-const supabaseA = createClient(urlA, keyA);
-const supabaseB = createClient(urlB, keyB);
-
-async function seedTable(tableName, data, conflictColumn = 'id') {
-  console.log(`Seeding Vault Table: ${tableName}...`);
-  const { error } = await supabaseB.from(tableName).upsert(data, { onConflict: conflictColumn });
-  if (error) {
-    console.error(`Error seeding ${tableName}:`, error.message);
-    return false;
-  }
-  console.log(`${tableName} success.`);
-  return true;
-}
+const supabaseMain = createClient(urlMain, keyMain);
+const supabaseVault = createClient(urlVault, keyVault);
 
 async function main() {
-  console.log('Fetching IDs from Project A...');
-  const { data: employees } = await supabaseA.from('employees').select('id, name');
-  const { data: customers } = await supabaseA.from('customers').select('id, name');
-  const { data: workOrders } = await supabaseA.from('work_orders').select('id, title');
+  console.log('--- VAULT SEEDING START ---');
+  
+  console.log('Fetching references from Main Project...');
+  const { data: employees } = await supabaseMain.from('employees').select('id, name, employee_id');
+  const { data: customers } = await supabaseMain.from('customers').select('id, name, customer_code');
 
-  if (!employees || !customers || !workOrders) {
-    console.error('Error fetching data from Project A. Ensure Project A is seeded first.');
+  if (!employees || !customers) {
+    console.error('❌ Failed to fetch reference data. Ensure Main Project is seeded.');
     return;
   }
 
-  const getEmpId = (name) => employees.find(e => e.name === name)?.id;
-  const getCustId = (name) => customers.find(c => c.name === name)?.id;
-  const getWoId = (title) => workOrders.find(w => w.title === title)?.id;
-
-  // 1. NOTIFICATION QUEUE (Insert)
-  const notifications = [
-    { recipient: '82333015005', message_type: 'welcome_installed', payload: { name: 'FATMAWATI' }, status: 'sent', sent_at: new Date().toISOString() },
-    { recipient: '81111111101', message_type: 'wo_created', payload: { name: 'BUDI SANTOSO' }, status: 'pending' }
-  ];
-  console.log('Seeding notification_queue (Insert)...');
-  const { error: notifError } = await supabaseB.from('notification_queue').insert(notifications);
-  if (notifError) console.error('Error seeding notifications:', notifError.message);
-
-  // 2. TECHNICIAN POINTS LEDGER (Insert)
-  const points = [];
-  if (getEmpId('Ali Wafa') && getWoId('PSB - FATMAWATI')) {
-    points.push({
-      employee_id: getEmpId('Ali Wafa'),
-      work_order_id: getWoId('PSB - FATMAWATI'),
-      points: 100,
-      description: 'PSB FATMAWATI Installation'
-    });
-  }
-  if (points.length > 0) {
-    console.log('Seeding points_ledger (Insert)...');
-    const { error: pError } = await supabaseB.from('technician_points_ledger').insert(points);
-    if (pError) console.error('Error seeding points:', pError.message);
-  }
-
-  // 3. CUSTOMER BILLS (Upsert with composite key)
-  const bills = [];
-  if (getCustId('FATMAWATI')) {
-    bills.push({
-      customer_id: getCustId('FATMAWATI'),
-      period_date: '2026-04-01',
-      amount: 175000,
-      status: 'unpaid'
-    });
-  }
-  if (bills.length > 0) {
-    await seedTable('customer_bills', bills, 'customer_id,period_date');
-  }
-
-  // 4. FINANCIAL TRANSACTIONS (Insert)
+  // 1. Seed Financial Transactions (Vault)
   const finances = [
-    { description: 'Voucher Internet March', type: 'income', category: 'Internet', amount: 5000000 },
-    { description: 'Office Rent March', type: 'expense', category: 'Rent', amount: 1200000 }
+    { description: 'Voucher Internet March', type: 'income', category: 'Internet', amount: 5000000, transaction_date: new Date().toISOString() },
+    { description: 'Office Rent March', type: 'expense', category: 'Rent', amount: 1200000, transaction_date: new Date().toISOString() }
   ];
-  console.log('Seeding finances (Insert)...');
-  const { error: fError } = await supabaseB.from('financial_transactions').insert(finances);
-  if (fError) console.error('Error seeding finances:', fError.message);
+  
+  console.log('Seeding Vault: Financial Transactions...');
+  const { error: fError } = await supabaseVault.from('financial_transactions').insert(finances);
+  if (fError) console.error('  ❌ Error finance:', fError.message);
+  else console.log('  ✅ Finance transactions seeded.');
 
-  console.log('Project B Seeding Completed.');
+  // 2. Seed Customer Bills
+  const fatma = customers.find(c => c.name === 'FATMAWATI');
+  if (fatma) {
+    const bills = [
+      { customer_id: fatma.id, period_date: '2026-04-01', amount: 175000, status: 'unpaid' }
+    ];
+    console.log('Seeding Vault: Customer Bills...');
+    const { error: bError } = await supabaseVault.from('customer_bills').upsert(bills, { onConflict: 'customer_id,period_date' });
+    if (bError) console.error('  ❌ Error bills:', bError.message);
+    else console.log('  ✅ Bills seeded.');
+  }
+
+  console.log('--- VAULT SEEDING COMPLETE ---');
 }
 
-main().catch(console.error);
+if (require.main === module) {
+    main();
+}
+
+module.exports = { main };
