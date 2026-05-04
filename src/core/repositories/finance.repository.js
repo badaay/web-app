@@ -11,7 +11,7 @@ export async function findAllTransactions(dbClient, { limit = 50, offset = 0, se
     .range(offset, offset + limit - 1);
 
   if (search) {
-    query = query.or(`description.ilike.%${search}%,reference_no.ilike.%${search}%`);
+    query = query.or(`description.ilike.%${search}%,reference_id.ilike.%${search}%`);
   }
 
   return query;
@@ -28,7 +28,7 @@ export async function createTransaction(dbClient, payload) {
 export async function findSummary(dbClient, { startDate, endDate } = {}) {
   let query = dbClient
     .from('financial_transactions')
-    .select('transaction_type, amount');
+    .select('type, amount');
 
   if (startDate) query = query.gte('transaction_date', startDate);
   if (endDate) query = query.lte('transaction_date', endDate);

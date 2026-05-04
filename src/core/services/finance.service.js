@@ -18,11 +18,11 @@ export async function createTransaction(dbClient, body, userId) {
 
   const payload = {
     transaction_date: body.transaction_date || new Date().toISOString(),
-    transaction_type: body.transaction_type, // 'income' or 'expense'
+    type: body.transaction_type, // 'income' or 'expense'
     category: body.category || 'other',
     amount: body.amount,
     description: body.description,
-    reference_no: body.reference_no || null,
+    reference_id: body.reference_no || body.reference_id || null,
     bank_account_id: body.bank_account_id || null,
     created_by: userId
   };
@@ -48,7 +48,7 @@ export async function getFinancialSummary(dbClient, { month, year } = {}) {
 
   data.forEach(tx => {
     const amt = parseFloat(tx.amount);
-    if (tx.transaction_type === 'income') {
+    if (tx.type === 'income') {
       summary.total_income += amt;
       const cat = tx.category || 'other';
       summary.income_by_category[cat] = (summary.income_by_category[cat] || 0) + amt;
