@@ -244,6 +244,21 @@ export async function initPendaftaran() {
                 from { opacity: 0; transform: translateY(10px); }
                 to { opacity: 1; transform: translateY(0); }
             }
+
+            /* Responsive Design for Mobile */
+            @media (max-width: 768px) {
+                .cell-id, .cell-tech, .cell-region {
+                    display: none !important;
+                }
+                .cell-status { width: 80px; }
+                .status-badge-hard { width: 70px; font-size: 0.5rem; }
+                .cell-title { min-width: 120px; font-size: 0.75rem; }
+                .list-header, .list-row { gap: 8px; padding: 10px 8px; }
+                .toolbar { padding: 12px 10px; height: auto; flex-direction: column; gap: 10px; align-items: flex-start; }
+                .bulk-actions { width: 100%; justify-content: space-between; }
+                .row-quick-actions { display: flex !important; }
+                .cell-meta-date { display: none !important; }
+            }
         </style>
     `;
 
