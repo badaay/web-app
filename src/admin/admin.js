@@ -71,6 +71,7 @@ const MENU_SCHEMA = [
         items: [
             { id: 'dashboard', label: 'Dashboard', icon: 'bi-speedometer2', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH', 'TREASURER'] },
             { id: 'work-orders-content', label: 'Antrian PSB', icon: 'bi-file-earmark-text', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] },
+            { id: 'pendaftaran-content', label: 'Pendaftaran', icon: 'bi-clipboard-check', roles: ['S_ADM', 'OWNER', 'ADM'] },
             { id: 'customer-map-view-content', label: 'MAP View', icon: 'bi-pin-map', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] }
         ]
     },
@@ -609,6 +610,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (targetId === 'work-orders-content') {
                 const { initWorkOrders } = await import('./modules/main/work-orders/index.js');
                 initWorkOrders();
+            } else if (targetId === 'pendaftaran-content') {
+                const { initPendaftaran } = await import('./modules/main/pendaftaran.js');
+                initPendaftaran();
             } else if (targetId === 'customer-map-view-content') {
                 const { initCustomerMapView } = await import('./modules/customers/customer-map-view.js');
                 initCustomerMapView();
