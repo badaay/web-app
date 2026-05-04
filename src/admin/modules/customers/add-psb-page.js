@@ -12,58 +12,88 @@ document.addEventListener('DOMContentLoaded', async () => {
         const el = document.getElementById(elementId);
         if (!el) return;
 
-        const existingInfo = el.parentElement.querySelector('.custom-inline-error');
-        if (existingInfo) existingInfo.remove();
+        // Remove existing error for this element
+        const existingErrors = document.querySelectorAll('.custom-inline-error');
+        existingErrors.forEach(err => err.remove());
 
         const errNode = document.createElement('div');
-        errNode.className = 'custom-inline-error mt-1 fw-bold shadow';
-        errNode.style.background = 'var(--vscode-danger)';
-        errNode.style.color = 'var(--vscode-text-bright)';
-        errNode.style.padding = '6px 12px';
-        errNode.style.borderRadius = '6px';
-        errNode.style.fontSize = '0.8rem';
-        errNode.style.position = 'absolute';
-        errNode.style.zIndex = '1050';
-        errNode.style.animation = 'errorFadeIn 0.3s ease';
-        errNode.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i> ' + message;
+        errNode.className = 'custom-inline-error fw-bold';
+        errNode.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> ${message}`;
+        document.body.appendChild(errNode);
 
-        el.parentElement.style.position = 'relative';
+        const rect = el.getBoundingClientRect();
+        const errRect = errNode.getBoundingClientRect();
 
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-            el.classList.add('is-invalid');
-            el.parentElement.insertBefore(errNode, el.nextSibling);
+        // Position above the element, centered
+        errNode.style.top = `${rect.top - errRect.height - 12 + window.scrollY}px`;
+        errNode.style.left = `${rect.left + (rect.width / 2) - (errRect.width / 2)}px`;
 
-            const clearValidity = () => {
-                el.classList.remove('is-invalid');
-                if (errNode.parentNode) errNode.remove();
-            };
-            el.addEventListener('input', clearValidity, { once: true });
-            el.addEventListener('change', clearValidity, { once: true });
-            el.focus();
-        } else {
-            errNode.style.left = '50%';
-            errNode.style.bottom = '10%';
-            errNode.style.transform = 'translate(-50%, 0)';
-            el.appendChild(errNode);
+        // Adjust if out of screen (left/right)
+        const leftLimit = 10;
+        const rightLimit = window.innerWidth - errRect.width - 10;
+        if (parseFloat(errNode.style.left) < leftLimit) errNode.style.left = `${leftLimit}px`;
+        if (parseFloat(errNode.style.left) > rightLimit) errNode.style.left = `${rightLimit}px`;
 
-            const clearValidity = () => { if (errNode.parentNode) errNode.remove(); };
-            el.addEventListener('click', clearValidity, { once: true });
-            setTimeout(clearValidity, 4000);
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        // Highlight the element
+        el.classList.add('is-invalid');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        const clearValidity = () => {
+            el.classList.remove('is-invalid');
+            errNode.style.opacity = '0';
+            errNode.style.transform = 'translateY(10px) scale(0.9)';
+            setTimeout(() => errNode.remove(), 300);
+        };
+
+        el.addEventListener('input', clearValidity, { once: true });
+        el.addEventListener('change', clearValidity, { once: true });
+        el.addEventListener('click', clearValidity, { once: true });
+        
+        // Auto-hide after 4 seconds
+        setTimeout(clearValidity, 4000);
     };
 
     const getRenderHeader = () => `
         <style>
+            .custom-inline-error {
+                position: fixed;
+                background: #ef4444;
+                color: white;
+                padding: 10px 16px;
+                border-radius: 12px;
+                font-size: 0.85rem;
+                z-index: 9999;
+                box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.4);
+                pointer-events: none;
+                animation: errorFadeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .custom-inline-error::after {
+                content: '';
+                position: absolute;
+                bottom: -8px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 8px 8px 0;
+                border-style: solid;
+                border-color: #ef4444 transparent transparent;
+            }
             @keyframes errorFadeIn {
-                from { opacity: 0; transform: translateY(-5px); }
-                to { opacity: 1; transform: translateY(0); }
+                from { opacity: 0; transform: translateY(10px) scale(0.9); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            @keyframes slideInRight {
+                from { opacity: 0; transform: translateX(20px); }
+                to { opacity: 1; transform: translateX(0); }
             }
             .pkg-card-premium {
                 background: #ffffff;
                 border: 1px solid #e2e8f0; 
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                border-radius: 1.25rem;
+                border-radius: 1rem;
                 overflow: hidden;
                 position: relative;
                 box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
@@ -71,15 +101,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             .pkg-card-premium::before {
                 content: '';
                 position: absolute;
-                top: 0; left: 0; right: 0; height: 3px;
-                background: linear-gradient(90deg, #0047AB, #2DD4BF);
+                top: 0; left: 0; bottom: 0; width: 4px;
+                background: linear-gradient(180deg, #0047AB, #2DD4BF);
                 opacity: 0;
                 transition: opacity 0.3s ease;
             }
             .pkg-card-premium:hover {
-                transform: translateY(-6px);
+                transform: translateX(6px);
                 border-color: #cbd5e1;
-                box-shadow: 0 20px 25px -5px rgba(0,0,0,0.08), 0 10px 10px -5px rgba(0,0,0,0.04);
+                box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
             }
             .pkg-card-premium:hover::before {
                 opacity: 1;
@@ -87,22 +117,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             .pkg-card-premium.selected {
                 border-color: #0047AB;
                 background: #f8fafc;
-                box-shadow: 0 0 0 2px #0047AB inset, 0 20px 25px -5px rgba(0,71,171,0.1);
-                transform: scale(1.02);
+                box-shadow: 0 0 0 1px #0047AB, 0 10px 25px -5px rgba(0,71,171,0.1);
+                transform: translateX(10px);
             }
             .pkg-card-premium.selected::before {
                 opacity: 1;
-                height: 4px;
+                width: 6px;
             }
             .pkg-icon-wrapper {
-                width: 64px;
-                height: 64px;
-                border-radius: 1rem;
+                width: 48px;
+                height: 48px;
+                border-radius: 0.75rem;
                 background: #f1f5f9;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin: 0 auto 1.5rem auto;
                 border: 1px solid #e2e8f0;
                 color: #0047AB;
                 transition: all 0.3s ease;
@@ -111,45 +140,118 @@ document.addEventListener('DOMContentLoaded', async () => {
                 background: linear-gradient(135deg, #0047AB, #2DD4BF);
                 color: white;
                 border: none;
-                box-shadow: 0 10px 20px rgba(0, 71, 171, 0.2);
             }
-            .pkg-speed-badge {
-                background: #f1f5f9;
+            .summary-panel-card {
+                background: #ffffff;
                 border: 1px solid #e2e8f0;
-                padding: 0.35rem 1rem;
-                border-radius: 2rem;
-                font-size: 0.85rem;
-                font-weight: 600;
-                color: #475569;
-                letter-spacing: 0.5px;
-                transition: all 0.3s ease;
+                border-radius: 1.25rem;
+                padding: 2rem;
+                box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05);
+                animation: slideInRight 0.4s ease-out;
             }
-            .pkg-card-premium.selected .pkg-speed-badge {
-                background: rgba(45, 212, 191, 0.1);
-                border-color: rgba(45, 212, 191, 0.3);
-                color: #0047AB;
+            .order-summary-card {
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 1rem;
+                overflow: hidden;
+            }
+            .order-summary-header {
+                background: #f8fafc;
+                padding: 1.5rem;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            .order-summary-body {
+                padding: 1.5rem;
+            }
+            .feature-list-mini {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            .feature-list-mini li {
+                font-size: 0.85rem;
+                color: #64748b;
+                margin-bottom: 0.5rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .feature-list-mini li i {
+                color: #2DD4BF;
+            }
+            .sticky-summary {
+                position: sticky;
+                top: 20px;
+                max-height: calc(100vh - 120px);
+                overflow-y: auto;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none;  /* IE/Edge */
+            }
+            .sticky-summary::-webkit-scrollbar {
+                display: none; /* Chrome/Safari/Webkit */
+            }
+            
+            /* Hide Admin Sidebar Scrollbar on this page as requested */
+            #admin-sidebar .sidebar-nav {
+                overflow: hidden !important;
+            }
+            
+            @media (max-width: 991px) {
+                .sticky-summary {
+                    position: static;
+                    max-height: none;
+                }
+            }
+            .location-display-box {
+                background: #f1f5f9;
+                padding: 1rem;
+                border-radius: 0.75rem;
+                border-left: 4px solid #0047AB;
+            }
+            .photo-drop-zone {
+                border: 2px dashed #e2e8f0;
+                border-radius: 1rem;
+                padding: 2rem;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                background: #f8fafc;
+            }
+            .photo-drop-zone:hover {
+                border-color: #0047AB;
+                background: #f1f5f9;
+                transform: translateY(-2px);
+            }
+            @media (max-width: 991.98px) {
+                .sticky-summary {
+                    position: static;
+                    margin-top: 2rem;
+                }
+                .pkg-card-premium.selected {
+                    transform: scale(1.02);
+                }
             }
         </style>
         <div class="row mb-4">
             <div class="col-12 text-center">
-                <h3 class="text-slate-900 fw-bold mb-2" style="color: #0f172a;"><i class="bi bi-person-plus text-primary me-2"></i>Registrasi Pelanggan</h3>
-                <p class="text-slate-500" style="color: #64748b;">Lengkapi form di bawah untuk mendaftar layanan Pemasangan Baru.</p>
+                <h3 class="text-slate-900 fw-bold mb-2" style="color: #0f172a;"><i class="bi bi-lightning-charge-fill text-primary me-2"></i>Pendaftaran Pemasangan Baru</h3>
+                <p class="text-slate-500" style="color: #64748b;">Hanya butuh 3 langkah untuk menikmati internet cepat tanpa batas.</p>
             </div>
         </div>
 
         <!-- STEPPER INDICATORS -->
-        <div class="d-flex mb-4 justify-content-center flex-wrap gap-2 gap-md-4">
+        <div class="d-flex mb-5 justify-content-center flex-wrap gap-2 gap-md-4">
             <div class="step-indicator active d-flex align-items-center" id="ind-step-1">
                 <div class="step-num bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.2);">1</div>
-                <span class="small fw-bold text-dark">Pilih Paket</span>
+                <span class="small fw-bold text-dark">Pilih Layanan</span>
             </div>
             <div class="step-indicator opacity-50 d-flex align-items-center" id="ind-step-2">
                 <div class="step-num bg-light border text-secondary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">2</div>
-                <span class="small fw-bold text-secondary">Lokasi</span>
+                <span class="small fw-bold text-secondary">Titik Lokasi</span>
             </div>
             <div class="step-indicator opacity-50 d-flex align-items-center" id="ind-step-3">
                 <div class="step-num bg-light border text-secondary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">3</div>
-                <span class="small fw-bold text-secondary">Biodata</span>
+                <span class="small fw-bold text-secondary">Konfirmasi</span>
             </div>
         </div>
 
@@ -161,147 +263,201 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
 
     const getRenderStep1 = () => `
-            <!-- ====== STEP 1: PILIH PAKET ====== -->
+            <!-- ====== STEP 1: PILIH PAKET (SIDE-BY-SIDE) ====== -->
             <div id="step-1" class="step-section">
-
-                        <div class="row g-3" id="package-cards-container">
-                            <div class="col-12 text-center text-secondary py-4"><div class="spinner-border spinner-border-sm me-2 text-primary"></div> Memuat opsi paket...</div>
+                <div class="row g-4">
+                    <div class="col-lg-7">
+                        <div class="mb-3 d-flex justify-content-between align-items-center">
+                            <h5 class="text-dark fw-bold mb-0">Paket Tersedia</h5>
+                            <span class="badge bg-white text-primary border px-3 py-2 rounded-pill shadow-sm" id="pkg-count-badge">Memuat...</span>
                         </div>
-                        <input type="hidden" id="selected-package-name" required>
-                        <input type="hidden" id="selected-package-price">
-                        <input type="hidden" id="selected-package-speed">
-
-                <div class="text-end">
-                    <button type="button" class="btn btn-primary px-4 py-2 fw-bold transition-transform shadow-sm" id="btn-next-2">
-                        Selanjutnya <i class="bi bi-arrow-right ms-2"></i>
-                    </button>
+                        <div class="row g-3" id="package-cards-container">
+                            <div class="col-12 text-center text-secondary py-5">
+                                <div class="spinner-border text-primary mb-3"></div>
+                                <p>Menghubungkan ke server...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="sticky-summary">
+                            <div id="selection-summary-container">
+                                <div class="card border-0 shadow-sm p-5 text-center bg-white" style="border-radius: 1.5rem; min-height: 400px; display: flex; align-items: center; justify-content: center; border: 1px dashed #cbd5e1 !important;">
+                                    <div class="opacity-50">
+                                        <div class="mb-4 text-primary">
+                                            <i class="bi bi-box-seam" style="font-size: 4rem;"></i>
+                                        </div>
+                                        <h5 class="fw-bold text-dark">Belum Ada Pilihan</h5>
+                                        <p class="small text-secondary mb-0">Silakan pilih paket internet di sebelah kiri<br>untuk melihat detail dan melanjutkan.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <button type="button" class="btn btn-primary w-100 py-3 fw-bold shadow transition-transform d-none" id="btn-next-2" style="background: linear-gradient(135deg, #0047AB, #2DD4BF); border: none; font-size: 1.1rem; border-radius: 1rem;">
+                                    Lanjut ke Lokasi <i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <input type="hidden" id="selected-package-name" required>
+                <input type="hidden" id="selected-package-price">
+                <input type="hidden" id="selected-package-speed">
             </div>
     `;
 
     const getRenderStep2 = () => `
-            <!-- ====== STEP 2: LOKASI PEMASANGAN ====== -->
+            <!-- ====== STEP 2: LOKASI PEMASANGAN (SIDE-BY-SIDE) ====== -->
             <div id="step-2" class="step-section d-none">
-                <div class="card bg-vscode border-0 mb-4 shadow-sm" style="border-radius: 1.25rem;">
-                    <div class="card-header border-bottom bg-white pt-3 pb-2" style="border-top-left-radius: 1.25rem; border-top-right-radius: 1.25rem;">
-                        <h5 class="mb-0 text-dark fw-bold"><span class="badge bg-primary rounded-circle me-2 px-2 py-1">2</span> Instalasi / Lokasi Pemasangan</h5>
-                    </div>
-                    <div class="card-body bg-white rounded-bottom" style="border-bottom-left-radius: 1.25rem; border-bottom-right-radius: 1.25rem;">
-                        <div class="row g-4 d-flex align-items-stretch">
-                            <div class="col-md-7">
-                                <label class="form-label text-secondary small mb-2 fw-medium">Cari atau Pilih Titik Lokasi di Peta</label>
-                                <input type="text" class="form-control bg-white text-dark border mb-2 font-monospace" id="adv-cust-coords"
-                                       placeholder="-7.1234, 112.5678  (klik peta atau cari alamat di atas)">
-                                <div id="location-picker-map" class="rounded border shadow-sm" style="height: 350px; background: #f8fafc; z-index: 1;"></div>
-                                <p class="text-secondary mt-2 mb-0" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i> Klik pada peta untuk menentukan koordinat, atau gunakan tombol Lokasi Saya di peta.</p>
+                <div class="row g-4">
+                    <div class="col-lg-7">
+                        <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 1rem;">
+                            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 text-dark fw-bold"><i class="bi bi-geo-alt-fill text-primary me-2"></i>Pilih Lokasi</h5>
+                                <span class="badge bg-light text-secondary border">Klik pada peta</span>
                             </div>
-                            <div class="col-md-5 d-flex flex-column bg-light p-3 rounded border">
-                                <div class="mb-3 flex-grow-1">
-                                    <label class="form-label text-dark fw-medium small mb-2">Detail Alamat Pemasangan</label>
-                                    <textarea class="form-control bg-white text-dark border h-100" id="adv-cust-address" style="min-height: 120px;" placeholder="Tuliskan alamat lengkap... (Nama Jalan, Blok, No Rumah, RT/RW, Patokan)" required></textarea>
+                            <div id="location-picker-map" style="height: 500px; background: #f8fafc;"></div>
+                            <input type="hidden" id="adv-cust-coords">
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="sticky-summary">
+                            <div class="card border-0 shadow-sm p-4 bg-white" style="border-radius: 1rem;">
+                                <div class="mb-4">
+                                    <label class="form-label text-secondary small fw-bold text-uppercase letter-spacing-1">Detail Alamat Pemasangan</label>
+                                    <textarea class="form-control bg-light border-0" id="adv-cust-address" style="min-height: 150px; border-radius: 0.75rem;" placeholder="Contoh: Perumahan Griya Indah, Blok A2 No. 15, RT 05/02, Kel. Sukamaju, Patokan: Sebelah Masjid Al-Ikhlas" required></textarea>
                                 </div>
+                                
+                                <div class="alert alert-info border-0 shadow-sm small py-3" style="border-radius: 0.75rem; background: rgba(59, 91, 219, 0.05);">
+                                    <i class="bi bi-info-circle-fill me-2 text-primary"></i>
+                                    Pastikan titik lokasi di peta sesuai dengan alamat pemasangan untuk mempermudah teknisi kami.
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between gap-3 mt-4">
+                                <button type="button" class="btn btn-outline-secondary flex-grow-1 py-3 fw-bold" id="btn-back-1" style="border-radius: 1rem;">
+                                    <i class="bi bi-arrow-left me-2"></i> Kembali
+                                </button>
+                                <button type="button" class="btn btn-primary flex-grow-1 py-3 fw-bold shadow" id="btn-next-3" style="background: linear-gradient(135deg, #0047AB, #2DD4BF); border: none; border-radius: 1rem;">
+                                    Lanjut <i class="bi bi-arrow-right ms-2"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary px-4 py-2" id="btn-back-1">
-                        <i class="bi bi-arrow-left me-2"></i> Kembali
-                    </button>
-                    <button type="button" class="btn btn-primary px-4 py-2 fw-bold transition-transform shadow-sm" id="btn-next-3">
-                        Selanjutnya <i class="bi bi-arrow-right ms-2"></i>
-                    </button>
                 </div>
             </div>
     `;
 
     const getRenderStep3 = () => `
-            <!-- ====== STEP 3: BIODATA DIRI ====== -->
+            <!-- ====== STEP 3: BIODATA DIRI (SIDE-BY-SIDE) ====== -->
             <div id="step-3" class="step-section d-none">
-                <div class="card bg-vscode border-0 mb-4 shadow-sm" style="border-radius: 1.25rem;">
-                    <div class="card-header border-bottom bg-white pt-3 pb-2" style="border-top-left-radius: 1.25rem; border-top-right-radius: 1.25rem;">
-                        <h5 class="mb-0 text-dark fw-bold"><span class="badge bg-primary rounded-circle me-2 px-2 py-1">3</span> Biodata Diri</h5>
-                    </div>
-                    <div class="card-body bg-white rounded-bottom">
-                        <!-- Selected Package Summary Card -->
-                        <div class="card bg-light border-primary border-opacity-50 mb-4 shadow-sm" id="summary-package-card" style="display:none; border-radius: 1rem;">
-                            <div class="card-body py-3 px-4">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                    <div>
-                                        <span class="text-secondary small d-block mb-1 fw-medium">Paket yang dipilih:</span>
-                                        <h5 class="text-dark fw-bold mb-0 d-inline-block" id="summary-pkg-name">-</h5>
-                                        <span class="badge bg-primary text-white ms-2 align-bottom" id="summary-pkg-speed">-</span>
+                <div class="row g-4">
+                    <div class="col-lg-5 order-2 order-lg-1">
+                        <div class="sticky-summary">
+                            <div class="order-summary-card shadow-sm">
+                                <div class="order-summary-header">
+                                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-receipt me-2 text-primary"></i>Ringkasan Pesanan</h5>
+                                </div>
+                                <div class="order-summary-body">
+                                    <div class="mb-4">
+                                        <label class="small text-secondary fw-bold text-uppercase d-block mb-2">Paket Internet</label>
+                                        <div class="d-flex align-items-center gap-3 bg-light p-3 rounded-3">
+                                            <div class="pkg-icon-wrapper bg-white shadow-sm" style="width: 40px; height: 40px; font-size: 1.2rem;">
+                                                <i class="bi bi-wifi"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-bold text-dark mb-0" id="summary-pkg-name">-</h6>
+                                                <span class="badge bg-primary-subtle text-primary border-0 small" id="summary-pkg-speed">-</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="text-end">
-                                        <span class="text-secondary small d-block mb-1 fw-medium">Estimasi Biaya</span>
-                                        <h4 class="text-primary fw-bold mb-0" id="summary-pkg-price">-</h4>
+                                    
+                                    <div class="mb-4">
+                                        <label class="small text-secondary fw-bold text-uppercase d-block mb-2">Lokasi Pemasangan</label>
+                                        <p class="small text-dark mb-2" id="summary-address" style="line-height: 1.5;">-</p>
+                                        <div class="d-flex align-items-center gap-2 text-secondary font-monospace" style="font-size: 0.75rem;">
+                                            <i class="bi bi-geo-fill"></i>
+                                            <span id="summary-coords">-</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold text-dark">Total Biaya</span>
+                                        <h4 class="fw-bold text-primary mb-0" id="summary-pkg-price">-</h4>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label text-secondary small fw-medium">Nama Lengkap</label>
-                                <input type="text" class="form-control bg-white text-dark border" id="adv-cust-name" placeholder="Sesuai KTP" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-secondary small fw-medium">Email</label>
-                                <input type="email" class="form-control bg-white text-dark border" id="adv-cust-email" placeholder="email@contoh.com">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-secondary small fw-medium">No. Handphone / WhatsApp</label>
-                                <input type="text" class="form-control bg-white text-dark border" id="adv-cust-phone" placeholder="08xxxxxxxxxx" required>
-                                <div id="phone-duplicate-msg" class="small mt-1 d-none"></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-secondary small fw-medium">No. HP Alternatif</label>
-                                <input type="text" class="form-control bg-white text-dark border" id="adv-cust-alt-phone" placeholder="Keluarga / Kerabat (Opsional)">
-                            </div>
-                            <div class="col-12 mt-4">
-                                <h6 class="text-dark fw-bold mb-3 border-bottom pb-2">Dokumen Pendukung</h6>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-secondary small fw-medium">Upload Foto Rumah <span class="text-danger">*</span></label>
-                                <div class="photo-drop-zone bg-light border border-light-subtle rounded-3" id="drop-zone-rumah" onclick="document.getElementById('adv-cust-foto-rumah').click()">
-                                    <i class="bi bi-house-door fs-2 text-primary opacity-75 mb-2 d-block"></i>
-                                    <span class="small text-secondary fw-medium">Klik untuk upload foto rumah</span>
-                                    <input type="file" id="adv-cust-foto-rumah" class="d-none" accept="image/*">
+                    </div>
+                    
+                    <div class="col-lg-7 order-1 order-lg-2">
+                        <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="border-radius: 1.25rem;">
+                            <h5 class="fw-bold text-dark mb-4 pb-2 border-bottom"><i class="bi bi-person-badge-fill text-primary me-2"></i>Detail Informasi Pelanggan</h5>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-bold">Nama Lengkap (KTP)</label>
+                                    <input type="text" class="form-control bg-light border-0 py-3" id="adv-cust-name" placeholder="Contoh: Ahmad Fauzi" required>
                                 </div>
-                                <div id="preview-rumah" class="mt-2 text-center" style="display:none;">
-                                    <img src="" class="img-thumbnail bg-white border mb-2" style="max-height: 200px; width: 100%; object-fit: cover; border-radius: 8px;">
-                                    <button type="button" class="btn btn-sm btn-outline-danger w-100" id="btn-remove-rumah"><i class="bi bi-trash"></i> Hapus Foto Rumah</button>
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-bold">Alamat Email</label>
+                                    <input type="email" class="form-control bg-light border-0 py-3" id="adv-cust-email" placeholder="ahmad@email.com">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-bold">WhatsApp / HP</label>
+                                    <input type="text" class="form-control bg-light border-0 py-3" id="adv-cust-phone" placeholder="081234567890" required>
+                                    <div id="phone-duplicate-msg" class="small mt-1 d-none"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-bold">HP Alternatif</label>
+                                    <input type="text" class="form-control bg-light border-0 py-3" id="adv-cust-alt-phone" placeholder="Keluarga/Kerabat (Opsional)">
+                                </div>
+                                
+                                <div class="col-12 mt-4">
+                                    <h6 class="text-dark fw-bold mb-3"><i class="bi bi-camera-fill me-2 text-primary"></i>Upload Dokumen</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label text-secondary small fw-bold">Foto Lokasi Rumah</label>
+                                            <div class="photo-drop-zone bg-light border-0 py-4" id="drop-zone-rumah" onclick="document.getElementById('adv-cust-foto-rumah').click()">
+                                                <i class="bi bi-house-door-fill fs-2 text-primary opacity-50"></i>
+                                                <p class="small text-secondary mb-0 mt-2">Klik untuk Unggah</p>
+                                                <input type="file" id="adv-cust-foto-rumah" class="d-none" accept="image/*">
+                                            </div>
+                                            <div id="preview-rumah" class="mt-2" style="display:none;">
+                                                <img src="" class="img-thumbnail w-100" style="height: 150px; object-fit: cover;">
+                                                <button type="button" class="btn btn-sm btn-link text-danger w-100 mt-1" id="btn-remove-rumah">Hapus Foto</button>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label text-secondary small fw-bold">Foto KTP Asli</label>
+                                            <div class="photo-drop-zone bg-light border-0 py-4" id="drop-zone-ktp" onclick="document.getElementById('adv-cust-foto-ktp').click()">
+                                                <i class="bi bi-person-vcard-fill fs-2 text-primary opacity-50"></i>
+                                                <p class="small text-secondary mb-0 mt-2">Klik untuk Unggah</p>
+                                                <input type="file" id="adv-cust-foto-ktp" class="d-none" accept="image/*">
+                                            </div>
+                                            <div id="preview-ktp" class="mt-2" style="display:none;">
+                                                <img src="" class="img-thumbnail w-100" style="height: 150px; object-fit: cover;">
+                                                <button type="button" class="btn btn-sm btn-link text-danger w-100 mt-1" id="btn-remove-ktp">Hapus Foto</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-secondary small fw-medium">Upload Foto KTP <span class="text-danger">*</span></label>
-                                <div class="photo-drop-zone bg-light border border-light-subtle rounded-3" id="drop-zone-ktp" onclick="document.getElementById('adv-cust-foto-ktp').click()">
-                                    <i class="bi bi-person-vcard fs-2 text-primary opacity-75 mb-2 d-block"></i>
-                                    <span class="small text-secondary fw-medium">Klik untuk upload foto KTP</span>
-                                    <input type="file" id="adv-cust-foto-ktp" class="d-none" accept="image/*">
-                                </div>
-                                <div id="preview-ktp" class="mt-2 text-center" style="display:none;">
-                                    <img src="" class="img-thumbnail bg-white border mb-2" style="max-height: 200px; width: 100%; object-fit: cover; border-radius: 8px;">
-                                    <button type="button" class="btn btn-sm btn-outline-danger w-100" id="btn-remove-ktp"><i class="bi bi-trash"></i> Hapus Foto KTP</button>
-                                </div>
+                            
+                            <div class="d-flex justify-content-between gap-3 mt-5">
+                                <button type="button" class="btn btn-outline-secondary px-4 py-3 fw-bold" id="btn-back-2" style="border-radius: 1rem;">
+                                    <i class="bi bi-arrow-left me-2"></i> Kembali
+                                </button>
+                                <button type="button" class="btn btn-primary flex-grow-1 py-3 fw-bold shadow" id="save-adv-customer-btn" style="background: linear-gradient(135deg, #0047AB, #2DD4BF); border: none; border-radius: 1rem;">
+                                    <i class="bi bi-check-circle-fill me-2"></i> Konfirmasi & Daftar
+                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="d-flex justify-content-between flex-wrap gap-3 mt-4">
-                    <button type="button" class="btn btn-outline-secondary px-4 py-2" id="btn-back-2">
-                        <i class="bi bi-arrow-left me-2"></i> Kembali
-                    </button>
-                    <button type="button" class="btn btn-primary btn-lg px-5 py-2 fw-bold shadow transition-transform" id="save-adv-customer-btn" style="background: linear-gradient(135deg, #0047AB, #2DD4BF); border: none;">
-                        <i class="bi bi-check-circle-fill me-2"></i> Selesaikan Registrasi
-                    </button>
                 </div>
             </div>
     `;
 
     container.innerHTML = getRenderHeader() +
-        '<form id="add-psb-registration-form">' +
+        '<form id="add-psb-registration-form" novalidate>' +
         getRenderStep1() +
         getRenderStep2() +
         getRenderStep3() +
@@ -425,18 +581,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (stepIndex === 1) {
             // Init location picker (light theme) using MapKit
             if (!_psbPicker) {
-                _psbPicker = createLocationPicker('location-picker-map', 'adv-cust-coords', { theme: 'light' });
+                _psbPicker = createLocationPicker('location-picker-map', 'adv-cust-coords', { 
+                    theme: 'light',
+                    onLocationSelect: (coords) => {
+                        const display = document.getElementById('coords-display-text');
+                        if (display) {
+                            display.innerHTML = `<span class="text-primary fw-bold">${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}</span>`;
+                            display.animate([{ opacity: 0.5 }, { opacity: 1 }], { duration: 300 });
+                        }
+                    }
+                });
             } else {
                 setTimeout(() => _psbPicker.instance?.invalidateSize(), 200);
             }
         } else if (stepIndex === 2) {
-            // Ensure summary is shown and animated
-            const summaryCard = document.getElementById('summary-package-card');
-            summaryCard.style.display = 'block';
-            summaryCard.animate([
-                { opacity: 0, transform: 'translateY(-10px)' },
-                { opacity: 1, transform: 'translateY(0)' }
-            ], { duration: 300, fill: 'forwards' });
+            // Update Summary for Final Step
+            const addr = document.getElementById('adv-cust-address').value;
+            const coords = document.getElementById('adv-cust-coords').value;
+            
+            document.getElementById('summary-address').textContent = addr || 'Alamat belum diisi';
+            document.getElementById('summary-coords').textContent = coords || 'Koordinat belum dipilih';
+
+            // Early update in case user changes it
+            document.getElementById('adv-cust-address').addEventListener('input', (e) => {
+                document.getElementById('summary-address').textContent = e.target.value || 'Alamat belum diisi';
+            });
         }
     }
 
@@ -496,13 +665,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Auto-select package if slug is provided
     if (targetPkgSlug) {
-        const pkgCards = document.querySelectorAll('.package-card');
-        pkgCards.forEach(card => {
-            const pkgName = card.querySelector('.card-title').textContent.toLowerCase().replace(/\s+/g, '-');
-            if (pkgName === targetPkgSlug || pkgName.includes(targetPkgSlug)) {
-                card.click();
-            }
-        });
+        setTimeout(() => {
+            const pkgCards = document.querySelectorAll('.pkg-card-premium');
+            pkgCards.forEach(card => {
+                const nameText = card.querySelector('h5')?.textContent || '';
+                const slug = nameText.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+                
+                if (slug === targetPkgSlug || slug.includes(targetPkgSlug)) {
+                    card.click();
+                    // Scroll to card if needed, though usually it's at the top
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }, 100);
     }
 
     // GPS and setPin are now handled internally by createLocationPicker
@@ -619,6 +794,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadPackages() {
     const container = document.getElementById('package-cards-container');
+    const countBadge = document.getElementById('pkg-count-badge');
     let data = [];
     try {
         const result = await apiCall('/packages');
@@ -628,27 +804,33 @@ async function loadPackages() {
     }
 
     if (!data || data.length === 0) {
-        container.innerHTML = '<div class="col-12 text-center text-white-50 my-4">Belum ada paket tersedia di database.</div>';
+        container.innerHTML = '<div class="col-12 text-center text-secondary my-4">Belum ada paket tersedia di database.</div>';
+        if (countBadge) countBadge.textContent = '0 Paket';
         return;
     }
 
+    if (countBadge) countBadge.textContent = `${data.length} Paket Pilihan`;
+
     container.innerHTML = data.map(pkg => `
-        <div class="col-md-4 col-sm-6 mb-4">
-            <div class="pkg-card-premium h-100" 
+        <div class="col-12 mb-2">
+            <div class="pkg-card-premium" 
                  style="cursor: pointer;" 
-                 onclick="window.selectPackage('${pkg.name}', '${pkg.speed || ''}', '${pkg.price}', this)">
-                <div class="card-body text-center d-flex flex-column p-4 p-xl-5">
-                    <div class="pkg-icon-wrapper">
-                        <i class="bi bi-wifi fs-2"></i>
-                    </div>
-                    <h4 class="card-title text-dark fw-bolder mb-3" style="letter-spacing: -0.5px; color: #0f172a !important;">${pkg.name}</h4>
-                    <div class="mb-4">
-                        <span class="pkg-speed-badge">${pkg.speed || 'Up to...'}</span>
-                    </div>
-                    <p class="small flex-grow-1" style="color: #64748b; line-height: 1.6;">${pkg.description || 'Pilihan tepat untuk kebutuhan internet Anda, stabil dan andal.'}</p>
-                    <div class="mt-4 pt-4" style="border-top: 1px solid #e2e8f0;">
-                        <span class="d-block" style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Biaya Berlangganan</span>
-                        <div class="fs-4 fw-bold" style="color: #0047AB;">Rp ${Number(pkg.price).toLocaleString('id-ID')}</div>
+                 onclick="window.selectPackage('${pkg.name}', '${pkg.speed || ''}', '${pkg.price}', '${(pkg.description || '').replace(/'/g, "\\'")}', this)">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="pkg-icon-wrapper flex-shrink-0">
+                            <i class="bi bi-wifi fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-1 fw-bold text-dark">${pkg.name}</h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-light text-primary border-0 small px-2">${pkg.speed || 'Best Effort'}</span>
+                                <span class="text-primary fw-bold small">Rp ${Number(pkg.price).toLocaleString('id-ID')}</span>
+                            </div>
+                        </div>
+                        <div class="text-secondary opacity-50 pe-2">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -656,7 +838,7 @@ async function loadPackages() {
     `).join('');
 }
 
-window.selectPackage = function (name, speed, price, el) {
+window.selectPackage = function (name, speed, price, description, el) {
     // UI Selection
     document.querySelectorAll('.pkg-card-premium').forEach(c => {
         c.classList.remove('selected');
@@ -669,8 +851,56 @@ window.selectPackage = function (name, speed, price, el) {
     document.getElementById('selected-package-speed').value = speed;
     document.getElementById('selected-package-price').value = price;
 
+    // Update Right Panel Summary
+    const summaryContainer = document.getElementById('selection-summary-container');
+    const nextBtn = document.getElementById('btn-next-2');
+    
+    if (summaryContainer) {
+        summaryContainer.innerHTML = `
+            <div class="summary-panel-card">
+                <div class="text-center mb-4">
+                    <div class="pkg-icon-wrapper mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem; background: linear-gradient(135deg, #0047AB, #2DD4BF); color: white; border: none;">
+                        <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-1">${name}</h4>
+                    <span class="badge bg-light text-primary mb-3 px-3 py-2 border">${speed || 'Unlimited Access'}</span>
+                </div>
+                
+                <div class="bg-light p-3 rounded-3 mb-4">
+                    <p class="small text-secondary mb-2 fw-medium text-uppercase letter-spacing-1">Deskripsi Paket</p>
+                    <p class="small text-dark mb-0">${description || 'Nikmati koneksi internet stabil dan andal untuk semua kebutuhan digital keluarga Anda.'}</p>
+                </div>
+
+                <div class="mb-4">
+                    <p class="small text-secondary mb-2 fw-medium text-uppercase letter-spacing-1">Benefit Layanan</p>
+                    <ul class="feature-list-mini">
+                        <li><i class="bi bi-check-circle-fill"></i> Aktivasi Cepat (±24 Jam)</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Free Router & Instalasi</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Support 24/7 Priority</li>
+                    </ul>
+                </div>
+
+                <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="small text-secondary d-block">Biaya Bulanan</span>
+                        <h4 class="fw-bold text-primary mb-0">Rp ${Number(price).toLocaleString('id-ID')}</h4>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2">Ready to Install</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (nextBtn) {
+            nextBtn.classList.remove('d-none');
+            nextBtn.classList.add('animate__animated', 'animate__fadeInUp');
+        }
+    }
+
     // Show summary on Step 3 Update texts early
     document.getElementById('summary-pkg-name').textContent = name;
     document.getElementById('summary-pkg-speed').textContent = speed || 'Promo';
     document.getElementById('summary-pkg-price').textContent = 'Rp ' + Number(price).toLocaleString('id-ID');
 };
+
