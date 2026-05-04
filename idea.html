@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical UI Sandbox | Bagusify Precision System</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600&family=Fira+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* 1. ARCHITECTURAL TOKENS (Precision Slate System) */
+        :root {
+            --ui-bg: #0f172a;           /* Deep Slate 900 */
+            --ui-surface: #1e293b;      /* Slate 800 */
+            --ui-border: rgba(255, 255, 255, 0.12);
+            --ui-accent-teal: #14b8a6;   /* Tech Teal */
+            --ui-text-main: #f8fafc;    /* Slate 50 */
+            --ui-text-muted: #94a3b8;   /* Slate 400 */
+            --ui-radius: 2px;           /* Precision Sharp Edge */
+            --font-mono: 'Fira Code', monospace;
+            --font-sans: 'Fira Sans', sans-serif;
+        }
+
+        /* 2. GLOBAL RESET */
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--ui-bg);
+            color: var(--ui-text-main);
+            font-family: var(--font-sans);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            /* Technical Grid Overlay */
+            background-image: 
+                linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+            background-size: 25px 25px;
+        }
+
+        /* 3. REFACTORED COMPONENT: The Technical Chip (.inv-chip) */
+        .inv-chip {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(15, 23, 42, 0.6); 
+            border: 1px solid var(--ui-border);
+            border-left: 3px solid var(--ui-accent-teal); /* Logical indicator */
+            color: var(--ui-text-main);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: var(--ui-radius);
+            cursor: pointer;
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            user-select: none;
+        }
+
+        .inv-chip:hover {
+            background-color: var(--ui-surface);
+            border-color: var(--ui-accent-teal);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .inv-chip:active {
+            transform: translateY(0);
+            opacity: 0.7;
+        }
+
+        .inv-chip i {
+            font-size: 0.85rem;
+            margin-right: 8px;
+            color: var(--ui-accent-teal);
+        }
+
+        /* Layout Helpers */
+        .sandbox-container {
+            text-align: center;
+            padding: 40px;
+            border: 1px solid var(--ui-border);
+            background: var(--ui-surface);
+            border-radius: 4px;
+        }
+        .label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--ui-text-muted);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sandbox-container">
+        <span class="label">Testing Hard-Edge Component</span>
+        
+        <div class="inv-chip copy-inv-code" data-code="ACC260006">
+            <i class="bi bi-terminal-fill"></i>ACC260006
+        </div>
+
+        <p style="margin-top: 20px; font-size: 0.8rem; color: var(--ui-text-muted);">
+            Glassmorphism & Pills Purged. <br> 
+            Precision Alignment & Monospaced Logic Active.
+        </p>
+    </div>
+
+    <script>
+        // Simple JS for interaction testing
+        document.querySelector('.inv-chip').addEventListener('click', function() {
+            const code = this.getAttribute('data-code');
+            navigator.clipboard.writeText(code).then(() => {
+                const originalContent = this.innerHTML;
+                this.innerHTML = '<i class="bi bi-check2"></i> COPIED!';
+                this.style.borderLeftColor = '#22c55e'; // Green feedback
+                
+                setTimeout(() => {
+                    this.innerHTML = originalContent;
+                    this.style.borderLeftColor = ''; 
+                }, 1000);
+            });
+        });
+    </script>
+
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme-Aware Tech UI | Bagusify</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600&family=Fira+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* 1. BASE TOKENS (DARK MODE DEFAULT) */
+        :root {
+            --tech-bg-base: #020617;     
+            --tech-surface: #0f172a;     
+            --tech-element: #1e293b;     
+            --tech-border: #334155;      
+            --tech-shadow: rgba(0, 0, 0, 0.5);
+            --tech-grid: rgba(255, 255, 255, 0.03);
+            
+            --ui-accent: #14b8a6;        /* Bright Tech Teal */
+            --ui-text-main: #f8fafc;
+            --ui-text-muted: #94a3b8;
+            
+            --hard-radius: 0px;          
+            --font-mono: 'Fira Code', monospace;
+            --font-sans: 'Fira Sans', sans-serif;
+            
+            color-scheme: dark;
+        }
+
+        /* 2. LIGHT MODE OVERRIDES */
+        [data-theme="light"] {
+            --tech-bg-base: #f8fafc;     /* Slate 50 */
+            --tech-surface: #ffffff;     /* Pure White */
+            --tech-element: #f1f5f9;     /* Slate 100 */
+            --tech-border: #cbd5e1;      /* Slate 300 */
+            --tech-shadow: rgba(15, 23, 42, 0.15); /* Slate 900 tint */
+            --tech-grid: rgba(15, 23, 42, 0.04);
+            
+            --ui-accent: #0d9488;        /* Darker Teal for Contrast */
+            --ui-text-main: #0f172a;
+            --ui-text-muted: #64748b;
+            
+            color-scheme: light;
+        }
+
+        /* 3. GLOBAL STYLES */
+        body {
+            background-color: var(--tech-bg-base);
+            color: var(--ui-text-main);
+            font-family: var(--font-sans);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            
+            /* Theme-Aware Grid */
+            background-image: 
+                linear-gradient(var(--tech-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--tech-grid) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* 4. SOLID STATE CARD */
+        .tech-card-solid {
+            background-color: var(--tech-surface);
+            border: 1px solid var(--tech-border);
+            border-top: 3px solid var(--ui-accent);
+            border-radius: var(--hard-radius);
+            padding: 2.5rem;
+            width: 400px;
+            box-shadow: 8px 8px 0px var(--tech-shadow);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* 5. HARD CHIP */
+        .inv-chip-hard {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--tech-element);
+            border: 1px solid var(--tech-border);
+            border-left: 3px solid var(--ui-accent);
+            color: var(--ui-text-main);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: var(--hard-radius);
+            cursor: pointer;
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+        }
+
+        .inv-chip-hard:hover {
+            background-color: var(--tech-surface);
+            border-color: var(--ui-accent);
+            transform: translate(-2px, -2px);
+            box-shadow: 2px 2px 0px var(--ui-accent);
+        }
+
+        .inv-chip-hard:active {
+            transform: translate(0px, 0px);
+            box-shadow: 0px 0px 0px;
+        }
+
+        /* 6. HARD INPUT */
+        .tech-input-hard {
+            width: 100%;
+            background-color: var(--tech-bg-base);
+            border: 1px solid var(--tech-border);
+            border-radius: var(--hard-radius);
+            padding: 12px;
+            color: var(--ui-text-main);
+            margin-top: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .tech-input-hard:focus {
+            border-color: var(--ui-accent);
+            background-color: transparent;
+            box-shadow: 0 0 0 1px var(--ui-accent);
+        }
+
+        /* THEME TOGGLE BUTTON */
+        .theme-toggle {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            background: var(--tech-surface);
+            border: 1px solid var(--tech-border);
+            color: var(--ui-text-main);
+            padding: 8px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--ui-accent);
+            color: var(--ui-accent);
+        }
+
+        .label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--ui-text-muted);
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .header-title {
+            margin: 0 0 24px 0; 
+            font-weight: 600; 
+            letter-spacing: -0.5px;
+            color: var(--ui-text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <div style="position: relative;">
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <i class="bi bi-moon-stars-fill dark-icon"></i>
+            <i class="bi bi-sun-fill light-icon" style="display:none;"></i>
+            <span id="theme-text">DARK MODE</span>
+        </button>
+
+        <div class="tech-card-solid">
+            <span class="label">System Access</span>
+            <h2 class="header-title">Data <span style="color: var(--ui-accent)">Terminal</span></h2>
+            
+            <div style="margin-bottom: 24px;">
+                <span class="label">Target Reference</span>
+                <div class="inv-chip-hard">
+                    <i class="bi bi-hdd-network-fill me-2" style="color: var(--ui-accent);"></i>ACC-260-006
+                </div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <span class="label">Authorization Key</span>
+                <input type="text" class="tech-input-hard" placeholder="0x_WAITING_INPUT...">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            // Apply new theme
+            html.setAttribute('data-theme', newTheme);
+            
+            // Update Toggle Button UI
+            const btnText = document.getElementById('theme-text');
+            const darkIcon = document.querySelector('.dark-icon');
+            const lightIcon = document.querySelector('.light-icon');
+            
+            if (newTheme === 'light') {
+                btnText.textContent = 'LIGHT MODE';
+                darkIcon.style.display = 'none';
+                lightIcon.style.display = 'block';
+            } else {
+                btnText.textContent = 'DARK MODE';
+                darkIcon.style.display = 'block';
+                lightIcon.style.display = 'none';
+            }
+        }
+    </script>
+
+</body>
+</html>

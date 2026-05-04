@@ -39,7 +39,7 @@ BEGIN
                 END IF;
 
                 -- PUSH data to Project B via FDW
-                INSERT INTO remote_vault.technician_points_ledger (
+                INSERT INTO public.technician_points_ledger (
                     id,                   -- Explicitly send ID (FDW requirement for defaults)
                     employee_id,
                     work_order_id,

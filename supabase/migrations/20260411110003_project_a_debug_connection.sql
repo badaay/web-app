@@ -7,7 +7,7 @@ AS $$
 DECLARE
     v_count INTEGER;
 BEGIN
-    SELECT count(*) INTO v_count FROM remote_vault.notification_queue;
+    SELECT count(*) INTO v_count FROM public.notification_queue;
     RETURN 'Connection OK, count: ' || v_count;
 EXCEPTION WHEN OTHERS THEN
     RETURN 'Connection FAILED: ' || SQLERRM;

@@ -41,20 +41,20 @@ CREATE POLICY "queue_types_delete" ON public.master_queue_types
 
 
 -- ╔══════════════════════════════════════════════╗
--- ║  inventory                                   ║
+-- ║  inventory_items                             ║
 -- ╚══════════════════════════════════════════════╝
-DROP POLICY IF EXISTS "Enable all for anyone" ON public.inventory;
+DROP POLICY IF EXISTS "Enable all for anyone" ON public.inventory_items;
 
-CREATE POLICY "inventory_select" ON public.inventory
+CREATE POLICY "inventory_select" ON public.inventory_items
   FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "inventory_insert" ON public.inventory
+CREATE POLICY "inventory_insert" ON public.inventory_items
   FOR INSERT WITH CHECK (is_admin_class());
 
-CREATE POLICY "inventory_update" ON public.inventory
+CREATE POLICY "inventory_update" ON public.inventory_items
   FOR UPDATE USING (is_admin_class()) WITH CHECK (is_admin_class());
 
-CREATE POLICY "inventory_delete" ON public.inventory
+CREATE POLICY "inventory_delete" ON public.inventory_items
   FOR DELETE USING (has_any_role(ARRAY['S_ADM', 'OWNER']));
 
 
