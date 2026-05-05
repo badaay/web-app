@@ -75,6 +75,28 @@ export async function claimAtomic(dbClient, id, technicianId, ket) {
     .maybeSingle();
 }
 
+/**
+ * Atomic status transition helper
+ * @param {Object} dbClient 
+ * @param {string} id 
+ * @param {string} fromStatus 
+ * @param {string} toStatus 
+ * @param {Object} extraUpdates 
+ */
+export async function transitionStatus(dbClient, id, fromStatus, toStatus, extraUpdates = {}) {
+  return dbClient
+    .from('work_orders')
+    .update({ 
+      status: toStatus,
+      updated_at: new Date().toISOString(),
+      ...extraUpdates 
+    })
+    .eq('id', id)
+    .eq('status', fromStatus)
+    .select('*')
+    .maybeSingle();
+}
+
 export async function upsertAssignments(dbClient, assignments) {
   return dbClient
     .from('work_order_assignments')
@@ -96,26 +118,11 @@ export async function closeWithPointsRpc(dbClient, id, closeData) {
   });
 }
 
-export async function updateAssignmentsPoints(dbClient, assignmentId, pointsToAdd) {
+export async function updateAssignmentPoints(dbClient, assignmentId, data) {
   return dbClient
     .from('work_order_assignments')
-    .update({ points_earned: pointsToAdd })
+    .update(data)
     .eq('id', assignmentId);
 }
 
-/**
- * Atomic status transition with safety check
- */
-export async function transitionStatus(dbClient, id, fromStatus, toStatus, extraUpdates = {}) {
-  return dbClient
-    .from('work_orders')
-    .update({
-      status: toStatus,
-      updated_at: new Date().toISOString(),
-      ...extraUpdates
-    })
-    .eq('id', id)
-    .eq('status', fromStatus)
-    .select('*')
-    .maybeSingle();
-}
+

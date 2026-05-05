@@ -248,28 +248,61 @@ window.viewPointsDetail = async (periodId, employeeId) => {
             <div class="table-responsive">
                 <table class="table table-dark table-sm align-middle">
                     <thead><tr class="text-muted" style="font-size: 0.75rem">
-                        <th>Tanggal</th><th>Pekerjaan</th><th>Customer</th><th class="text-end">Poin</th>
+                        <th>Tanggal</th><th>Pekerjaan</th><th>Customer</th>
+                        ${res.is_admin ? '<th class="text-end">Biaya Material</th>' : ''}
+                        <th class="text-end">Poin</th>
                     </tr></thead>
                     <tbody>
-                        ${res.items.map(item => `
+                        ${res.items.map(item => {
+                            const wo = item.work_orders;
+                            const invUsed = wo.inventory_used || [];
+                            const hasInv = invUsed.length > 0;
+                            const rowId = `inv-detail-${wo.id}`;
+                            
+                            return `
                             <tr>
-                                <td class="small">${new Date(item.work_orders.completed_at).toLocaleDateString('id-ID')}</td>
+                                <td class="small">${new Date(wo.completed_at).toLocaleDateString('id-ID')}</td>
                                 <td>
-                                    <div class="small fw-bold">${item.work_orders.title}</div>
-                                    <span class="badge" style="background-color: ${item.work_orders.type?.color || '#333'}; font-size: 0.6rem">
-                                        <i class="bi ${item.work_orders.type?.icon || 'bi-dot'} me-1"></i>${item.work_orders.type?.name || 'WO'}
+                                    <div class="small fw-bold">${wo.title}</div>
+                                    <span class="badge" style="background-color: ${wo.type?.color || '#333'}; font-size: 0.6rem">
+                                        <i class="bi ${wo.type?.icon || 'bi-dot'} me-1"></i>${wo.type?.name || 'WO'}
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="small">${item.work_orders.customer?.name || '–'}</div>
-                                    <div class="text-muted" style="font-size: 0.7rem">${item.work_orders.customer?.customer_code || ''}</div>
+                                    <div class="small">${wo.customer?.name || '–'}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem">${wo.customer?.customer_code || ''}</div>
                                 </td>
+                                ${res.is_admin ? `
+                                <td class="text-end">
+                                    <div class="fw-bold text-info">Rp ${fmt.format(wo.material_cost || 0)}</div>
+                                    ${hasInv ? `<a href="#${rowId}" class="text-white-50 x-small" data-bs-toggle="collapse">Detail Material <i class="bi bi-chevron-down"></i></a>` : ''}
+                                </td>
+                                ` : ''}
                                 <td class="text-end fw-bold text-accent">${item.points_earned}</td>
                             </tr>
-                        `).join('')}
+                            ${res.is_admin && hasInv ? `
+                            <tr class="collapse" id="${rowId}">
+                                <td colspan="${res.is_admin ? 5 : 4}" class="bg-black bg-opacity-25 p-2">
+                                    <div class="ps-3 border-start border-info border-opacity-50">
+                                        <div class="text-info x-small fw-bold mb-1">MATERIAL SNAPSHOT:</div>
+                                        <div class="d-flex flex-wrap gap-3">
+                                            ${invUsed.map(inv => `
+                                                <div class="x-small text-white-50">
+                                                    <span class="text-white">${inv.name}</span>: ${inv.quantity} ${inv.unit} @ Rp ${fmt.format(inv.unit_cost)}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            ` : ''}
+                        `;}).join('')}
                     </tbody>
                 </table>
             </div>
+            <style>
+                .x-small { font-size: 0.65rem; }
+            </style>
         `;
     } catch (err) {
         modalBody.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;

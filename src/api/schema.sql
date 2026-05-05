@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.inventory_items (
     stock INTEGER DEFAULT 0,
     unit TEXT NOT NULL,
     category TEXT,
+    unit_cost DECIMAL(12, 2) DEFAULT 0.00,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -142,6 +143,8 @@ CREATE TABLE IF NOT EXISTS public.work_orders (
     claimed_by UUID, -- no FK — assignments tracked via work_order_assignments table
     claimed_at TIMESTAMPTZ,
     points INTEGER DEFAULT 0,
+    material_cost DECIMAL(12, 2) DEFAULT 0.00,
+    inventory_used JSONB DEFAULT '[]'::jsonb,
     registration_date DATE DEFAULT CURRENT_DATE, -- Tanggal Daftar
     payment_status TEXT, -- Pembayaran
     referral_name TEXT, -- Nama Referal
@@ -180,6 +183,9 @@ CREATE TABLE IF NOT EXISTS public.work_order_assignments (
     assignment_role TEXT NOT NULL DEFAULT 'member', -- 'lead' | 'member'
     assigned_at TIMESTAMPTZ DEFAULT now(),
     points_earned INTEGER DEFAULT 0,
+    bonus_points INTEGER DEFAULT 0,
+    deduction_points INTEGER DEFAULT 0,
+    adjustment_reason TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE (work_order_id, employee_id)
 );
@@ -626,6 +632,16 @@ BEGIN
     ) INTO result;
     
     RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. Decrement Inventory Stock
+CREATE OR REPLACE FUNCTION public.decrement_inventory_stock(item_id UUID, amount INTEGER)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE public.inventory_items
+    SET stock = stock - amount
+    WHERE id = item_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

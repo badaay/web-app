@@ -10,6 +10,15 @@ export async function initInventory() {
     let allItems = [];
     let searchTerm = '';
 
+    // Fetch user role for admin-only fields (AC1)
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (userId) {
+        const { data: profile } = await supabase.from('profiles').select('roles(code)').eq('id', userId).single();
+        userRole = profile?.roles?.code;
+    }
+    const isAdmin = ['S_ADM', 'OWNER', 'ADM'].includes(userRole);
+
     if (addBtn) addBtn.onclick = () => showInventoryModal();
     if (searchInput) {
         searchInput.oninput = (e) => {
@@ -58,7 +67,9 @@ export async function initInventory() {
                             <th>Kategori</th>
                             <th>Stok</th>
                             <th>Satuan</th>
-                            <th class="text-end pe-4">Aksi</th>
+                            <th>Kategori</th>
+                            ${isAdmin ? '<th>Harga Satuan</th>' : ''}
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="border-0">
@@ -77,6 +88,7 @@ export async function initInventory() {
                                 <td>
                                     <span class="badge bg-secondary opacity-75 fw-normal">${item.category || '-'}</span>
                                 </td>
+                                ${isAdmin ? `<td>Rp ${(item.unit_cost || 0).toLocaleString('id-ID')}</td>` : ''}
                                 <td>
                                     <span class="badge bg-vscode-header border border-secondary text-white px-3 fw-bold">${item.stock}</span>
                                 </td>
@@ -144,6 +156,13 @@ export async function initInventory() {
                     <label class="form-label">Kategori</label>
                     <input type="text" class="form-control form-control-sm" id="item-category" placeholder="E.g. Router, Cable, etc." value="${item?.category || ''}">
                 </div>
+                ${isAdmin ? `
+                <div class="mb-3">
+                    <label class="form-label">Harga Satuan (Rp)</label>
+                    <input type="number" class="form-control" id="item-unit-cost" value="${item?.unit_cost || 0}" step="0.01">
+                    <div class="form-text text-white-50">Biaya internal untuk perhitungan laba rugi.</div>
+                </div>
+                ` : ''}
             </form>
         `;
 
@@ -152,22 +171,34 @@ export async function initInventory() {
             const stock = parseInt(document.getElementById('item-stock').value);
             const unit = document.getElementById('item-unit').value;
             const category = document.getElementById('item-category').value;
+            const unit_cost = isAdmin ? parseFloat(document.getElementById('item-unit-cost').value || 0) : (item?.unit_cost || 0);
 
             if (!name || isNaN(stock) || !unit) return showToast('warning', 'Nama, Stok, dan Satuan wajib diisi.');
 
-            let result;
-            if (item) {
-                result = await supabase.from('inventory_items').update({ name, stock, unit, category }).eq('id', item.id);
-            } else {
-                result = await supabase.from('inventory_items').insert([{ name, stock, unit, category }]);
-            }
+            const payload = { name, stock, unit, category };
+            if (isAdmin) payload.unit_cost = unit_cost;
 
-            if (result.error) {
-                showToast('error', 'Gagal menyimpan: ' + result.error.message);
-            } else {
+            const { apiCall } = await import('../../../api/supabase.js');
+            
+            try {
+                let result;
+                if (item) {
+                    result = await apiCall(`/inventory/${item.id}`, { 
+                        method: 'PATCH', 
+                        body: JSON.stringify(payload) 
+                    });
+                } else {
+                    result = await apiCall('/inventory', { 
+                        method: 'POST', 
+                        body: JSON.stringify(payload) 
+                    });
+                }
+                
                 showToast('success', 'Barang berhasil disimpan!');
                 modal.hide();
                 loadInventory();
+            } catch (err) {
+                showToast('error', 'Gagal menyimpan: ' + err.message);
             }
         };
 

@@ -41,3 +41,17 @@ export async function deleteById(dbClient, id) {
     .delete()
     .eq('id', id);
 }
+
+export async function findManyByIds(dbClient, ids) {
+  return dbClient
+    .from('inventory_items')
+    .select('id, name, unit_cost, unit')
+    .in('id', ids);
+}
+
+export async function decrementStock(dbClient, id, amount) {
+  return dbClient.rpc('decrement_inventory_stock', { 
+    item_id: id, 
+    amount: amount 
+  });
+}
