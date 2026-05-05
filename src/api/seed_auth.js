@@ -90,7 +90,11 @@ async function main() {
 
             if (emp.role_id) {
                 await linkProfile(authUser.id, emp.role_id);
-                console.log(`  ✅ Profile linked: ${roleName}`);
+                
+                // Sync employees.id with Auth UID for consistency
+                await adminClient.from('employees').update({ id: authUser.id }).eq('employee_id', emp.employee_id);
+                
+                console.log(`  ✅ Profile linked & Employee ID synced: ${roleName}`);
             } else {
                 console.warn(`  ⚠️  Missing role_id for ${emp.name}`);
             }
