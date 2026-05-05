@@ -1,6 +1,6 @@
 /**
- * POST /api/work-orders/complete
- * Technician submits job evidence and marks as 'completed'.
+ * POST /api/work-orders/close
+ * Technician submits job evidence and marks as 'completed' (waiting for admin verification to become 'closed').
  */
 import { supabaseAdmin, verifyAuth, hasRole, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
 import { completeWorkOrder } from '../_core/work-order.service.js';

@@ -79,6 +79,13 @@ export async function confirmWorkOrder(dbClient, id, employeeId) {
   };
   await woRepo.createMonitoring(dbClient, monitorPayload).catch(e => console.warn('Monitor record skip:', e.message));
 
+  // Ensure assignment record exists if employeeId is provided (Story 1.1 Alignment)
+  if (employeeId) {
+    await woRepo.upsertAssignments(dbClient, [
+      { work_order_id: id, employee_id: employeeId, assignment_role: 'lead', assigned_at: new Date().toISOString() }
+    ]);
+  }
+
   await notifyWorkOrderEvent(id, 'wo_confirmed').catch(e => console.error('[WO-NOTIF] Error:', e));
 
   return ok(updatedWO);
@@ -104,7 +111,9 @@ export async function claimWorkOrder(dbClient, id, body, user, isAuthorizedParam
   if (woErr) return serverError(`Database error: ${woErr.message}`);
   if (!wo) return conflict('Work order is no longer available or already claimed');
 
-  // Team assignments
+  // Team assignments: Clear previous assignments first to avoid multiple leads/stale members
+  await dbClient.from('work_order_assignments').delete().eq('work_order_id', id);
+
   const assignmentRows = [
     { work_order_id: id, employee_id: technicianId, assignment_role: 'lead', assigned_at: new Date().toISOString() },
     ...teamMembers.map(memberId => ({
@@ -129,27 +138,63 @@ export async function completeWorkOrder(dbClient, id, body, user, isAuthorizedPa
 
   const { data: wo } = await woRepo.findByIdWithAssignments(dbClient, id);
   if (!wo) return notFound('Work order not found');
-  if (wo.status !== 'open') return conflict(`Cannot complete: current status is '${wo.status}'`);
+  
+  const allowedFrom = ['open', 'pending', 'incident'];
+  if (!allowedFrom.includes(wo.status)) return conflict(`Cannot update execution: current status is '${wo.status}'`);
 
   const assignments = wo.work_order_assignments || [];
-  const isAssigned = assignments.some(a => a.employee_id === user.id);
-  const canComplete = isAssigned || isAuthorizedParam || (await isAdmin(dbClient, user.id));
-  if (!canComplete) return forbidden('You are not assigned to this work order');
-
-  // 1. Transition to 'completed'
-  const { data: updatedWO, error: updateErr } = await woRepo.transitionStatus(dbClient, id, 'open', 'completed', {
-    completed_at: new Date().toISOString()
-  });
-  if (updateErr) return serverError(`Failed to complete: ${updateErr.message}`);
-  if (!updatedWO) return conflict('Work order status changed while processing');
-
-  // 2. Update Monitoring Record (Technician evidence)
-  const monitoringUpdates = whitelist(body || {}, ['notes', 'mac_address', 'sn_modem', 'cable_label', 'photos']);
-  if (Object.keys(monitoringUpdates).length > 0) {
-    await dbClient.from('installation_monitorings').update(monitoringUpdates).eq('work_order_id', id);
+  let isAssigned = assignments.some(a => a.employee_id === user.id);
+  
+  if (!isAssigned) {
+    // Resilient check: account for cases where auth.uid might not match employees.id (e.g. seeded data)
+    // We lookup by email because it's the consistent link between Auth and Employees for seeded users
+    const { data: employee } = await dbClient
+      .from('employees')
+      .select('id')
+      .eq('email', user.email)
+      .maybeSingle();
+      
+    if (employee && assignments.some(a => a.employee_id === employee.id)) {
+      isAssigned = true;
+    }
   }
 
-  await notifyWorkOrderEvent(id, 'wo_completed').catch(e => console.error('[WO-NOTIF] Error:', e));
+  const canComplete = isAssigned || isAuthorizedParam || (await isAdmin(user.id));
+  if (!canComplete) return forbidden('You are not assigned to this work order');
+
+  const targetStatus = body.status || 'completed';
+  const allowedTo = ['open', 'pending', 'incident', 'completed'];
+  if (!allowedTo.includes(targetStatus)) return badRequest(`Invalid target status: ${targetStatus}`);
+
+  // 1. Transition status
+  const updates = {
+    ket: body.notes || wo.ket
+  };
+  if (targetStatus === 'completed') {
+    updates.completed_at = new Date().toISOString();
+  }
+
+  const { data: updatedWO, error: updateErr } = await woRepo.transitionStatus(dbClient, id, wo.status, targetStatus, updates);
+  if (updateErr) return serverError(`Failed to update status: ${updateErr.message}`);
+  if (!updatedWO) return conflict('Work order status changed while processing');
+
+  // 2. Upsert Monitoring Record (Technician evidence)
+  const monitoringFields = ['notes', 'mac_address', 'sn_modem', 'cable_label', 'photo_proof', 'actual_date', 'activation_date'];
+  const monitoringUpdates = whitelist(body || {}, monitoringFields);
+  
+  if (Object.keys(monitoringUpdates).length > 0) {
+    const monitorPayload = {
+      ...monitoringUpdates,
+      work_order_id: id,
+      customer_id: wo.customer_id,
+      employee_id: wo.employee_id || user.id
+    };
+    await dbClient.from('installation_monitorings').upsert(monitorPayload, { onConflict: 'work_order_id' });
+  }
+
+  if (targetStatus === 'completed') {
+    await notifyWorkOrderEvent(id, 'wo_completed').catch(e => console.error('[WO-NOTIF] Error:', e));
+  }
 
   return ok(updatedWO);
 }
@@ -163,7 +208,7 @@ export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAu
   
   if (!user && !isAuthorizedParam) return forbidden('Authentication required');
   
-  const isAuthorized = isAuthorizedParam || (await isAdmin(dbClient, user.id));
+  const isAuthorized = isAuthorizedParam || (await isAdmin(user.id));
   if (!isAuthorized) return forbidden('Only admins can verify work orders');
 
   const { adjustments = [], closeData = {}, inventory_used = [] } = body;
@@ -180,7 +225,8 @@ export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAu
     material_cost: totalMaterialCost,
     inventory_used: inventorySnapshot
   });
-  if (transitionErr || !updatedWO) return serverError('Failed to transition work order to closed');
+  if (transitionErr) return serverError(`Database error during transition: ${transitionErr.message}`);
+  if (!updatedWO) return badRequest(`Failed to transition work order to closed. It may have already been updated or its status is no longer 'completed'. (Current status check: ${wo.status})`);
 
   // 2. Award Points with Adjustments (Project B)
   const { data: rpcResult, error: rpcError } = await woRepo.closeWithPointsRpc(dbClient, id, closeData);
@@ -217,6 +263,12 @@ export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAu
     const { data: psb } = await psbRepo.findById(dbClient, wo.customer_id);
     
     if (psb && psb.status !== 'completed') {
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const rand7 = String(Math.floor(1000000 + Math.random() * 9000000));
+      const customerCode = `${yy}${mm}${rand7}`;
+
       const generatedPassword = Math.random().toString(36).slice(-8);
       const email = `${psb.phone}${APP_CONFIG?.AUTH_DOMAIN_SUFFIX || '@sifatih.id'}`;
       
@@ -225,12 +277,19 @@ export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAu
         email,
         password: generatedPassword,
         email_confirm: true,
-        user_metadata: { role: 'customer', name: psb.name }
+        user_metadata: { 
+          role: 'customer', 
+          name: psb.name,
+          customer_code: customerCode
+        }
       });
       
       if (!authErr) {
         await psbRepo.updateStatus(dbClient, psb.id, 'completed');
-        await customerRepo.updateById(dbClient, psb.id, { email });
+        await customerRepo.updateById(dbClient, psb.id, { 
+          email,
+          customer_code: customerCode 
+        });
       }
     }
 
@@ -253,7 +312,7 @@ export async function requestRevision(dbClient, id, body, user) {
   if (!reason) return badRequest('Revision reason is required');
   if (!user) return forbidden('Authentication required');
 
-  if (!(await isAdmin(dbClient, user.id))) return forbidden('Only admins can request revisions');
+  if (!(await isAdmin(user.id))) return forbidden('Only admins can request revisions');
 
   const { data: updatedWO, error } = await woRepo.transitionStatus(dbClient, id, 'completed', 'open', {
     ket: `[REVISION] ${reason}`

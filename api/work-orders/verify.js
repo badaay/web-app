@@ -1,4 +1,4 @@
-import { createAdminClient, supabaseAdmin, verifyAuth, isAdmin, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { supabaseAdmin, verifyAuth, isAdmin, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
 import { verifyWorkOrder } from '../_core/work-order.service.js';
 import { mapToHttpStatus } from '../_core/http-mapper.js';
 
@@ -17,9 +17,9 @@ async function handler(req) {
   }
 
   try {
-    const { id, adjustments, closeData, inventory_used } = await req.json();
-    const authClient = createAdminClient(); // Service role for customer creation
-    const result = await verifyWorkOrder(supabaseAdmin, authClient, id, { adjustments, closeData, inventory_used }, user);
+    const { id, workOrderId, adjustments, closeData, inventory_used } = await req.json();
+    const finalId = id || workOrderId; // Handle both variants
+    const result = await verifyWorkOrder(supabaseAdmin, supabaseAdmin, finalId, { adjustments, closeData, inventory_used }, user);
     if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
     return jsonResponse(result.data);
   } catch (err) {

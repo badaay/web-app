@@ -1,4 +1,4 @@
-import { supabase } from '../../../api/supabase.js';
+import { supabase, apiCall } from '../../../api/supabase.js';
 import { getSpinner } from '../../utils/ui-common.js';
 import { showToast } from '../../utils/toast.js';
 
@@ -40,6 +40,7 @@ export async function initPendaftaran() {
                         <button class="tab-btn active" data-filter="all">SEMUA</button>
                         <button class="tab-btn" data-filter="waiting">MENUNGGU</button>
                         <button class="tab-btn" data-filter="confirmed">TERKONFIRMASI</button>
+                        <button class="tab-btn" data-filter="completed">SELESAI</button>
                     </div>
 
                     <div class="bulk-actions" id="pendaftaran-bulk-toolbar" style="display: none;">
@@ -304,6 +305,7 @@ function renderLists() {
     const filteredOrders = allWorkOrders.filter(wo => {
         if (currentFilter === 'waiting') return wo.status === 'waiting';
         if (currentFilter === 'confirmed') return wo.status === 'confirmed';
+        if (currentFilter === 'completed') return wo.status === 'completed';
         return true;
     }).sort((a, b) => {
         const pA = STATUS_PRIORITY[a.status] || 99;
@@ -324,11 +326,27 @@ function renderLists() {
     const todayHeader = document.querySelector('.row-group-header.text-accent-teal');
     const backlogHeader = document.querySelector('.row-group-header.text-warning');
     
-    if (todayHeader) todayHeader.innerHTML = `TARGET HARI INI <span class="ms-2 opacity-50">[ ${todayItems.length} ]</span>`;
-    if (backlogHeader) backlogHeader.innerHTML = `ANTRIAN BELUM TERKONFIRMASI <span class="ms-2 opacity-50">[ ${backlogItems.length} ]</span>`;
+    if (todayHeader) {
+        if (currentFilter === 'completed') {
+            todayHeader.innerHTML = `PENDAFTARAN SELESAI (MENUNGGU VERIFIKASI) <span class="ms-2 opacity-50">[ ${todayItems.length} ]</span>`;
+        } else if (currentFilter === 'confirmed') {
+            todayHeader.innerHTML = `TARGET PROSES HARI INI <span class="ms-2 opacity-50">[ ${todayItems.length} ]</span>`;
+        } else {
+            todayHeader.innerHTML = `TARGET HARI INI <span class="ms-2 opacity-50">[ ${todayItems.length} ]</span>`;
+        }
+    }
+    
+    if (backlogHeader) {
+        if (currentFilter === 'all' || currentFilter === 'waiting') {
+            backlogHeader.style.display = 'block';
+            backlogHeader.innerHTML = `ANTRIAN BELUM TERKONFIRMASI <span class="ms-2 opacity-50">[ ${backlogItems.length} ]</span>`;
+        } else {
+            backlogHeader.style.display = 'none';
+        }
+    }
 
-    listToday.innerHTML = todayItems.length ? todayItems.map(item => renderRow(item)).join('') : '<div class="px-4 py-3 text-white-50 small font-mono text-center">-- TIDAK_ADA_TARGET_HARI_INI --</div>';
-    listBacklog.innerHTML = backlogItems.length ? backlogItems.map(item => renderRow(item)).join('') : '<div class="px-4 py-3 text-white-50 small font-mono text-center">-- BACKLOG_KOSONG --</div>';
+    listToday.innerHTML = todayItems.length ? todayItems.map(item => renderRow(item)).join('') : '<div class="px-4 py-3 text-white-50 small font-mono text-center">-- TIDAK_ADA_DATA_DITEMUKAN --</div>';
+    listBacklog.innerHTML = (backlogItems.length && (currentFilter === 'all' || currentFilter === 'waiting')) ? backlogItems.map(item => renderRow(item)).join('') : '';
 
     // Re-attach selection listeners
     attachRowListeners();
@@ -358,7 +376,7 @@ function renderRow(wo) {
     return `
         <div class="list-row ${isSelected ? 'selected' : ''}" data-id="${wo.id}">
             <div class="cell-check">
-                <input type="checkbox" class="custom-checkbox row-checkbox" ${isSelected ? 'checked' : ''} data-id="${wo.id}">
+                ${wo.status === 'waiting' ? `<input type="checkbox" class="custom-checkbox row-checkbox" ${isSelected ? 'checked' : ''} data-id="${wo.id}">` : ''}
             </div>
             <div class="cell-id font-mono text-white-50">${wo.item_code || wo.id.substring(0, 8)}</div>
             <div class="cell-status">
@@ -382,6 +400,7 @@ function renderRow(wo) {
                     <button class="quick-btn detail-btn" title="Detail"><i class="bi bi-eye"></i></button>
                     <button class="quick-btn wa wa-btn" title="WhatsApp"><i class="bi bi-whatsapp"></i></button>
                     ${wo.status === 'waiting' ? `<button class="quick-btn confirm-single-btn" title="Konfirmasi"><i class="bi bi-check-lg"></i></button>` : ''}
+                    ${wo.status === 'completed' ? `<button class="quick-btn verify-single-btn text-success" title="Verifikasi"><i class="bi bi-shield-check"></i></button>` : ''}
                 </div>
                 <div class="font-mono text-white-50 cell-meta-date" style="font-size: 0.65rem;">
                     ${wo.registration_date ? new Date(wo.registration_date).toLocaleDateString('id-ID') : new Date(wo.created_at).toLocaleDateString('id-ID')}
@@ -412,8 +431,10 @@ function attachRowListeners() {
         row.onclick = (e) => {
             if (e.target.classList.contains('custom-checkbox') || e.target.closest('.quick-btn')) return;
             const cb = row.querySelector('.row-checkbox');
-            cb.checked = !cb.checked;
-            cb.dispatchEvent(new Event('change'));
+            if (cb) {
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event('change'));
+            }
         };
     });
 
@@ -440,6 +461,27 @@ function attachRowListeners() {
             e.stopPropagation();
             const id = btn.closest('.list-row').dataset.id;
             await confirmOrders([id]);
+        };
+    });
+
+    container.querySelectorAll('.verify-single-btn').forEach(btn => {
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            const id = btn.closest('.list-row').dataset.id;
+            if (!confirm('Verifikasi pekerjaan ini dan berikan poin?')) return;
+            
+            try {
+                window.setBtnLoading(btn, true, '');
+                await apiCall('/work-orders/verify', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: id })
+                });
+                showToast('success', 'Pekerjaan berhasil diverifikasi dan ditutup.');
+                await loadData();
+            } catch (err) {
+                showToast('error', `Gagal verifikasi: ${err.message}`);
+                window.setBtnLoading(btn, false);
+            }
         };
     });
 }
@@ -734,15 +776,16 @@ function updateToolbarState() {
     const countDisplay = document.getElementById('pendaftaran-count-display');
     const masterCb = document.getElementById('pendaftaran-master-checkbox');
 
-    const totalVisible = allWorkOrders.length;
+    const selectableOrders = allWorkOrders.filter(wo => wo.status === 'waiting');
+    const totalSelectable = selectableOrders.length;
     const checkedCount = selectedIds.size;
 
     if (checkedCount > 0) {
         tabs.style.display = 'none';
         bulkToolbar.style.display = 'flex';
         countDisplay.innerText = checkedCount;
-        masterCb.checked = checkedCount === totalVisible;
-        masterCb.indeterminate = checkedCount > 0 && checkedCount < totalVisible;
+        masterCb.checked = checkedCount === totalSelectable && totalSelectable > 0;
+        masterCb.indeterminate = checkedCount > 0 && checkedCount < totalSelectable;
     } else {
         tabs.style.display = 'flex';
         bulkToolbar.style.display = 'none';
@@ -759,10 +802,14 @@ function setupEventListeners() {
     if (masterCb) {
         masterCb.onchange = (e) => {
             const isChecked = e.target.checked;
-            allWorkOrders.forEach(wo => {
-                if (isChecked) selectedIds.add(wo.id);
-                else selectedIds.delete(wo.id);
-            });
+            if (isChecked) {
+                // Only select 'waiting' orders
+                allWorkOrders.forEach(wo => {
+                    if (wo.status === 'waiting') selectedIds.add(wo.id);
+                });
+            } else {
+                selectedIds.clear();
+            }
             renderLists();
         };
     }
@@ -795,9 +842,9 @@ async function confirmOrders(ids) {
             .from('work_orders')
             .update({ 
                 status: 'confirmed',
-                confirmed_at: new Date().toISOString()
             })
-            .in('id', ids);
+            .in('id', ids)
+            .eq('status', 'waiting'); // Safety: only update if still in waiting status
 
         if (error) throw error;
 

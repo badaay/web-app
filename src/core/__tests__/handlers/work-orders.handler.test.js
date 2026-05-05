@@ -62,7 +62,7 @@ describe('Handler: Work Orders', () => {
 
   describe('POST /api/work-orders/close', () => {
     it('should return 403 if unauthorized', async () => {
-      woService.closeWorkOrder.mockResolvedValue({ success: false, statusHint: 'forbidden', error: 'Forbidden' });
+      woService.completeWorkOrder.mockResolvedValue({ success: false, statusHint: 'forbidden', error: 'Forbidden' });
       const req = { 
         method: 'POST', 
         url: 'http://localhost/api/work-orders/close',

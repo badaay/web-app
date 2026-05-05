@@ -48,8 +48,8 @@ describe('FinanceService', () => {
   describe('getFinancialSummary', () => {
     it('should calculate totals', async () => {
       const data = [
-        { transaction_type: 'income', amount: 1000 },
-        { transaction_type: 'expense', amount: 400 }
+        { type: 'income', amount: 1000 },
+        { type: 'expense', amount: 400 }
       ];
       financeRepo.findSummary.mockResolvedValue({ data, error: null });
 

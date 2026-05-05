@@ -9,7 +9,7 @@ describe('FinanceRepository', () => {
 
     expect(db.from).toHaveBeenCalledWith('financial_transactions');
     expect(db._builder.select).toHaveBeenCalledWith('*', { count: 'exact' });
-    expect(db._builder.or).toHaveBeenCalledWith('description.ilike.%Test%,reference_no.ilike.%Test%');
+    expect(db._builder.or).toHaveBeenCalledWith('description.ilike.%Test%,reference_id.ilike.%Test%');
     expect(db._builder.order).toHaveBeenCalledWith('transaction_date', { ascending: false });
     expect(db._builder.range).toHaveBeenCalledWith(0, 9);
   });
@@ -30,7 +30,7 @@ describe('FinanceRepository', () => {
     await financeRepo.findSummary(db, { startDate: '2026-01-01', endDate: '2026-01-31' });
 
     expect(db.from).toHaveBeenCalledWith('financial_transactions');
-    expect(db._builder.select).toHaveBeenCalledWith('transaction_type, amount');
+    expect(db._builder.select).toHaveBeenCalledWith('type, amount');
     expect(db._builder.gte).toHaveBeenCalledWith('transaction_date', '2026-01-01');
     expect(db._builder.lte).toHaveBeenCalledWith('transaction_date', '2026-01-31');
   });
@@ -41,6 +41,6 @@ describe('FinanceRepository', () => {
 
     expect(db.from).toHaveBeenCalledWith('bank_accounts');
     expect(db._builder.select).toHaveBeenCalledWith('*');
-    expect(db._builder.order).toHaveBeenCalledWith('account_name');
+    expect(db._builder.order).toHaveBeenCalledWith('name');
   });
 });

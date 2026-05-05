@@ -40,7 +40,7 @@ export async function findBankAccounts(dbClient) {
   return dbClient
     .from('bank_accounts')
     .select('*')
-    .order('account_name');
+    .order('name');
 }
 
 export async function findDailyRecap(dbClient, date) {

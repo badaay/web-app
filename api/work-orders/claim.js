@@ -16,12 +16,13 @@ export default withCors(async function handler(req) {
 
   if (req.method !== 'POST') return errorResponse('Method not allowed', 405);
 
-  const { id, technicianId, teamMembers, ket } = await req.json();
+  const { id, workOrderId, technicianId, teamMembers, ket } = await req.json();
+  const actualId = id || workOrderId;
   
   // Authorization: Admins can claim for anyone, technicians can claim for themselves
   const adminUser = await isAdmin(user.id);
   
-  const result = await claimWorkOrder(supabaseAdmin, id, { technicianId, teamMembers, ket }, user, adminUser);
+  const result = await claimWorkOrder(supabaseAdmin, actualId, { technicianId, teamMembers, ket }, user, adminUser);
   
   if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
   return jsonResponse(result.data);

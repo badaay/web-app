@@ -393,7 +393,7 @@ async function handleVerifyWo(woId) {
     try {
         await apiCall('/work-orders/verify', {
             method: 'POST',
-            body: JSON.stringify({ workOrderId: woId })
+            body: JSON.stringify({ id: woId })
         });
         showToast('Pekerjaan berhasil diverifikasi dan ditutup.', 'success');
         window.reloadUnifiedKanban();

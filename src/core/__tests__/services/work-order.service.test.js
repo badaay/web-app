@@ -213,6 +213,7 @@ describe('WorkOrderService', () => {
       // Mock monitoring update
       mockDb.from.mockReturnValue({
         update: vi.fn().mockReturnThis(),
+        upsert: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis()
       });
 
@@ -225,10 +226,22 @@ describe('WorkOrderService', () => {
 
     it('should reject if not assigned (technician)', async () => {
       isAdmin.mockResolvedValue(false);
+      // Mock the email lookup in completeWorkOrder
+      mockDb.from.mockImplementation((table) => {
+        if (table === 'employees') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null })
+          };
+        }
+        return mockDb; // Fallback
+      });
+      
       woRepo.findByIdWithAssignments.mockResolvedValue({ 
         data: { id: '1', status: 'open', work_order_assignments: [{ employee_id: 'tech-2' }] } 
       });
-      const result = await completeWorkOrder(mockDb, '1', {}, { id: 'tech-1' });
+      const result = await completeWorkOrder(mockDb, '1', {}, { id: 'tech-1', email: 'tech-1@test.com' });
       expect(result.success).toBe(false);
       expect(result.statusHint).toBe('forbidden');
     });
@@ -361,6 +374,41 @@ describe('WorkOrderService', () => {
       const result = await verifyWorkOrder(mockDb, mockAuth, '1', {}, { id: 'admin-1' });
       expect(result.success).toBe(false);
       expect(result.statusHint).toBe('bad_request');
+    });
+
+    it('should generate customer code and auth account for PSB work orders', async () => {
+      const wo = { 
+        id: '1', 
+        status: 'completed', 
+        customer_id: 'cust-1',
+        master_queue_types: { base_point: 100, name: 'PSB' },
+        work_order_assignments: [{ id: 'a1', employee_id: 'lead-1', assignment_role: 'lead' }]
+      };
+      woRepo.findByIdWithAssignments.mockResolvedValue({ data: wo });
+      woRepo.transitionStatus.mockResolvedValue({ data: { ...wo, status: 'closed' }, error: null });
+      woRepo.closeWithPointsRpc.mockResolvedValue({ data: {}, error: null });
+      woRepo.updateAssignmentPoints.mockResolvedValue({ error: null });
+      
+      psbRepo.findById.mockResolvedValue({ data: { id: 'cust-1', name: 'John Doe', phone: '08123', status: 'waiting' } });
+      mockAuth.auth.admin.createUser.mockResolvedValue({ data: { user: { id: 'auth-1' } }, error: null });
+      
+      isAdmin.mockResolvedValue(true);
+      const result = await verifyWorkOrder(mockDb, mockAuth, '1', {}, { id: 'admin-1' });
+
+      expect(result.success).toBe(true);
+      
+      // Verify createUser was called with expected metadata
+      expect(mockAuth.auth.admin.createUser).toHaveBeenCalledWith(expect.objectContaining({
+        user_metadata: expect.objectContaining({
+          role: 'customer',
+          customer_code: expect.stringMatching(/^\d{11}$/) // AC: 11-digit code
+        })
+      }));
+
+      // Verify customer record was updated with code
+      expect(customerRepo.updateById).toHaveBeenCalledWith(mockDb, 'cust-1', expect.objectContaining({
+        customer_code: expect.stringMatching(/^\d{11}$/)
+      }));
     });
   });
 });
