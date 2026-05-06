@@ -1,6 +1,6 @@
 // Data loading and table rendering for work-orders
 import { supabase } from '../../../../api/supabase.js';
-import { getSpinner } from '../../../utils/ui-common.js';
+import { getSpinner, copyItemCode } from '../../../utils/ui-common.js';
 import { getStatusColor, getStatusDisplayText } from './utils.js';
 
 /**
@@ -13,10 +13,10 @@ export async function loadWorkOrders(listContainer, typeId, onLoaded) {
     let query = supabase
         .from('work_orders')
         .select(`
-            id, title, status, created_at, registration_date, ket, customer_id, employee_id, type_id, claimed_by, claimed_at, completed_at,
+            id, title, status, created_at, registration_date, ket, customer_id, employee_id, type_id, claimed_by, claimed_at, completed_at, item_code,
             customers(id, name, phone, address, lat, lng, packet),
-            master_queue_types(id, name, color, icon, base_point),
-            work_order_assignments(id, assignment_role, employee_id, employees(id, name))
+            master_queue_types(id, name, color, icon, base_point, short_code),
+            work_order_assignments(id, assignment_role, employee_id, points_earned, bonus_points, deduction_points, adjustment_reason, employees(id, name))
         `)
         .order('created_at', { ascending: true });
 
@@ -47,13 +47,18 @@ export function renderStatusSummary(allWorkOrders, currentFilter, onFilterChange
         return acc;
     }, {});
 
-    const statuses = ['waiting', 'confirmed', 'open', 'closed'];
+    const statuses = ['waiting', 'confirmed', 'open', 'completed', 'closed'];
     const total = allWorkOrders.length;
 
     // Simplified Summary implementation for Kanban
     const stepsHtml = `
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <div><h5 class="m-0 text-white"><i class="bi bi-kanban"></i> Status Antrian</h5></div>
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="m-0 text-white"><i class="bi bi-kanban"></i> Status Antrian</h5>
+                <div id="wo-live-clock" class="font-mono px-3 py-1 bg-dark border border-secondary text-success" style="font-size: 1.1rem; letter-spacing: 1px;">
+                    00:00:00
+                </div>
+            </div>
             <div class="ms-auto mt-2 mt-md-0">
                 <button class="badge p-2 border-0 wo-filter-badge ${currentFilter === 'All' ? 'ring-active' : ''}"
                     style="background:var(--vscode-accent);color:#fff;cursor:pointer;min-width:80px;"
@@ -65,7 +70,28 @@ export function renderStatusSummary(allWorkOrders, currentFilter, onFilterChange
         </div>
     `;
 
-    // summaryContainer.innerHTML = stepsHtml;
+    summaryContainer.innerHTML = stepsHtml;
+
+    // Start clock interval
+    if (window.woClockInterval) clearInterval(window.woClockInterval);
+    const updateClock = () => {
+        const clockEl = document.getElementById('wo-live-clock');
+        if (!clockEl) return;
+        const now = new Date();
+        const options = { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: false 
+        };
+        clockEl.textContent = now.toLocaleString('id-ID', options).replace(/\./g, ':');
+    };
+    updateClock();
+    window.woClockInterval = setInterval(updateClock, 1000);
 
     summaryContainer.querySelectorAll('.wo-filter-badge').forEach(badge => {
         badge.onclick = () => {
@@ -95,7 +121,7 @@ export function renderSearchBar(onSearch) {
             </div>
             <input id="wo-search-input" type="text" 
                 class="form-control form-control-sm border-0 bg-transparent text-white shadow-none py-2" 
-                placeholder="Cari pelanggan, teknisi, atau keterangan..."
+                placeholder="Cari pelanggan, teknisi, keterangan, atau kode item..."
                 style="font-size: 0.9rem;">
             <button class="btn btn-link btn-sm text-white-50 p-2 me-1 hover-scale d-none" id="wo-clear-search">
                 <i class="bi bi-x-lg"></i>
@@ -146,8 +172,9 @@ export function getFilteredOrders(allWorkOrders, currentFilter, searchQuery) {
             const phone = wo.customers?.phone?.toLowerCase() || '';
             const emp = wo.employees?.name?.toLowerCase() || '';
             const ket = wo.ket?.toLowerCase() || '';
-            return name.includes(searchQuery) || phone.includes(searchQuery) || 
-                   emp.includes(searchQuery) || ket.includes(searchQuery);
+            const itemCode = wo.item_code?.toLowerCase() || '';
+            return name.includes(searchQuery) || phone.includes(searchQuery) ||
+                   emp.includes(searchQuery) || ket.includes(searchQuery) || itemCode.includes(searchQuery);
         });
     }
 
@@ -160,125 +187,49 @@ export function getFilteredOrders(allWorkOrders, currentFilter, searchQuery) {
 export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tableContainer) {
     if (!tableContainer) return;
 
-    if (!document.getElementById('kanban-pro-max-styles')) {
-        const style = document.createElement('style');
-        style.id = 'kanban-pro-max-styles';
-        style.innerHTML = `
-            .kanban-pro-col {
-                background: var(--surface-solid, #1e293b);
-                border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12));
-                border-radius: var(--ui-radius-md, 4px);
-                padding: 16px;
-                box-shadow: none;
-            }
-            .kanban-pro-card {
-                background: var(--vscode-bg, #0f172a) !important;
-                backdrop-filter: none !important;
-                border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12)) !important;
-                border-radius: var(--ui-radius-md, 4px) !important;
-                padding: 14px !important;
-                cursor: pointer;
-                transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
-                position: relative;
-                overflow: hidden;
-            }
-            .kanban-pro-card::before {
-                content: '';
-                position: absolute;
-                top: 0; left: 0; right: 0; height: 3px;
-                background: linear-gradient(90deg, #0047AB, #14b8a6);
-                opacity: 0;
-                transition: opacity 0.3s ease;
-            }
-            .kanban-pro-card:hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 8px 20px -6px rgba(0, 71, 171, 0.3) !important;
-                border-color: rgba(20, 184, 166, 0.2) !important;
-                background: rgba(30, 41, 59, 0.9) !important;
-            }
-            .kanban-pro-card:hover::before {
-                opacity: 0.8;
-            }
-            .tech-gradient-badge {
-                background: linear-gradient(135deg, #0047AB 0%, #14b8a6 100%);
-                color: #fff;
-                box-shadow: 0 4px 12px -3px rgba(20, 184, 166, 0.4);
-                border: none;
-            }
-            .wo-time-pro {
-                font-size: 0.72rem;
-                color: #94a3b8;
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                gap: 4px;
-            }
-            .wo-status-pro {
-                padding: 4px 10px;
-                border-radius: 6px;
-                font-size: 0.65rem;
-                font-weight: 700;
-                letter-spacing: 0.5px;
-                text-transform: uppercase;
-                border: 1px solid rgba(255,255,255,0.1);
-            }
-            .kanban-scroll::-webkit-scrollbar {
-                height: 6px;
-                width: 6px;
-            }
-            .kanban-scroll::-webkit-scrollbar-track {
-                background: rgba(0,0,0,0.1);
-                border-radius: 10px;
-            }
-            .kanban-scroll::-webkit-scrollbar-thumb {
-                background: rgba(255,255,255,0.1);
-                border-radius: 10px;
-            }
-            .kanban-scroll::-webkit-scrollbar-thumb:hover {
-                background: rgba(20, 184, 166, 0.5);
-            }
-            .glass-header-pro {
-                background: transparent;
-                border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12));
-                border-radius: 4px;
-                padding: 12px 16px;
-                margin-bottom: 20px;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    const heroContainer = document.getElementById('wo-target-today-section');
-    if (heroContainer) heroContainer.innerHTML = '';
-
     if (filteredOrders.length === 0) {
         tableContainer.innerHTML = '<div class="alert alert-info mt-3">Tidak ada antrian yang cocok.</div>';
         return;
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const progressOrders = filteredOrders.filter(wo => ['confirmed', 'open', 'pending'].includes(wo.status));
-    const todayOrders = progressOrders.filter(wo => new Date(wo.created_at).toISOString().split('T')[0] >= todayStr);
-    const leftoverOrders = progressOrders.filter(wo => new Date(wo.created_at).toISOString().split('T')[0] < todayStr);
-
     const typeMapping = window.woTypeMapping || {};
     const types = [
-        { id: typeMapping.pemasanganId, name: 'Pemasangan', color: '#0ea5e9' }, // Cyan/Blue
-        { id: typeMapping.perbaikanId, name: 'Perbaikan', color: '#f59e0b' } // Amber/Orange
+        { id: typeMapping.pemasanganId, name: 'Pemasangan', color: 'var(--tech-accent-teal)' },
+        { id: typeMapping.perbaikanId, name: 'Perbaikan', color: 'var(--tech-accent-warn)' }
     ];
 
     const mainKanbanColumns = [
         { id: 'waiting', title: '🟡 Menunggu', statuses: ['waiting'], width: '320px' },
         { id: 'progress', title: '🔵 Diproses', statuses: ['confirmed', 'open', 'pending'], width: '320px' },
+        { id: 'completed', title: '🟠 Verifikasi', statuses: ['completed'], width: '320px' },
         { id: 'issues', title: '🔴 Kendala', statuses: ['odp_full', 'cancelled', 'kendala'], width: '320px' }
     ];
 
-    const createCardHtml = (wo) => `
-        <div class="card kanban-pro-card mb-3 text-start" style="border-left: 3px solid ${wo.master_queue_types?.color || '#334155'} !important;">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="wo-status-pro shadow-sm" style="background-color:${getStatusColor(wo.status)}30; color: ${getStatusColor(wo.status)}; border-color: ${getStatusColor(wo.status)}60;">
-                    ${getStatusDisplayText(wo.status)}
+    const createCardHtml = (wo) => {
+        const assignments = wo.work_order_assignments || [];
+        const lead = assignments.find(a => a.assignment_role === 'lead')?.employees?.name || '??';
+        const leadInitial = lead.substring(0, 2).toUpperCase();
+        
+        const queueColor = wo.master_queue_types?.color || 'var(--tech-border)';
+        const queueIcon = wo.master_queue_types?.icon || 'bi-ticket';
+
+        return `
+        <div class="ticket-card mb-0" data-id="${wo.id}" style="border-left: 4px solid ${queueColor};">
+            <span class="ticket-id font-mono">
+                ${wo.item_code || `WO-${wo.id.substring(0, 4)}`} | ${formatTimeAgo(wo.created_at)}
+            </span>
+            
+            <h3 class="ticket-title">${wo.customers?.name || 'Unnamed Client'}</h3>
+            
+            <div class="small mb-3 text-muted font-mono" style="font-size: 0.7rem;">
+                <i class="bi bi-geo-alt me-1"></i>${wo.customers?.address?.substring(0, 40) || 'No Address'}...
+            </div>
+
+            <div class="ticket-footer">
+                <span class="ticket-tag" style="background: ${queueColor}20; color: ${queueColor}; border-color: ${queueColor}40;">
+                    <i class="bi ${queueIcon} me-1"></i>${wo.master_queue_types?.short_code || 'PSB'}
                 </span>
+                <div class="square-avatar" title="${lead}">${leadInitial}</div>
                 <span class="wo-time-pro"><i class="bi bi-clock"></i> ${formatTimeAgo(wo.created_at)}</span>
             </div>
             
@@ -288,6 +239,89 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
             <div class="small mb-3 lh-sm" style="font-size:0.85rem; color: #94a3b8; border-left: 2px solid #334155; padding-left: 10px; margin-top: 8px;">
                 ${wo.ket?.substring(0, 60) || wo.master_queue_types?.name || 'PSB'}${wo.ket?.length > 60 ? '...' : ''}
             </div>
+            
+            ${(['closed', 'completed'].includes(wo.status)) ? (() => {
+                const assignments = wo.work_order_assignments || [];
+                const basePoints = wo.master_queue_types?.base_point || 0;
+                const totalPoints = assignments.reduce((sum, a) => {
+                    const isLead = a.assignment_role === 'lead';
+                    const baseCalc = isLead ? basePoints : Math.floor(basePoints * 0.7);
+                    const finalPts = a.points_earned || Math.max(0, baseCalc + (a.bonus_points || 0) - (a.deduction_points || 0));
+                    return sum + finalPts;
+                }, 0);
+                
+                const detailsHtml = assignments.map(a => {
+                    const isLead = a.assignment_role === 'lead';
+                    const baseCalc = isLead ? basePoints : Math.floor(basePoints * 0.7);
+                    const bonus = a.bonus_points || 0;
+                    const deduction = a.deduction_points || 0;
+                    const finalPts = a.points_earned || Math.max(0, baseCalc + bonus - deduction);
+
+                    return `
+                        <div class="hud-math-grid mt-1 mb-2 p-2 rounded" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.05);">
+                            <div class="fw-bold mb-1" style="font-size: 0.75rem; color: #14b8a6;">${a.employees?.name} <span class="badge bg-secondary ms-1" style="font-size: 0.55rem;">${a.assignment_role.toUpperCase()}</span></div>
+                            <div class="hud-math-row" style="font-size: 0.7rem;">
+                                <span class="hud-label">Base</span>
+                                <span class="hud-value">${baseCalc}</span>
+                            </div>
+                            ${bonus > 0 ? `
+                            <div class="hud-math-row hud-bonus" style="font-size: 0.7rem;">
+                                <span class="hud-label">Bonus</span>
+                                <span class="hud-value hud-positive">+${bonus}</span>
+                            </div>` : ''}
+                            ${deduction > 0 ? `
+                            <div class="hud-math-row hud-deduction" style="font-size: 0.7rem;">
+                                <span class="hud-label">Potongan</span>
+                                <span class="hud-value hud-negative">-${deduction}</span>
+                            </div>` : ''}
+                            <div class="hud-math-row hud-total mt-1 pt-1" style="font-size: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.1);">
+                                <span class="hud-label">Total</span>
+                                <span class="hud-value fw-bold" style="color: #14b8a6;">${finalPts} pts</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                const accordionId = 'acc-' + wo.id;
+
+                return `
+                <div class="accordion accordion-flush mb-2" id="accordion-${accordionId}">
+                    <div class="accordion-item" style="background: transparent; border: none;">
+                        <h2 class="accordion-header" id="heading-${accordionId}">
+                            <button class="accordion-button collapsed px-2 py-2 rounded" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}" style="background: rgba(20, 184, 166, 0.1); border: 1px solid rgba(20, 184, 166, 0.25); box-shadow: none;">
+                                <div class="d-flex w-100 justify-content-between align-items-center me-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-gem" style="color: #14b8a6; font-size: 0.8rem;"></i>
+                                        <span class="text-white-50" style="font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;">EARNED:</span>
+                                    </div>
+                                    <div class="fw-bold" style="color: #14b8a6; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem;">
+                                        ${totalPoints} <span class="text-white-50" style="font-size: 0.65rem;">pts</span>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse-${accordionId}" class="accordion-collapse collapse" data-bs-parent="#accordion-${accordionId}">
+                            <div class="accordion-body px-0 py-1" onclick="event.stopPropagation()">
+                                ${detailsHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    #accordion-${accordionId} .accordion-button::after {
+                        filter: invert(72%) sepia(86%) saturate(366%) hue-rotate(125deg) brightness(91%) contrast(85%); /* Approx #14b8a6 */
+                        transform: scale(0.8);
+                        margin-left: auto;
+                    }
+                    #accordion-${accordionId} .accordion-button:not(.collapsed)::after {
+                        filter: invert(72%) sepia(86%) saturate(366%) hue-rotate(125deg) brightness(91%) contrast(85%);
+                    }
+                    #accordion-${accordionId} .accordion-button {
+                        padding-right: 0.5rem !important;
+                    }
+                </style>
+                `;
+            })() : ''}
             
             <div class="d-flex justify-content-between align-items-end mt-auto pt-3 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
                 <div class="small px-3 py-1 rounded-pill ${wo.work_order_assignments?.length ? 'tech-gradient-badge' : 'bg-dark text-warning border border-warning border-opacity-25'}" style="font-weight: 600; font-size: 0.75rem;">
@@ -307,6 +341,18 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                         <button class="btn btn-sm btn-success rounded-circle shadow assign-confirm-wo d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Konfirmasi & Tugaskan" style="width:32px; height:32px; padding:0;">
                             <i class="bi bi-check-lg"></i>
                         </button>
+                    ` : wo.status === 'completed' ? `
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-success rounded-circle shadow verify-wo-btn d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Verifikasi & Selesai" style="width:32px; height:32px; padding:0;">
+                                <i class="bi bi-shield-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning rounded-circle shadow revision-wo-btn d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Request Revision" style="width:32px; height:32px; padding:0;">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-light rounded-circle view-wo-details-btn d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Detail" style="width:32px; height:32px; padding:0; border-color: rgba(255,255,255,0.2);">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                        </div>
                     ` : `
                         <button class="btn btn-sm btn-outline-light rounded-circle view-wo-details-btn d-flex justify-content-center align-items-center" data-id="${wo.id}" title="Lihat Aksi" style="width:32px; height:32px; padding:0; border-color: rgba(255,255,255,0.2);">
                             <i class="bi bi-three-dots"></i>
@@ -315,77 +361,35 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
                 </div>
             </div>
         </div>
-    `;
-
-    // 1. RENDER HERO SECTION (Progress tasks pulled out entirely)
-    if (heroContainer) {
-        heroContainer.innerHTML = `
-            <div class="row g-4 mb-2">
-                <div class="col-md-6">
-                    <div class="kanban-pro-col overflow-hidden" style="border-top: 4px solid #0047AB; background: var(--surface-solid, #1e293b); border-color: rgba(14, 165, 233, 0.3);">
-                        <div class="glass-header-pro d-flex justify-content-between align-items-center mb-0 border-0 border-bottom border-secondary border-opacity-25" style="border-radius:0;">
-                            <span class="fw-bold text-white fs-6">
-                                <i class="bi bi-calendar2-day text-info me-2"></i>Tugas Aktif Hari Ini
-                            </span>
-                            <span class="badge bg-primary rounded-pill px-3 py-2 shadow-sm">${todayOrders.length}</span>
-                        </div>
-                        <div class="p-3 kanban-scroll d-flex flex-nowrap overflow-x-auto gap-3" style="max-height: auto;">
-                            ${todayOrders.length === 0 ? '<div class="text-center p-4 small text-muted border border-secondary border-opacity-25 rounded w-100" style="border-style: dashed !important;">Tidak ada antrian hari ini.</div>' : todayOrders.map(wo => `<div style="min-width: 300px; flex-shrink: 0;">${createCardHtml(wo).replace('mb-3', 'mb-0')}</div>`).join('')}
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="kanban-pro-col overflow-hidden" style="border-top: 4px solid #f43f5e; background: var(--surface-solid, #1e293b); border-color: rgba(244, 63, 94, 0.3);">
-                        <div class="glass-header-pro d-flex justify-content-between align-items-center mb-0 border-0 border-bottom border-secondary border-opacity-25" style="border-radius:0;">
-                            <span class="fw-bold text-white fs-6">
-                                <i class="bi bi-exclamation-triangle text-danger me-2"></i>Sisa Kemarin (Outstanding)
-                            </span>
-                            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm">${leftoverOrders.length}</span>
-                        </div>
-                        <div class="p-3 kanban-scroll d-flex flex-nowrap overflow-x-auto gap-3" style="max-height: auto;">
-                            ${leftoverOrders.length === 0 ? '<div class="text-center p-4 small text-muted border border-secondary border-opacity-25 rounded w-100" style="border-style: dashed !important;">Bersih! Tidak ada penumpukan.</div>' : leftoverOrders.map(wo => `<div style="min-width: 300px; flex-shrink: 0;">${createCardHtml(wo).replace('mb-3', 'mb-0')}</div>`).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>
         `;
-    }
+    };
 
-    // 2. RENDER MAIN KANBAN WITH HORIZONTAL SWIPING AND SWIMLANES
+    // 1. RENDER MAIN KANBAN
     let kanbanHtml = `
-        <h5 class="text-white mb-3 fw-bold mt-2" style="letter-spacing: -0.5px;">
-            <i class="bi bi-kanban text-secondary me-2"></i>Antrian Keseluruhan
-        </h5>
-        <div class="d-flex flex-nowrap overflow-x-auto pb-4 gap-4 kanban-scroll" style="min-height: 50vh; snap-type: x mandatory;">
+        <div class="kanban-wrapper precision-scroll">
     `;
 
     mainKanbanColumns.forEach(col => {
-        // Only include "closed" if they were closed today to avoid endless list
-        let colOrders = filteredOrders.filter(wo => col.statuses.includes(wo.status));
-        if (col.id === 'closed') {
-            colOrders = colOrders.filter(wo => new Date(wo.completed_at || wo.created_at).toISOString().split('T')[0] === todayStr);
-        }
+        const colOrders = filteredOrders.filter(wo => col.statuses.includes(wo.status));
 
         kanbanHtml += `
-            <div class="kanban-pro-col d-flex flex-column" style="min-width: 320px; flex-shrink: 0; border-top: 4px solid ${getStatusColor(col.statuses[0])}; snap-align: start;">
-                <div class="glass-header-pro d-flex justify-content-between align-items-center border-0 border-bottom border-secondary border-opacity-25 rounded-0 mb-0" style="background:transparent; padding: 12px 0;">
-                    <span class="fw-bold text-white fs-6" style="letter-spacing: -0.5px;">${col.title}</span>
-                    <span class="badge bg-secondary rounded-pill px-3 py-1 shadow-sm opacity-75">${colOrders.length}</span>
+            <div class="kanban-col ${col.class}">
+                <div class="kanban-col-header">
+                    <span class="label font-mono" style="color: var(--text-main);">${col.title}</span>
+                    <div class="badge-count font-mono" style="background: var(--tech-element); padding: 2px 8px; border: 1px solid var(--tech-border);">${colOrders.length}</div>
                 </div>
-                
-                <div class="kanban-scroll flex-grow-1" style="max-height: 60vh; overflow-y: auto; padding-right: 4px; padding-top: 10px;">
+                <div class="kanban-col-body precision-scroll">
         `;
         
         if (colOrders.length === 0) {
-            kanbanHtml += '<div class="text-center p-4 mt-2 small text-muted border border-secondary border-opacity-25 rounded" style="border-style: dashed !important;">Kosong</div>';
+            kanbanHtml += '<div class="text-center p-4 small text-muted font-mono opacity-50">KOSONG</div>';
         } else {
-            // Render Swimlanes vertically inside the column
             types.forEach(type => {
                 const typeOrders = colOrders.filter(wo => wo.type_id === type.id || (!type.id && type.name === 'Lainnya'));
                 if (typeOrders.length > 0) {
                     kanbanHtml += `
-                        <div class="swimlane-header text-uppercase small fw-bold mb-2 mt-3 ps-2 border-start" style="border-color: ${type.color} !important; color: ${type.color}; letter-spacing: 1px;">
-                            ${type.name} <span class="opacity-50 ms-1">(${typeOrders.length})</span>
+                        <div class="label font-mono mb-2 mt-2" style="color: ${type.color}; font-size: 0.6rem; opacity: 0.8;">
+                            > ${type.name}
                         </div>
                     `;
                     kanbanHtml += typeOrders.map(createCardHtml).join('');
@@ -402,30 +406,42 @@ export function renderWorkOrders(filteredOrders, onRowClick, onConfirmClick, tab
     kanbanHtml += '</div>';
     tableContainer.innerHTML = kanbanHtml;
 
-    // 3. WIRE UP EVENTS FOR EVERYTHING (Hero + Main Board)
+    // 2. WIRE UP EVENTS
     const attachEvents = (parentEl) => {
         if (!parentEl) return;
         
-        parentEl.querySelectorAll('.view-wo-details-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent bubbling issues
-                const woId = btn.dataset.id;
+        parentEl.querySelectorAll('.ticket-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                // Prevent click bubbling if we add buttons later
+                if (e.target.closest('.btn')) return;
+                
+                const woId = card.dataset.id;
                 const wo = filteredOrders.find(w => w.id === woId);
                 if (onRowClick) onRowClick(wo);
             });
         });
 
+        // Legacy action buttons if still present in templates
         parentEl.querySelectorAll('.assign-confirm-wo').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 const woId = btn.dataset.id;
                 const wo = filteredOrders.find(w => w.id === woId);
                 if (onConfirmClick) onConfirmClick(wo);
             });
         });
+
+        parentEl.querySelectorAll('.verify-wo-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const woId = btn.dataset.id;
+                document.dispatchEvent(new CustomEvent('request-wo-verify', { detail: { woId } }));
+            });
+        });
     };
 
-    attachEvents(heroContainer);
     attachEvents(tableContainer);
 }
 
@@ -436,14 +452,14 @@ function formatTimeAgo(dateString) {
     const seconds = Math.floor((now - date) / 1000);
 
     let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
+    if (interval > 1) return Math.floor(interval) + "thn";
     interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
+    if (interval > 1) return Math.floor(interval) + "bln";
     interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
+    if (interval > 1) return Math.floor(interval) + "hr";
     interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
+    if (interval > 1) return Math.floor(interval) + "jam";
     interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return Math.floor(seconds) + " seconds ago";
+    if (interval > 1) return Math.floor(interval) + "mnt";
+    return Math.floor(seconds) + "dtk";
 }

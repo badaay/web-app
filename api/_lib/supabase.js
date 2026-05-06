@@ -34,22 +34,35 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 // ---------------------------------------------------------------------------
-// Project B (Vault) client — for bills, payroll, financial_transactions, attendance
+// Project B (Vault) client
+// ---------------------------------------------------------------------------
+// UNIFIED MODE: When SUPABASE_URL_B / SUPABASE_SERVICE_ROLE_KEY_B are NOT set,
+// supabaseAdminB automatically resolves to supabaseAdmin (Project A).
+// This means ALL tables (HR, payroll, finance, attendance, overtime, bills)
+// live in a single Supabase project. No code changes are needed in handlers.
+//
+// SPLIT MODE: Set SUPABASE_URL_B + SUPABASE_SERVICE_ROLE_KEY_B to point
+// supabaseAdminB at a separate Vault database.
 // ---------------------------------------------------------------------------
 
 const supabaseUrlB     = process.env.SUPABASE_URL_B;
 const supabaseKeyB     = process.env.SUPABASE_SERVICE_ROLE_KEY_B;
 
+const isVaultSplit = !!(supabaseUrlB && supabaseKeyB);
+
 /**
- * Admin client for Project B (Vault). Bypasses RLS.
- * Use for: customer_bills, financial_transactions, payroll_*, attendance_*, overtime_*, technician_points_ledger.
- * FALLBACK: If Project B is not configured, it falls back to Project A (supabaseAdmin).
+ * Admin client for Vault tables (bills, payroll, finance, attendance, overtime).
+ * Automatically falls back to Project A when Project B is not configured.
  */
-export const supabaseAdminB = (supabaseUrlB && supabaseKeyB)
+export const supabaseAdminB = isVaultSplit
   ? createClient(supabaseUrlB, supabaseKeyB, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
   : supabaseAdmin;
+
+if (!isVaultSplit) {
+  console.info('[Supabase] Unified mode — supabaseAdminB → Project A (no separate Vault)');
+}
 
 // ---------------------------------------------------------------------------
 // Auth helpers

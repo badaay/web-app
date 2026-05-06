@@ -6,7 +6,7 @@ import { getStatusColor, getStatusDisplayText } from './utils.js';
 import { getSpinner } from '../../../utils/ui-common.js';
 import { ActivityLog } from '../../../utils/activity-log.js';
 import { showWorkOrderModal } from './form.js';
-import { showInstallationMonitoringModal } from './monitoring.js';
+import { showInstallationMonitoringModal, showVerificationModal } from './monitoring.js';
 import { exposeMapGlobal } from './map.js';
 
 let allWorkOrders = [];
@@ -133,6 +133,18 @@ export async function initWorkOrders() {
         }
     });
 
+    // [WO-006] Listen for verification requests
+    document.addEventListener('request-wo-verify', async (e) => {
+        const { woId } = e.detail;
+        await handleVerifyWo(woId);
+    });
+
+    // [WO-007] Listen for revision requests
+    document.addEventListener('request-wo-revision', async (e) => {
+        const { woId } = e.detail;
+        await handleRevisionWo(woId);
+    });
+
     // Render target statistics
     await renderTargetStatistics(pemasanganTypeId, perbaikanTypeId);
 }
@@ -162,9 +174,10 @@ async function renderTargetStatistics(pemasanganTypeId, perbaikanTypeId) {
             waiting: todayWorkOrders?.filter(wo => wo.status === 'waiting').length || 0,
             confirmed: todayWorkOrders?.filter(wo => wo.status === 'confirmed').length || 0,
             inProgress: todayWorkOrders?.filter(wo => wo.status === 'open').length || 0,
+            pendingVerify: todayWorkOrders?.filter(wo => wo.status === 'completed').length || 0,
             completed: todayWorkOrders?.filter(wo => wo.status === 'closed').length || 0,
             leftOver: todayWorkOrders?.filter(wo => {
-                // Leftover: confirmed on a previous day but not completed today
+                // Leftover: confirmed on a previous day but not closed today
                 const confirmedDate = new Date(wo.created_at).toISOString().split('T')[0];
                 return wo.status !== 'closed' && confirmedDate < today;
             }).length || 0,
@@ -177,27 +190,33 @@ async function renderTargetStatistics(pemasanganTypeId, perbaikanTypeId) {
 
         let html = `
             <div class="row g-3">
-                <div class="col-6 col-sm-3 mt-0">
+                <div class="col-6 col-sm-4 mt-0 col-lg-2">
                     <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
                         <div class="small fw-semibold mb-1" style="color: #f59e0b;">Menunggu</div>
                         <div class="h4 fw-bold text-white mb-0 lh-1">${stats.waiting}</div>
                     </div>
                 </div>
-                <div class="col-6 col-sm-3 mt-0">
+                <div class="col-6 col-sm-4 mt-0 col-lg-2">
                     <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
                         <div class="small fw-semibold mb-1" style="color: #0ea5e9;">Diproses</div>
                         <div class="h4 fw-bold text-white mb-0 lh-1">${stats.inProgress}</div>
                     </div>
                 </div>
-                <div class="col-6 col-sm-3 mt-0">
+                <div class="col-6 col-sm-4 mt-0 col-lg-2">
+                    <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
+                        <div class="small fw-semibold mb-1" style="color: #f59e0b;">Verifikasi</div>
+                        <div class="h4 fw-bold text-white mb-0 lh-1">${stats.pendingVerify}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 mt-0 col-lg-2">
                     <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
                         <div class="small fw-semibold mb-1" style="color: #10b981;">Selesai</div>
                         <div class="h4 fw-bold text-white mb-0 lh-1">${stats.completed}</div>
                     </div>
                 </div>
-                <div class="col-6 col-sm-3 mt-0">
+                <div class="col-6 col-sm-4 mt-0 col-lg-4">
                     <div class="card bg-vscode border-secondary border-opacity-25 p-3 text-center h-100">
-                        <div class="small fw-semibold mb-1" style="color: #ef4444;">Leftover</div>
+                        <div class="small fw-semibold mb-1" style="color: #ef4444;">Leftover (Outstanding)</div>
                         <div class="h4 fw-bold text-white mb-0 lh-1">${stats.leftOver}</div>
                     </div>
                 </div>
@@ -334,7 +353,7 @@ async function showAssignConfirmPanel(wo) {
             await apiCall('/work-orders/confirm', {
                 method: 'POST',
                 body: JSON.stringify({
-                    workOrderId: wo.id,
+                    id: wo.id,
                     employeeId: selectedEmployeeId
                 })
             });
@@ -367,6 +386,35 @@ async function showAssignConfirmPanel(wo) {
     }, { once: true });
 
     modal.show();
+}
+
+async function handleVerifyWo(woId) {
+    if (!confirm('Verifikasi pekerjaan ini dan berikan poin?')) return;
+    try {
+        await apiCall('/work-orders/verify', {
+            method: 'POST',
+            body: JSON.stringify({ id: woId })
+        });
+        showToast('Pekerjaan berhasil diverifikasi dan ditutup.', 'success');
+        window.reloadUnifiedKanban();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+async function handleRevisionWo(woId) {
+    const reason = prompt('Masukkan alasan revisi:');
+    if (!reason) return;
+    try {
+        await apiCall('/work-orders/revision', {
+            method: 'POST',
+            body: JSON.stringify({ workOrderId: woId, reason })
+        });
+        showToast('Permintaan revisi berhasil dikirim ke teknisi.', 'success');
+        window.reloadUnifiedKanban();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
 }
 
 
@@ -405,8 +453,119 @@ async function showWorkOrderActions(wo) {
         color: getStatusColor(m.status) || 'var(--vscode-secondary)',
         icon: 'bi-clock-history'
     }));
-
     const timelineHtml = ActivityLog.renderTimeline(logs);
+
+    // Build Points HUD breakdown (AC1 + AC2)
+    const isPointsVisible = ['closed', 'completed'].includes(wo.status);
+    const basePoints = wo.master_queue_types?.base_point || 0;
+
+    // Fetch user role for financial visibility (Story 2.3 AC4/5)
+    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: profile } = await supabase.from('profiles').select('roles(code)').eq('id', sessionData?.session?.user?.id).single();
+    const isAdminUser = ['S_ADM', 'OWNER', 'ADM'].includes(profile?.roles?.code);
+
+    let pointsHudHtml = '';
+    if (isPointsVisible) {
+        const pointAssignments = assignments.map(a => {
+            const isLead = a.assignment_role === 'lead';
+            const multiplier = isLead ? 1.0 : 0.7;
+            const baseCalc = isLead ? basePoints : Math.floor(basePoints * 0.7);
+            const bonus = a.bonus_points || 0;
+            const deduction = a.deduction_points || 0;
+            const finalPts = a.points_earned || Math.max(0, baseCalc + bonus - deduction);
+            const reason = a.adjustment_reason || '';
+
+            return `
+                <div class="hud-assignment-card mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-white" style="font-size: 0.95rem;">
+                            <i class="bi bi-person-fill me-1" style="color: #14b8a6;"></i>${a.employees?.name || 'Teknisi'}
+                        </span>
+                        <span class="hud-role-badge">${a.assignment_role.toUpperCase()}</span>
+                    </div>
+                    <div class="hud-math-grid">
+                        <div class="hud-math-row">
+                            <span class="hud-label">Base (${wo.master_queue_types?.name || 'Job'})</span>
+                            <span class="hud-value">${basePoints}</span>
+                        </div>
+                        ${!isLead ? `
+                        <div class="hud-math-row hud-multiplier">
+                            <span class="hud-label">× ${multiplier} <span class="text-white-50">(Member)</span></span>
+                            <span class="hud-value">= ${baseCalc}</span>
+                        </div>
+                        ` : ''}
+                        ${bonus > 0 ? `
+                        <div class="hud-math-row hud-bonus">
+                            <span class="hud-label">Bonus</span>
+                            <span class="hud-value hud-positive">+${bonus}</span>
+                        </div>
+                        ` : ''}
+                        ${deduction > 0 ? `
+                        <div class="hud-math-row hud-deduction">
+                            <span class="hud-label">Potongan</span>
+                            <span class="hud-value hud-negative">−${deduction}</span>
+                        </div>
+                        ` : ''}
+                        ${reason ? `
+                        <div class="hud-reason-row">
+                            <i class="bi bi-chat-left-text me-1"></i>${reason}
+                        </div>
+                        ` : ''}
+                        <div class="hud-math-row hud-total">
+                            <span class="hud-label">TOTAL</span>
+                            <span class="hud-value hud-total-value">${finalPts} pts</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        const grandTotal = assignments.reduce((s, a) => {
+            const isLead = a.assignment_role === 'lead';
+            const baseCalc = isLead ? basePoints : Math.floor(basePoints * 0.7);
+            const finalPts = a.points_earned || Math.max(0, baseCalc + (a.bonus_points || 0) - (a.deduction_points || 0));
+            return s + finalPts;
+        }, 0);
+
+        // Material Cost Section (Story 2.3)
+        let materialHtml = '';
+        if (isAdminUser && wo.material_cost !== undefined) {
+            const invUsed = wo.inventory_used || [];
+            materialHtml = `
+                <div class="hud-panel mt-3 border-info border-opacity-25" style="background: rgba(14, 165, 233, 0.05);">
+                    <div class="hud-header mb-2 text-info">
+                        <i class="bi bi-box-seam me-2"></i>Job Material Cost
+                    </div>
+                    <div class="hud-math-grid">
+                        ${invUsed.map(inv => `
+                            <div class="hud-math-row">
+                                <span class="hud-label">${inv.name} (x${inv.quantity})</span>
+                                <span class="hud-value text-white-50">Rp ${(inv.subtotal || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                        `).join('')}
+                        <div class="hud-math-row hud-total pt-2 border-top border-secondary border-opacity-25 mt-2">
+                            <span class="hud-label text-info">TOTAL MATERIAL</span>
+                            <span class="hud-value text-info fw-bold">Rp ${(wo.material_cost || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        pointsHudHtml = `
+            <div class="hud-panel">
+                <div class="hud-header mb-3">
+                    <i class="bi bi-gem me-2"></i>Points Breakdown
+                </div>
+                ${pointAssignments.join('')}
+                <div class="hud-grand-total">
+                    <span>GRAND TOTAL</span>
+                    <span class="hud-grand-value">${grandTotal} pts</span>
+                </div>
+            </div>
+            ${materialHtml}
+        `;
+    }
 
     body.innerHTML = `
         <div class="px-1 kanban-modal-wrapper">
@@ -446,13 +605,20 @@ async function showWorkOrderActions(wo) {
                 </div>
             </div>
 
-            <!-- Tab Navigation (Simplified Pill Design) -->
+            <!-- Tab Navigation -->
             <ul class="nav nav-pills mb-4 d-flex bg-dark rounded-pill p-1 shadow-sm border border-secondary border-opacity-25" id="woTabs" role="tablist">
                 <li class="nav-item flex-fill text-center" role="presentation">
                     <button class="nav-link active rounded-pill w-100 fw-semibold transition-all" id="actions-tab" data-bs-toggle="pill" data-bs-target="#actions-panel" type="button" role="tab" style="font-size: 0.9rem;">Tindakan</button>
                 </li>
+                ${isPointsVisible ? `
                 <li class="nav-item flex-fill text-center" role="presentation">
-                    <button class="nav-link rounded-pill w-100 fw-semibold text-white-50 transition-all" id="history-tab" data-bs-toggle="pill" data-bs-target="#history-panel" type="button" role="tab" style="font-size: 0.9rem;">Riwayat Aktivitas</button>
+                    <button class="nav-link rounded-pill w-100 fw-semibold text-white-50 transition-all" id="points-tab" data-bs-toggle="pill" data-bs-target="#points-panel" type="button" role="tab" style="font-size: 0.9rem;">
+                        <i class="bi bi-gem me-1"></i>Poin
+                    </button>
+                </li>
+                ` : ''}
+                <li class="nav-item flex-fill text-center" role="presentation">
+                    <button class="nav-link rounded-pill w-100 fw-semibold text-white-50 transition-all" id="history-tab" data-bs-toggle="pill" data-bs-target="#history-panel" type="button" role="tab" style="font-size: 0.9rem;">Riwayat</button>
                 </li>
             </ul>
 
@@ -467,11 +633,24 @@ async function showWorkOrderActions(wo) {
                             </button>
                         </div>
                         <div class="col-12 col-md-6">
-                            <button class="btn btn-success w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-close-wo">
-                                <i class="bi bi-check-circle-fill fs-5"></i>
-                                <span class="fw-semibold">Tandai Selesai</span>
+                            ${wo.status === 'completed' 
+                                ? `<button class="btn btn-warning w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-verify-wo">
+                                    <i class="bi bi-shield-check fs-5"></i>
+                                    <span class="fw-semibold">Verifikasi & Tutup</span>
+                                   </button>`
+                                : `<button class="btn btn-success w-100 shadow-sm d-flex flex-column flex-md-row justify-content-center align-items-center py-3 gap-2 rounded-3 transition-base hover-lift" id="action-complete-wo">
+                                    <i class="bi bi-check-circle-fill fs-5"></i>
+                                    <span class="fw-semibold">Tandai Selesai</span>
+                                   </button>`
+                            }
+                        </div>
+                        ${wo.status === 'completed' ? `
+                        <div class="col-12 mt-2">
+                            <button class="btn btn-outline-warning w-100 py-2" id="action-revision-wo">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Minta Revisi
                             </button>
                         </div>
+                        ` : ''}
                         <div class="col-12 border-top border-secondary border-opacity-25 mt-4 pt-3 d-flex gap-2 justify-content-end align-items-center">
                             <span class="small text-white-50 me-auto">Opsi Lanjutan</span>
                             <button class="btn btn-outline-light btn-sm px-3 rounded-pill" id="action-edit-wo">
@@ -483,6 +662,13 @@ async function showWorkOrderActions(wo) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Points HUD Panel (AC1 + AC2) -->
+                ${isPointsVisible ? `
+                <div class="tab-pane fade" id="points-panel" role="tabpanel">
+                    ${pointsHudHtml}
+                </div>
+                ` : ''}
 
                 <!-- History Panel -->
                 <div class="tab-pane fade" id="history-panel" role="tabpanel">
@@ -513,28 +699,74 @@ async function showWorkOrderActions(wo) {
         });
     };
 
-    document.getElementById('action-monitor-wo').onclick = () => {
+    const monitorBtn = document.getElementById('action-monitor-wo');
+    if (monitorBtn) monitorBtn.onclick = () => {
         modal.hide();
         showInstallationMonitoringModal(wo, () => {
-            location.reload();
+            window.reloadUnifiedKanban();
         });
     };
 
-    document.getElementById('action-close-wo').onclick = async (e) => {
-        const btn = e.currentTarget;
-        window.setBtnLoading(btn, true, 'Menutup...');
-        try {
-            await apiCall('/work-orders/close', {
-                method: 'POST',
-                body: JSON.stringify({ workOrderId: wo.id })
-            });
-            showToast('Antrian berhasil ditutup', 'success');
+    const completeBtn = document.getElementById('action-complete-wo');
+    if (completeBtn) {
+        completeBtn.onclick = async (e) => {
+            const btn = e.currentTarget;
+            window.setBtnLoading(btn, true, 'Memproses...');
+            try {
+                await apiCall('/work-orders/complete', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: wo.id })
+                });
+                showToast('Antrian berhasil ditandai selesai (Menunggu Verifikasi)', 'success');
+                modal.hide();
+                window.reloadUnifiedKanban();
+            } catch (err) {
+                showToast(`Error: ${err.message}`, 'error');
+                window.setBtnLoading(btn, false);
+            }
+        };
+    }
+
+    if (document.getElementById('action-verify-wo')) {
+        document.getElementById('action-verify-wo').onclick = () => {
+
             modal.hide();
-            window.reloadUnifiedKanban();
-        } catch (err) {
-            showToast(`Error: ${err.message}`, 'error');
-            window.setBtnLoading(btn, false);
-        }
+            showVerificationModal(wo, () => {
+                window.reloadUnifiedKanban();
+            });
+        };
+    }
+
+    if (document.getElementById('action-revision-wo')) {
+        document.getElementById('action-revision-wo').onclick = async () => {
+            const reason = prompt('Masukkan alasan permintaan revisi:');
+            if (!reason) return;
+            
+            try {
+                const response = await apiCall('/api/work-orders/revision', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: wo.id, reason })
+                });
+                if (response.error) throw new Error(response.error);
+                showToast('Permintaan revisi berhasil dikirim', 'success');
+                modal.hide();
+                window.reloadUnifiedKanban();
+            } catch (err) {
+                showToast(`Error: ${err.message}`, 'error');
+            }
+        };
+    }
+
+    const verifyBtn = document.getElementById('action-verify-wo');
+    if (verifyBtn) verifyBtn.onclick = async (e) => {
+        modal.hide();
+        await handleVerifyWo(wo.id);
+    };
+
+    const revisionBtn = document.getElementById('action-revision-wo');
+    if (revisionBtn) revisionBtn.onclick = async (e) => {
+        modal.hide();
+        await handleRevisionWo(wo.id);
     };
 
     document.getElementById('action-delete-wo').onclick = async (e) => {

@@ -328,12 +328,16 @@ WITH
   wo_1 AS (SELECT id FROM public.work_orders WHERE title = 'PSB - FATMAWATI' AND status = 'confirmed' LIMIT 1),
   wo_2 AS (SELECT id FROM public.work_orders WHERE title = 'PSB - HASIB' AND status = 'open' LIMIT 1),
   wo_3 AS (SELECT id FROM public.work_orders WHERE title = 'UPGRADE - FATMAWATI' AND status = 'closed' LIMIT 1)
-INSERT INTO public.work_order_assignments (work_order_id, employee_id, assignment_role, points_earned)
+INSERT INTO public.work_order_assignments (work_order_id, employee_id, assignment_role, points_earned, bonus_points, deduction_points, adjustment_reason)
 VALUES
-  ((SELECT id FROM wo_1), (SELECT id FROM emp_ali), 'lead', 0),
-  ((SELECT id FROM wo_2), (SELECT id FROM emp_wahid), 'lead', 0),
-  ((SELECT id FROM wo_3), (SELECT id FROM emp_fungki), 'lead', 50)
-ON CONFLICT (work_order_id, employee_id) DO NOTHING;
+  ((SELECT id FROM wo_1), (SELECT id FROM emp_ali), 'lead', 0, 0, 0, NULL),
+  ((SELECT id FROM wo_2), (SELECT id FROM emp_wahid), 'lead', 0, 0, 0, NULL),
+  ((SELECT id FROM wo_3), (SELECT id FROM emp_fungki), 'lead', 65, 20, 5, 'Reseed: Bonus kecepatan (+20), Potongan administrasi (-5)')
+ON CONFLICT (work_order_id, employee_id) DO UPDATE SET
+  points_earned = EXCLUDED.points_earned,
+  bonus_points = EXCLUDED.bonus_points,
+  deduction_points = EXCLUDED.deduction_points,
+  adjustment_reason = EXCLUDED.adjustment_reason;
 
 -- ============================================================
 -- STEP 13: CUSTOMER BILLS (Monthly billing records)

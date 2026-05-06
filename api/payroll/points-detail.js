@@ -48,6 +48,8 @@ export default withCors(async (req) => {
                     title,
                     status,
                     completed_at,
+                    material_cost,
+                    inventory_used,
                     type:master_queue_types(name, icon, color),
                     customer:customers(name, customer_code)
                 )
@@ -60,12 +62,22 @@ export default withCors(async (req) => {
 
         if (error) return errorResponse(error.message, 500);
 
+        // Sanitize sensitive financial data for non-admins
+        const sanitizedItems = data.map(item => {
+            if (!adminCheck) {
+                const { material_cost, inventory_used, ...woRest } = item.work_orders;
+                return { ...item, work_orders: woRest };
+            }
+            return item;
+        });
+
         return jsonResponse({
             employee_id,
             period_name: `${period.month}/${period.year}`,
             period_range: `${period.period_start} to ${period.period_end}`,
             total_points: data.reduce((sum, item) => sum + (item.points_earned || 0), 0),
-            items: data
+            items: sanitizedItems,
+            is_admin: adminCheck
         });
 
     } catch (err) {

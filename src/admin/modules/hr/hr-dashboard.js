@@ -175,7 +175,7 @@ export async function initHRDashboard() {
                     return `
                         <tr>
                             <td class="ps-4">
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center">     
                                     <div class="rounded-circle me-2" style="width: 8px; height: 8px; background-color: ${color}"></div>
                                     <span>${pos}</span>
                                 </div>

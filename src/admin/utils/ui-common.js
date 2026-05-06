@@ -106,13 +106,58 @@ export function showSharedMap(lat, lng, title = 'Lokasi', popupHtml = '') {
  * @param {string} text - Text to display next to the spinner.
  * @returns {string} HTML string for the spinner.
  */
-export function getSpinner(text = 'Memuat data...') {
+export function getSpinner(text = 'Memproses...') {
     return `
-        <div class="d-flex align-items-center justify-content-center p-5">
-            <div class="spinner-border text-primary me-3" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <span class="text-white-50">${text}</span>
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            ${text}
         </div>
     `;
+}
+
+/**
+ * Copy item code to clipboard with visual feedback on the triggering element.
+ * Supports modern Clipboard API with a textarea fallback for older browsers.
+ * @param {string} text - The text to copy
+ * @param {HTMLElement} el - Element that triggered the copy (for feedback)
+ * @param {number} duration - ms to show feedback (default 2000)
+ */
+export function copyItemCode(text, el, duration = 2000) {
+    const showFeedback = (success) => {
+        const originalHtml = el.innerHTML;
+        const originalClass = el.className;
+        el.innerHTML = success
+            ? '<i class="bi bi-check"></i> Disalin!'
+            : '<i class="bi bi-x"></i> Gagal';
+        if (success) {
+            el.classList.add('btn-success');
+            el.classList.remove('btn-outline-secondary');
+        } else {
+            el.classList.add('btn-danger');
+            el.classList.remove('btn-outline-secondary');
+        }
+        setTimeout(() => {
+            el.innerHTML = originalHtml;
+            el.className = originalClass;
+        }, duration);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showFeedback(true)).catch(() => showFeedback(false));
+    } else {
+        // Fallback for non-secure contexts / older browsers
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showFeedback(true);
+        } catch (_) {
+            showFeedback(false);
+        }
+    }
 }

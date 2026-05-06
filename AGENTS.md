@@ -38,6 +38,13 @@ This document serves as a guide for AI agents working on this project. It outlin
 - `/src/admin/`: Main admin logic and styles.
   - `admin.js`: central hub for routing, session management, and module initialization.
   - `modules/`: Feature-specific logic (e.g., `employees.js`, `customers.js`).
+- `/src/core/`: Core Business Logic (3-Layer Architecture).
+  - `services/`: Business logic orchestration.
+  - `repositories/`: Isolated database access (Supabase).
+  - `__tests__/`: Unit and integration tests.
+- `/api/`: Entry point for Vercel Edge Functions (Handlers).
+  - `_core/`: Barrel re-exports for services.
+  - `_lib/`: Shared server-side utilities.
 - `/src/api/`: Data layer.
   - `supabase.js`: Supabase client initialization.
   - `schema.sql`: Database schema definition.
@@ -68,7 +75,8 @@ This document serves as a guide for AI agents working on this project. It outlin
 
 ### ⏳ Pending / Future
 
-- **Extended Analytics**: More detailed reporting and trends on work order completion and customer growth.
+- **Extended Analytics**: Detailed reporting and trends on work order completion and customer growth.
+- **TDD Coverage**: Expanding test coverage for Handlers and Repositories.
 
 ## 🎫 Ticket & Queue Logic
 
@@ -129,31 +137,42 @@ async function initModule(targetId) {
 - **Modals**: A single shared modal structure (`#crudModal`) is defined in `admin/index.html`. Modules should populate `#crudModalTitle` and `#crudModalBody`, then handle the `#save-crud-btn` click event.
 - **Tables**: Use `<table class="table table-dark table-hover align-middle">` for consistency.
 
-### 4. Data Handling (Supabase + API)
+### 4. 3-Layer Architecture (Backend/API)
 
-- **READ operations** (SELECT): Use the `supabase` client from `../../api/supabase.js` directly — RLS-protected.
-- **WRITE operations** (INSERT/UPDATE/DELETE): Use `apiCall(endpoint, options)` from `../../api/supabase.js` — routes through Vercel Edge Functions.
-- The `apiCall()` helper automatically attaches the user's JWT in the `Authorization` header.
-- Prefer `async/await` for all operations. Handle errors by displaying them in the UI.
+All API logic must follow the **Handler → Service → Repository** pattern:
+
+1.  **Handler** (`api/*.js`):
+    - Responsibilities: HTTP parsing, Auth validation, CORS, Response mapping.
+    - Dependency: Injects `dbClient` and calls a **Service**.
+2.  **Service** (`src/core/services/*.js`):
+    - Responsibilities: Business logic, external API calls (e.g., WhatsApp), complex calculations.
+    - Dependency: Calls one or more **Repositories**.
+3.  **Repository** (`src/core/repositories/*.js`):
+    - Responsibilities: Pure Supabase/DB queries. No business logic.
+    - Dependency: Receives `dbClient` as a parameter.
 
 ```javascript
-import { supabase, apiCall } from "../../api/supabase.js";
-
-// Reads: direct Supabase (OK — RLS-protected)
-const { data } = await supabase.from("customers").select("*");
-
-// Writes: via API endpoint (required — server-side auth + validation)
-await apiCall("/customers/uuid-here", {
-  method: "PATCH",
-  body: JSON.stringify({ name: "New Name" }),
-});
-
-// POST with body shorthand
-await apiCall("/work-orders", {
-  method: "POST",
-  body: JSON.stringify({ type_id, title, customer_id }),
-});
+// Pattern: Service Function
+export async function claimWorkOrder(dbClient, id, body, user, isAuthorizedParam = false) {
+    // 1. Business logic / Auth checks
+    // 2. Call Repository
+    const { data, error } = await woRepo.claimAtomic(dbClient, id, ...);
+    // 3. Return standardized response (ok, created, badRequest, etc.)
+}
 ```
+
+### 5. TDD Workflow & Testing Standards
+
+We follow a **Test-Driven Development (TDD)** approach for all core logic.
+
+- **Tools**: Vitest.
+- **Location**: `src/core/__tests__/`.
+- **Naming**: `{name}.service.test.js` or `{name}.repository.test.js`.
+- **Mocking Rules**:
+  - **Service Tests**: MUST mock all Repository functions using `vi.mock`.
+  - **Handler Tests**: MUST mock all Service functions.
+  - **Database**: Use `createMockDbClient()` from `test-helpers.js`.
+- **Requirement**: All new features must include tests covering happy paths, validation failures, and database edge cases (e.g., race conditions).
 
 ## 📚 Documentation Structure
 
@@ -272,6 +291,7 @@ await apiCall("/work-orders", {
 **Problem**: Running `seed_complete.sql` truncates the `profiles` table. If forgotten, admin endpoints return `"Forbidden: Admin access required"` even for valid superadmin users.
 
 **Cause**: The `profiles` table links `auth.users` to `roles`. Without it:
+
 - `getEmployeeRole(userId)` returns `null`
 - `isAdmin(userId)` returns `false`
 - All admin API calls fail with 403 error
@@ -292,7 +312,7 @@ SELECT
   (SELECT id FROM public.roles WHERE code = emp.role_code)
 FROM auth.users au
 JOIN (
-  SELECT email, 
+  SELECT email,
     CASE position
       WHEN 'Owner'       THEN 'OWNER'
       WHEN 'Bendahara'   THEN 'TREASURER'
@@ -315,13 +335,14 @@ LEFT JOIN public.employees e ON e.email = p.email
 ORDER BY r.code;
 
 -- Step 4: Test superadmin access
-SELECT id, email, role_id FROM public.profiles 
+SELECT id, email, role_id FROM public.profiles
 WHERE email LIKE 'SA001%' OR email LIKE '%@sifatih.id' AND role_id IS NOT NULL;
 ```
 
 ### ✅ Verification Checklist
 
 After running recovery:
+
 - [ ] `SELECT COUNT(*) FROM public.profiles;` shows 7+ profiles
 - [ ] `SELECT * FROM public.profiles WHERE email = 'SA001@sifatih.id';` has `role_id` set
 - [ ] `GET /api/health` returns 200 OK
@@ -330,15 +351,15 @@ After running recovery:
 
 ### 📋 Seeded Users (Role → Email Mapping)
 
-| Role        | Email                  | Employee ID |
-| ----------- | ---------------------- | ----------- |
-| S_ADM       | SA001@sifatih.id       | SA001       |
-| OWNER       | 202101001@sifatih.id   | 202101001   |
-| TREASURER   | 202101002@sifatih.id   | 202101002   |
-| SPV_TECH    | 202408003@sifatih.id   | 202408003   |
-| ADM         | 202509007@sifatih.id   | 202509007   |
-| TECH        | 202512008@sifatih.id   | 202512008   |
-| TECH        | 202602009@sifatih.id   | 202602009   |
+| Role      | Email                | Employee ID |
+| --------- | -------------------- | ----------- |
+| S_ADM     | SA001@sifatih.id     | SA001       |
+| OWNER     | 202101001@sifatih.id | 202101001   |
+| TREASURER | 202101002@sifatih.id | 202101002   |
+| SPV_TECH  | 202408003@sifatih.id | 202408003   |
+| ADM       | 202509007@sifatih.id | 202509007   |
+| TECH      | 202512008@sifatih.id | 202512008   |
+| TECH      | 202602009@sifatih.id | 202602009   |
 
 ## 🤖 Agent Instructions
 

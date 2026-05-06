@@ -6,9 +6,12 @@ const supabaseUrlB = import.meta.env.VITE_SUPABASE_URL_B;
 const supabaseAnonKeyB = import.meta.env.VITE_SUPABASE_ANON_KEY_B;
 
 // Client-side Supabase (Auth + RLS-protected queries only)
+// UNIFIED MODE: When VITE_SUPABASE_URL_B is not set, supabaseB falls back to supabaseA.
 export const supabase = createClient(supabaseUrlA, supabaseAnonKeyA); // Default (Project A / Core)
 export const supabaseA = supabase;
-export const supabaseB = supabaseUrlB ? createClient(supabaseUrlB, supabaseAnonKeyB) : null;
+export const supabaseB = (supabaseUrlB && supabaseAnonKeyB)
+  ? createClient(supabaseUrlB, supabaseAnonKeyB)
+  : supabase; // Fallback to Project A in unified mode
 
 // REMOVED: supabaseAdmin - now handled by /api/* routes (server-side only)
 // Service Role Key is no longer exposed to the browser

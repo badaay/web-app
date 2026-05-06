@@ -1,41 +1,45 @@
 /**
  * API: Employee Salary Config
- * Task 2.1: GET/POST salary configuration for employee
- * Ref: pre-planning/07-integration-points.md
+ * GET /api/employees/[id]/salary-config
+ * POST /api/employees/[id]/salary-config
+ *
+ * Delegates to EmployeeService.
  */
 
-import { verifyAuth, isAdmin, jsonResponse, errorResponse, withCors, supabaseAdmin } from '../../_lib/supabase.js';
+import { supabaseAdmin, withCors, jsonResponse, errorResponse, verifyAuth, isAdmin } from '../../_lib/supabase.js';
+import { getSalaryConfigs, upsertSalaryConfig } from '../../_core/employee.service.js';
+import { mapToHttpStatus } from '../../_core/http-mapper.js';
 
 export const config = { runtime: 'edge' };
 
-export default withCors(async (request) => {
-    const user = await verifyAuth(request);
-    if (!user) return errorResponse('Unauthorized', 401);
+export default withCors(async (req) => {
+  const { user, error: authErr } = await verifyAuth(req);
+  if (authErr) return errorResponse(authErr, 401);
 
-    const url = new URL(request.url);
-    const pathParts = url.pathname.split('/');
-    const employeeId = pathParts[pathParts.indexOf('employees') + 1];
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/');
+  // Path format: /api/employees/[id]/salary-config
+  const empIdx = pathParts.indexOf('employees');
+  const employeeId = pathParts[empIdx + 1];
 
-    if (request.method === 'GET') {
-        // TODO: Task 2.1 - GET active salary config for employee
-        // - Query employee_salary_configs where employee_id = employeeId
-        // - Filter by effective_from <= today AND (effective_to IS NULL OR effective_to >= today)
-        // - Return latest config or empty object
-        
-        return jsonResponse({ message: 'TODO: Implement GET salary config', employeeId });
-    }
+  if (!employeeId) return errorResponse('Employee ID is required', 400);
 
-    if (request.method === 'POST') {
-        const admin = await isAdmin(user.id);
-        if (!admin) return errorResponse('Forbidden', 403);
+  if (req.method === 'GET') {
+    const result = await getSalaryConfigs(supabaseAdmin, employeeId);
+    if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
+    return jsonResponse(result.data);
+  }
 
-        // TODO: Task 2.1 - POST create new salary config
-        // - Close previous config (set effective_to = today - 1)
-        // - Insert new config with effective_from = today
-        // - Return new config
-        
-        return jsonResponse({ message: 'TODO: Implement POST salary config', employeeId });
-    }
+  if (req.method === 'POST') {
+    const adminCheck = await isAdmin(user.id);
+    if (!adminCheck) return errorResponse('Forbidden: Admin access required', 403);
 
-    return errorResponse('Method not allowed', 405);
+    const body = await req.json();
+    const result = await upsertSalaryConfig(supabaseAdmin, employeeId, body);
+    
+    if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
+    return jsonResponse(result.data, 201);
+  }
+
+  return errorResponse('Method not allowed', 405);
 });

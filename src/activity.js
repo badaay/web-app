@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const card = document.createElement('div');
         card.className = `ticket-premium-card ${isTimeline ? 'timeline-mode' : ''}`;
-        if (wo.status === 'closed') card.classList.add('is-closed');
+        if (wo.status === 'closed' || wo.status === 'completed') card.classList.add('is-closed');
         
         card.innerHTML = `
             <div class="card-header-glass">
@@ -260,7 +260,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                         <div class="ms-2">
                             <div class="card-type-label">${type?.name || 'Ticket'}</div>
-                            <div class="card-title-text">${wo.title}</div>
+                            <div class="card-title-text">
+                                <strong>[${wo.item_code || 'WO-ID'}]</strong>: ${customerName}
+                            </div>
                         </div>
                     </div>
                     <div class="status-pill-minimal status-${statusBadgeColor}">
@@ -286,6 +288,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <a href="https://wa.me/${customerPhone.replace(/\D/g,'')}" target="_blank" class="btn-wa-minimal">
                             <i class="bi bi-whatsapp"></i> Hubungi via WhatsApp
                         </a>
+                        <a href="${mapLinkHtml}" target="_blank" class="btn-wa-minimal">
+                            <i class="bi bi-map"></i> Lokasi
+                        </a>
                     </div>` : ''}
                 </div>
 
@@ -303,10 +308,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button class="btn btn-tech-primary btn-claim-wo" data-id="${wo.id}">
                                 <i class="bi bi-check2-circle"></i> AMBIL TIKET
                             </button>
-                        ` : (forceAction === 'execute' || (['open', 'pending', 'incident'].includes(wo.status) && (String(wo.claimed_by) === String(techDbId_Global) || String(wo.employee_id) === String(techDbId_Global)))) ? `
+                        ` : (['open', 'pending', 'incident'].includes(wo.status) && (String(wo.claimed_by) === String(techDbId_Global) || String(wo.employee_id) === String(techDbId_Global) || forceAction === 'execute')) ? `
                             <button class="btn btn-tech-accent btn-execute-wo" data-id="${wo.id}">
                                 <i class="bi bi-lightning-charge"></i> UPDATE HASIL
                             </button>
+                        ` : (wo.status === 'completed') ? `
+                            <div class="text-info small fw-bold"><i class="bi bi-hourglass-split"></i> MENUNGGU VERIFIKASI</div>
                         ` : `
                             <div class="text-success small fw-bold"><i class="bi bi-check-all"></i> SELESAI</div>
                         `}
@@ -407,7 +414,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 2. TIKET SAYA (Aktif): My ongoing work OR closed/claimed today
             if (isMyTicket) {
-                const isActive = ['waiting', 'confirmed', 'open', 'pending', 'incident'].includes(woStatus);
+                const isActive = ['waiting', 'confirmed', 'open', 'pending', 'incident', 'completed'].includes(woStatus);
+                const isClaimedToday = wo.claimed_at && wo.claimed_at.startsWith(today);
+                const isClosedToday = wo.completed_at && wo.completed_at.startsWith(today);
+
                 if (isActive || isClaimedToday || (woStatus === 'closed' && isClosedToday)) {
                     tiketAktifContainer.appendChild(renderWorkOrder(wo, (['confirmed', 'waiting'].includes(woStatus) && !wo.claimed_by ? 'claim' : 'execute')));
                     hasAktif = true;
@@ -422,6 +432,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function openClaimModal(wo) {
         if (!executionModal) return;
         currentExecutingWO = wo;
+        document.getElementById('modal-wo-item-code').innerText = wo.item_code || '';
 
         claimSection.classList.remove('d-none');
         executionDetailsSection.classList.add('d-none');
@@ -473,6 +484,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function openExecutionModal(wo) {
         if (!executionModal) return;
         currentExecutingWO = wo;
+        document.getElementById('modal-wo-item-code').innerText = wo.item_code || '';
 
         claimSection.classList.add('d-none');
         executionDetailsSection.classList.remove('d-none');
@@ -531,82 +543,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             btnSaveExec.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Menyimpan...`;
 
             try {
-                // Calculate Points if status is closed
-                let points = currentExecutingWO.points || 0;
-                if (newStatus === 'closed') {
-                    const { data: qType } = await supabase.from('master_queue_types').select('base_point, name').eq('id', currentExecutingWO.type_id).maybeSingle();
-                    if (qType) points = qType.base_point;
-                    else points = 100; // Default fallback
-
-                    // Distribute points to all assignees on this work order
-                    const { data: assignments } = await supabase
-                        .from('work_order_assignments')
-                        .select('id, assignment_role')
-                        .eq('work_order_id', currentExecutingWO.id);
-
-                    if (assignments && assignments.length > 0) {
-                        // Lead gets full points; each member gets half
-                        const pointUpdates = assignments.map(a => ({
-                            id: a.id,
-                            points_earned: a.assignment_role === 'lead' ? points : Math.floor(points / 2)
-                        }));
-                        await supabase
-                            .from('work_order_assignments')
-                            .upsert(pointUpdates, { onConflict: 'id' });
-                    }
-
-                    // If this is a PSB work order, generate customer credentials now
-                    if (qType && qType.name === 'PSB') {
-                        const { data: custData } = await supabase
-                            .from('customers')
-                            .select('phone, email, name, customer_code')
-                            .eq('id', currentExecutingWO.customer_id)
-                            .single();
-
-                        // Only create credentials if not yet provisioned
-                        if (custData && !custData.customer_code) {
-                            const now = new Date();
-                            const yy = String(now.getFullYear()).slice(-2);
-                            const mm = String(now.getMonth() + 1).padStart(2, '0');
-                            const rand7 = String(Math.floor(1000000 + Math.random() * 9000000));
-                            const customer_code = `${yy}${mm}${rand7}`;
-                            const authEmail = custData.email || `${custData.phone}${APP_CONFIG.AUTH_DOMAIN_SUFFIX}`;
-                            const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
-
-                            // Create auth account
-                            const { error: signUpErr } = await supabase.auth.signUp({
-                                email: authEmail,
-                                password: tempPassword,
-                                options: { data: { full_name: custData.name, customer_code, role: 'customer' } }
-                            });
-
-                            if (!signUpErr) {
-                                // Stamp customer_code + auth email onto customer row
-                                await supabase
-                                    .from('customers')
-                                    .update({ customer_code, email: authEmail })
-                                    .eq('id', currentExecutingWO.customer_id);
-                            } else {
-                                console.warn('PSB selesai tapi gagal membuat akun pelanggan:', signUpErr.message);
-                            }
-                        }
-                    }
-                }
-
-                // Update work order
-                const { error: updateErr } = await supabase
-                    .from('work_orders')
-                    .update({
-                        status: newStatus,
-                        points: points,
-                        ket: notes ? notes : currentExecutingWO.ket,
-                        ...(newStatus === 'closed' && { completed_at: new Date().toISOString() })
-                    })
-                    .eq('id', currentExecutingWO.id);
-
-                if (updateErr) throw updateErr;
-
                 // 1. Upload new photo proof if present
+                let photoProofPath = currentPhotoBase64;
+                
                 if (photoExecFile) {
                     btnSaveExec.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Kompresi...`;
                     const compressed = await compressImage(photoExecFile, { maxWidth: 1200, quality: 0.8 });
@@ -623,39 +562,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                         .from('proof_of_work')
                         .getPublicUrl(data.path);
                     
-                    currentPhotoBase64 = publicUrl;
+                    photoProofPath = publicUrl;
                 }
 
-                const monitoringData = {
-                    work_order_id: currentExecutingWO.id,
-                    customer_id: currentExecutingWO.customer_id,
-                    employee_id: currentExecutingWO.employee_id,
+                // 2. Prepare Payload for API
+                const payload = {
+                    workOrderId: currentExecutingWO.id,
+                    status: newStatus,
+                    notes: notes,
                     mac_address: execMac.value || null,
                     sn_modem: execSn.value || null,
                     cable_label: execCableLabel.value || null,
                     actual_date: execActualDate.value || null,
                     activation_date: execActivationDate.value || null,
-                    photo_proof: currentPhotoBase64,
-                    notes: notes,
-                    is_confirmed: false // Wait for master to confirm
+                    photo_proof: photoProofPath
                 };
 
-                const existingMonitoring = (currentExecutingWO.installation_monitorings && currentExecutingWO.installation_monitorings.length > 0)
-                    ? currentExecutingWO.installation_monitorings[0]
-                    : null;
-
-                if (existingMonitoring) {
-                    monitoringData.id = existingMonitoring.id; 
-                }
-
-                const { error: monitorErr } = await supabase
-                    .from('installation_monitorings')
-                    .upsert(monitoringData, { onConflict: 'work_order_id' });
-
-                if (monitorErr) throw monitorErr;
+                // 3. Call API instead of direct DB updates
+                // This ensures server-side logic for points, PSB accounts, etc. is triggered correctly
+                await apiCall('/work-orders/close', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
 
                 executionModal.hide();
-                // Reload list using current technician's actual DB ID
                 await loadWorkOrders(techDbId_Global);
 
             } catch (err) {
@@ -675,6 +605,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (s === 'waiting') return 'warning';
         if (s === 'confirmed') return 'success';
         if (s === 'open') return 'info';
+        if (s === 'completed') return 'info';
         if (s === 'closed') return 'secondary';
         
         if (s.includes('pending') || s.includes('antrian')) return 'warning';

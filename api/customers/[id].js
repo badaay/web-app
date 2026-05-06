@@ -2,15 +2,12 @@
  * PATCH  /api/customers/:id  — Update customer data (admin only)
  * DELETE /api/customers/:id  — Delete a customer (admin only)
  *
- * PATCH Body (all fields optional):
- * {
- *   "name", "ktp", "phone", "alt_phone", "packet", "address",
- *   "install_date", "username", "mac_address", "damping",
- *   "lat", "lng", "photo_ktp", "photo_rumah", "email"
- * }
+ * Thin handler — delegates to CustomerService.
  */
 
 import { supabaseAdmin, verifyAuth, isAdmin, withCors, jsonResponse, errorResponse } from '../_lib/supabase.js';
+import { updateCustomer, deleteCustomer } from '../_core/customer.service.js';
+import { mapToHttpStatus } from '../_core/http-mapper.js';
 
 export const config = { runtime: 'edge' };
 
@@ -29,42 +26,10 @@ export default withCors(async function handler(req) {
   if (req.method === 'PATCH') {
     try {
       const body = await req.json();
+      const result = await updateCustomer(supabaseAdmin, id, body);
 
-      const ALLOWED = [
-        'name', 'ktp', 'phone', 'alt_phone', 'packet', 'address',
-        'install_date', 'username', 'mac_address', 'damping',
-        'lat', 'lng', 'photo_ktp', 'photo_rumah', 'email',
-      ];
-      const updates = Object.fromEntries(
-        Object.entries(body).filter(([k]) => ALLOWED.includes(k))
-      );
-
-      if (Object.keys(updates).length === 0) {
-        return errorResponse('No valid fields to update', 400);
-      }
-
-      // Validate phone uniqueness if being changed
-      if (updates.phone) {
-        const { data: dup } = await supabaseAdmin
-          .from('customers')
-          .select('id')
-          .eq('phone', updates.phone)
-          .neq('id', id)
-          .maybeSingle();
-        if (dup) return errorResponse('Phone number already in use by another customer', 409);
-      }
-
-      const { data, error } = await supabaseAdmin
-        .from('customers')
-        .update(updates)
-        .eq('id', id)
-        .select('*')
-        .single();
-
-      if (error) return errorResponse(`Database error: ${error.message}`, 500);
-      if (!data) return errorResponse('Customer not found', 404);
-
-      return jsonResponse({ success: true, data });
+      if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
+      return jsonResponse({ success: true, data: result.data });
     } catch (err) {
       return errorResponse(err.message || 'Internal server error', 500);
     }
@@ -73,35 +38,10 @@ export default withCors(async function handler(req) {
   // ── DELETE ─────────────────────────────────────────────────────────────────
   if (req.method === 'DELETE') {
     try {
-      const { data: existing } = await supabaseAdmin
-        .from('customers')
-        .select('id, name')
-        .eq('id', id)
-        .maybeSingle();
+      const result = await deleteCustomer(supabaseAdmin, supabaseAdmin, id);
 
-      if (!existing) return errorResponse('Customer not found', 404);
-
-      // Soft guard: do not delete customers with active work orders
-      const { count } = await supabaseAdmin
-        .from('work_orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('customer_id', id)
-        .in('status', ['waiting', 'confirmed', 'open']);
-
-      if (count > 0) {
-        return errorResponse(
-          `Cannot delete: customer has ${count} active work order(s). Close them first.`,
-          409
-        );
-      }
-
-      const { error } = await supabaseAdmin.from('customers').delete().eq('id', id);
-      if (error) return errorResponse(`Delete failed: ${error.message}`, 500);
-
-      // Also delete auth user
-      await supabaseAdmin.auth.admin.deleteUser(id);
-
-      return jsonResponse({ success: true, message: `Customer '${existing.name}' deleted` });
+      if (!result.success) return errorResponse(result.error, mapToHttpStatus(result.statusHint));
+      return jsonResponse({ success: true, message: result.data.message });
     } catch (err) {
       return errorResponse(err.message || 'Internal server error', 500);
     }

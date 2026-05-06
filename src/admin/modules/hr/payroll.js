@@ -4,15 +4,57 @@
  * approve, view per-employee breakdown
  */
 import { apiCall, supabaseB } from '../../../api/supabase.js';
+import { autoStartTour, startTour } from '../../utils/tour-helper.js';
 
 const fmt = new Intl.NumberFormat('id-ID');
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+const PAYROLL_TOUR_ID = 'payroll';
+
+const PAYROLL_TOUR_STEPS = [
+    {
+        element: '#period-list',
+        title: '1. Pilih Periode',
+        text: 'Pilih bulan dan tahun payroll di daftar sebelah kiri. Setiap periode memiliki status: <strong>draft → calculated → approved → paid</strong>.',
+        attachTo: { element: '#period-list', on: 'right' }
+    },
+    {
+        element: '#payroll-stats-bar',
+        title: '2. Ringkasan Statistik',
+        text: 'Bar ini menampilkan jumlah karyawan, <strong>Total Penghasilan Kotor</strong> (semua komponen), dan <strong>Net Disbursement</strong> (take-home pay setelah potongan).',
+        attachTo: { element: '#payroll-stats-bar', on: 'bottom' }
+    },
+    {
+        element: '#payroll-breakdown-table',
+        title: '3. Tabel Breakdown',
+        text: 'Klik badge poin (contoh: <strong>80/100</strong>) untuk melihat detail perhitungan poin per karyawan. Klik ikon ⚡ untuk menambah bonus/potongan manual.',
+        attachTo: { element: '#payroll-breakdown-table', on: 'top' }
+    },
+    {
+        element: '#payroll-action-buttons',
+        title: '4. Alur Verifikasi',
+        text: '<strong>Hitung</strong> → menghitung payroll. <strong>Setujui</strong> → verifikasi hasil. <strong>Lunas</strong> → tandai sudah dibayar. Setiap langkah hanya aktif sesuai status periode.',
+        attachTo: { element: '#payroll-action-buttons', on: 'bottom' }
+    },
+    {
+        element: '#btn-payroll-tour',
+        title: '5. Ekspor & Bantuan',
+        text: 'Gunakan fitur ekspor di modul <strong>Rekap Gaji</strong> untuk menghasilkan laporan CSV. Klik tombol bantuan ini kapan saja untuk mengulangi tur.',
+        attachTo: { element: '#btn-payroll-tour', on: 'left' }
+    }
+];
 
 export async function initPayroll() {
     const container = document.getElementById('payroll-content');
     if (!container) return;
 
     container.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="mb-0 text-white fw-bold"><i class="bi bi-cash-stack text-accent-gradient me-2"></i>Payroll</h4>
+            <button class="btn btn-outline-info btn-sm" id="btn-payroll-tour" title="Panduan Interaktif">
+                <i class="bi bi-question-circle me-1"></i> Bantuan
+            </button>
+        </div>
         <div class="row g-3">
             <!-- Left: Periods List -->
             <div class="col-md-4">
@@ -48,6 +90,14 @@ export async function initPayroll() {
 
     await loadPeriods();
     document.getElementById('btn-create-period').addEventListener('click', openCreatePeriodModal);
+
+    // Tour: manual trigger via Help button
+    document.getElementById('btn-payroll-tour')?.addEventListener('click', () => {
+        startTour(PAYROLL_TOUR_ID, PAYROLL_TOUR_STEPS);
+    });
+
+    // Tour: auto-trigger for first-time users (AC1 + AC3)
+    autoStartTour(PAYROLL_TOUR_ID, PAYROLL_TOUR_STEPS);
 }
 
 async function loadPeriods() {
@@ -108,7 +158,7 @@ window.selectPeriod = async (id, period) => {
                 <h6 class="mb-0 mt-1">${MONTH_NAMES[period.month-1]} ${period.year}
                     <span class="badge badge-${period.status} rounded-1 px-2 py-1 ms-2 fw-normal text-capitalize" style="letter-spacing: 0.5px; font-size: 0.75rem;">${period.status}</span>
                 </h6>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2" id="payroll-action-buttons">
                     ${canCalculate ? `<button class="btn btn-outline-info btn-sm" onclick="window.calculatePayroll('${id}')">
                         <i class="bi bi-calculator"></i> Hitung
                     </button>` : ''}
@@ -122,11 +172,11 @@ window.selectPeriod = async (id, period) => {
             </div>
             <div class="card-body">
                 ${summaries?.length ? `
-                    <div class="alert alert-dark d-flex justify-content-between align-items-center py-2 mb-3">
+                    <div id="payroll-stats-bar" class="alert alert-dark d-flex justify-content-between align-items-center py-2 mb-3">
                         <span><i class="bi bi-people me-2"></i>${summaries.length} Karyawan</span>
                         <strong class="text-success">Total Take-Home: Rp ${fmt.format(totalNet)}</strong>
                     </div>
-                    <div class="table-responsive">
+                    <div id="payroll-breakdown-table" class="table-responsive">
                         <table class="table table-dark table-sm align-middle mb-0">
                             <thead><tr>
                                 <th>Karyawan</th><th>Penghasilan Kotor</th><th>Potongan</th>
@@ -198,28 +248,61 @@ window.viewPointsDetail = async (periodId, employeeId) => {
             <div class="table-responsive">
                 <table class="table table-dark table-sm align-middle">
                     <thead><tr class="text-muted" style="font-size: 0.75rem">
-                        <th>Tanggal</th><th>Pekerjaan</th><th>Customer</th><th class="text-end">Poin</th>
+                        <th>Tanggal</th><th>Pekerjaan</th><th>Customer</th>
+                        ${res.is_admin ? '<th class="text-end">Biaya Material</th>' : ''}
+                        <th class="text-end">Poin</th>
                     </tr></thead>
                     <tbody>
-                        ${res.items.map(item => `
+                        ${res.items.map(item => {
+                            const wo = item.work_orders;
+                            const invUsed = wo.inventory_used || [];
+                            const hasInv = invUsed.length > 0;
+                            const rowId = `inv-detail-${wo.id}`;
+                            
+                            return `
                             <tr>
-                                <td class="small">${new Date(item.work_orders.completed_at).toLocaleDateString('id-ID')}</td>
+                                <td class="small">${new Date(wo.completed_at).toLocaleDateString('id-ID')}</td>
                                 <td>
-                                    <div class="small fw-bold">${item.work_orders.title}</div>
-                                    <span class="badge" style="background-color: ${item.work_orders.type?.color || '#333'}; font-size: 0.6rem">
-                                        <i class="bi ${item.work_orders.type?.icon || 'bi-dot'} me-1"></i>${item.work_orders.type?.name || 'WO'}
+                                    <div class="small fw-bold">${wo.title}</div>
+                                    <span class="badge" style="background-color: ${wo.type?.color || '#333'}; font-size: 0.6rem">
+                                        <i class="bi ${wo.type?.icon || 'bi-dot'} me-1"></i>${wo.type?.name || 'WO'}
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="small">${item.work_orders.customer?.name || '–'}</div>
-                                    <div class="text-muted" style="font-size: 0.7rem">${item.work_orders.customer?.customer_code || ''}</div>
+                                    <div class="small">${wo.customer?.name || '–'}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem">${wo.customer?.customer_code || ''}</div>
                                 </td>
+                                ${res.is_admin ? `
+                                <td class="text-end">
+                                    <div class="fw-bold text-info">Rp ${fmt.format(wo.material_cost || 0)}</div>
+                                    ${hasInv ? `<a href="#${rowId}" class="text-white-50 x-small" data-bs-toggle="collapse">Detail Material <i class="bi bi-chevron-down"></i></a>` : ''}
+                                </td>
+                                ` : ''}
                                 <td class="text-end fw-bold text-accent">${item.points_earned}</td>
                             </tr>
-                        `).join('')}
+                            ${res.is_admin && hasInv ? `
+                            <tr class="collapse" id="${rowId}">
+                                <td colspan="${res.is_admin ? 5 : 4}" class="bg-black bg-opacity-25 p-2">
+                                    <div class="ps-3 border-start border-info border-opacity-50">
+                                        <div class="text-info x-small fw-bold mb-1">MATERIAL SNAPSHOT:</div>
+                                        <div class="d-flex flex-wrap gap-3">
+                                            ${invUsed.map(inv => `
+                                                <div class="x-small text-white-50">
+                                                    <span class="text-white">${inv.name}</span>: ${inv.quantity} ${inv.unit} @ Rp ${fmt.format(inv.unit_cost)}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            ` : ''}
+                        `;}).join('')}
                     </tbody>
                 </table>
             </div>
+            <style>
+                .x-small { font-size: 0.65rem; }
+            </style>
         `;
     } catch (err) {
         modalBody.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;

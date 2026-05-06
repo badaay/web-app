@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE TABLE IF NOT EXISTS public.master_queue_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT UNIQUE NOT NULL,
+    short_code TEXT UNIQUE,
     base_point INTEGER DEFAULT 0,
     color TEXT DEFAULT '#6b7280',
     icon TEXT DEFAULT 'bi-ticket-detailed',
@@ -48,9 +49,11 @@ CREATE TABLE IF NOT EXISTS public.internet_packages (
 CREATE TABLE IF NOT EXISTS public.inventory_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT UNIQUE NOT NULL,
+    item_code TEXT UNIQUE,
     stock INTEGER DEFAULT 0,
     unit TEXT NOT NULL,
     category TEXT,
+    unit_cost DECIMAL(12, 2) DEFAULT 0.00,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -132,13 +135,16 @@ CREATE TABLE IF NOT EXISTS public.work_orders (
     customer_id UUID REFERENCES public.customers(id),
     employee_id UUID REFERENCES public.employees(id),
     type_id UUID REFERENCES public.master_queue_types(id),
+    item_code TEXT UNIQUE,
     title TEXT NOT NULL,
     description TEXT,
-    status TEXT DEFAULT 'waiting', -- waiting, confirmed, open, closed
+    status TEXT DEFAULT 'waiting', -- waiting, confirmed, open, completed, closed
     source TEXT DEFAULT 'admin', -- admin, technician, customer
     claimed_by UUID, -- no FK — assignments tracked via work_order_assignments table
     claimed_at TIMESTAMPTZ,
     points INTEGER DEFAULT 0,
+    material_cost DECIMAL(12, 2) DEFAULT 0.00,
+    inventory_used JSONB DEFAULT '[]'::jsonb,
     registration_date DATE DEFAULT CURRENT_DATE, -- Tanggal Daftar
     payment_status TEXT, -- Pembayaran
     referral_name TEXT, -- Nama Referal
@@ -159,9 +165,12 @@ CREATE TABLE IF NOT EXISTS public.installation_monitorings (
     status TEXT DEFAULT 'not_started' CHECK (status IN ('not_started', 'in_progress', 'completed')),
     notes TEXT,
     photos JSONB DEFAULT '[]'::jsonb, -- Array of image URLs/paths
+    photo_proof TEXT, -- Single proof photo URL
     mac_address TEXT,
     sn_modem TEXT,
     cable_label TEXT,
+    actual_date DATE,
+    activation_date DATE,
     is_confirmed BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -177,6 +186,9 @@ CREATE TABLE IF NOT EXISTS public.work_order_assignments (
     assignment_role TEXT NOT NULL DEFAULT 'member', -- 'lead' | 'member'
     assigned_at TIMESTAMPTZ DEFAULT now(),
     points_earned INTEGER DEFAULT 0,
+    bonus_points INTEGER DEFAULT 0,
+    deduction_points INTEGER DEFAULT 0,
+    adjustment_reason TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE (work_order_id, employee_id)
 );
@@ -225,6 +237,15 @@ CREATE TABLE IF NOT EXISTS public.expense_categories (
     name TEXT UNIQUE NOT NULL,
     description TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 16. Item Code Sequences
+CREATE TABLE IF NOT EXISTS public.item_code_sequences (
+    prefix TEXT NOT NULL,
+    period TEXT NOT NULL,
+    sequence INTEGER DEFAULT 1,
+    last_updated TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (prefix, period)
 );
 
 -- IV. FUNCTIONS & TRIGGERS
@@ -310,6 +331,102 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 6. Item Code System Functions
+CREATE OR REPLACE FUNCTION public.get_inventory_prefix(p_category TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    RETURN CASE p_category
+        WHEN 'Modem' THEN 'MOD'
+        WHEN 'Cable' THEN 'CAB'
+        WHEN 'Antenna' THEN 'ANT'
+        WHEN 'Connector' THEN 'CON'
+        WHEN 'Power' THEN 'PWR'
+        WHEN 'Tools' THEN 'TLS'
+        WHEN 'Accessories' THEN 'ACC'
+        WHEN 'Materials' THEN 'MAT'
+        ELSE 'OTH'
+    END;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.generate_work_order_code(p_type_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+    v_prefix TEXT;
+    v_period TEXT;
+    v_seq INTEGER;
+BEGIN
+    SELECT short_code INTO v_prefix FROM public.master_queue_types WHERE id = p_type_id;
+    IF v_prefix IS NULL OR v_prefix = '' THEN v_prefix := 'WO'; END IF;
+    v_period := to_char(now(), 'YYMM');
+    INSERT INTO public.item_code_sequences (prefix, period, sequence)
+    VALUES (v_prefix, v_period, 1)
+    ON CONFLICT (prefix, period)
+    DO UPDATE SET sequence = item_code_sequences.sequence + 1, last_updated = now()
+    RETURNING sequence INTO v_seq;
+    RETURN v_prefix || v_period || lpad(v_seq::text, 3, '0');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.generate_inventory_code(p_category TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    v_prefix TEXT;
+    v_period TEXT;
+    v_seq INTEGER;
+BEGIN
+    v_prefix := public.get_inventory_prefix(p_category);
+    v_period := to_char(now(), 'YY');
+    INSERT INTO public.item_code_sequences (prefix, period, sequence)
+    VALUES (v_prefix, v_period, 1)
+    ON CONFLICT (prefix, period)
+    DO UPDATE SET sequence = item_code_sequences.sequence + 1, last_updated = now()
+    RETURNING sequence INTO v_seq;
+    RETURN v_prefix || v_period || lpad(v_seq::text, 4, '0');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. Item Code Triggers
+CREATE OR REPLACE FUNCTION public.trg_fn_generate_work_order_item_code()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.item_code IS NULL OR NEW.item_code = '' THEN
+        BEGIN
+            NEW.item_code := public.generate_work_order_code(NEW.type_id);
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'Item code generation failed for work_order: %', SQLERRM;
+            NEW.item_code := NULL;
+        END;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_work_orders_item_code ON public.work_orders;
+CREATE TRIGGER trg_work_orders_item_code
+    BEFORE INSERT ON public.work_orders
+    FOR EACH ROW EXECUTE FUNCTION public.trg_fn_generate_work_order_item_code();
+
+CREATE OR REPLACE FUNCTION public.trg_fn_generate_inventory_item_code()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.item_code IS NULL OR NEW.item_code = '' THEN
+        BEGIN
+            NEW.item_code := public.generate_inventory_code(NEW.category);
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'Item code generation failed for inventory_item: %', SQLERRM;
+            NEW.item_code := NULL;
+        END;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_inventory_items_item_code ON public.inventory_items;
+CREATE TRIGGER trg_inventory_items_item_code
+    BEFORE INSERT ON public.inventory_items
+    FOR EACH ROW EXECUTE FUNCTION public.trg_fn_generate_inventory_item_code();
 
 -- V. SECURITY (RLS)
 
@@ -429,6 +546,9 @@ CREATE INDEX IF NOT EXISTS idx_bills_token ON public.customer_bills(secret_token
 CREATE INDEX IF NOT EXISTS idx_notif_queue_dispatch
     ON public.notification_queue (status, priority, scheduled_at)
     WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_work_orders_item_code ON public.work_orders(item_code);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_item_code ON public.inventory_items(item_code);
+CREATE INDEX IF NOT EXISTS idx_master_queue_types_short_code ON public.master_queue_types(short_code);
 
 
 -- VII. SEED DATA
@@ -445,13 +565,14 @@ ON CONFLICT (code) DO UPDATE SET
   name        = EXCLUDED.name,
   description = EXCLUDED.description;
 
-INSERT INTO public.master_queue_types (name, base_point, color, icon) VALUES 
-('PSB', 100, '#22c55e', 'bi-house-add-fill'),
-('Repair', 50, '#ef4444', 'bi-tools'),
-('Relocation', 75, '#f59e0b', 'bi-arrow-left-right'),
-('Upgrade', 50, '#3b82f6', 'bi-arrow-up-circle-fill'),
-('Cancel', 0, '#6b7280', 'bi-x-circle-fill')
+INSERT INTO public.master_queue_types (name, short_code, base_point, color, icon) VALUES 
+('PSB', 'PSN', 100, '#22c55e', 'bi-house-add-fill'),
+('Repair', 'REP', 50, '#ef4444', 'bi-tools'),
+('Relocation', 'REL', 75, '#f59e0b', 'bi-arrow-left-right'),
+('Upgrade', 'UPG', 50, '#3b82f6', 'bi-arrow-up-circle-fill'),
+('Cancel', 'CAN', 0, '#6b7280', 'bi-x-circle-fill')
 ON CONFLICT (name) DO UPDATE SET
+  short_code = EXCLUDED.short_code,
   base_point = EXCLUDED.base_point,
   color = EXCLUDED.color,
   icon = EXCLUDED.icon;
@@ -516,5 +637,81 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. Decrement Inventory Stock
+CREATE OR REPLACE FUNCTION public.decrement_inventory_stock(item_id UUID, amount INTEGER)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE public.inventory_items
+    SET stock = stock - amount
+    WHERE id = item_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 18. Activity Work Orders View
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE VIEW public.v_activity_work_orders AS
+SELECT 
+    wo.*,
+    qt.name as type_name,
+    qt.color as type_color,
+    qt.icon as type_icon,
+    -- Master Queue Type (Object)
+    jsonb_build_object(
+        'id', qt.id,
+        'name', qt.name,
+        'color', qt.color,
+        'icon', qt.icon,
+        'base_point', qt.base_point
+    ) as master_queue_types,
+    -- Customer (Object)
+    jsonb_build_object(
+        'id', c.id,
+        'name', c.name,
+        'address', c.address,
+        'phone', c.phone,
+        'lat', c.lat,
+        'lng', c.lng,
+        'packet', c.packet,
+        'customer_code', c.customer_code
+    ) as customers,
+    -- Assignments (Array)
+    COALESCE(
+        (
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'id', a.id,
+                    'employee_id', a.employee_id,
+                    'assignment_role', a.assignment_role,
+                    'employee_name', e.name,
+                    'points_earned', a.points_earned,
+                    'bonus_points', a.bonus_points,
+                    'deduction_points', a.deduction_points,
+                    'adjustment_reason', a.adjustment_reason
+                )
+            )
+            FROM public.work_order_assignments a
+            JOIN public.employees e ON a.employee_id = e.id
+            WHERE a.work_order_id = wo.id
+        ),
+        '[]'::jsonb
+    ) as work_order_assignments,
+    -- Monitorings (Array)
+    COALESCE(
+        (
+            SELECT jsonb_agg(m.*)
+            FROM public.installation_monitorings m
+            WHERE m.work_order_id = wo.id
+        ),
+        '[]'::jsonb
+    ) as installation_monitorings
+FROM public.work_orders wo
+LEFT JOIN public.master_queue_types qt ON wo.type_id = qt.id
+LEFT JOIN public.customers c ON wo.customer_id = c.id;
+
+GRANT SELECT ON public.v_activity_work_orders TO authenticated;
+GRANT SELECT ON public.v_activity_work_orders TO service_role;
 
 

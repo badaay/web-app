@@ -23,6 +23,7 @@ const ROLE_PERMISSIONS = {
         'attendance-content',
         'overtime-content',
         'billing-content',
+        'payroll-rekap-content',
         'theme-pane',
         'whatsapp-pane',
         'notifications-pane'
@@ -37,8 +38,8 @@ const ROLE_PERMISSIONS = {
         'overtime-content',
         'payroll-content',
         'billing-content',
-        'billing-content',
         'finance-content',
+        'payroll-rekap-content',
         'hr-dashboard-content',
         'payments-pane'
     ],
@@ -70,6 +71,7 @@ const MENU_SCHEMA = [
         items: [
             { id: 'dashboard', label: 'Dashboard', icon: 'bi-speedometer2', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH', 'TREASURER'] },
             { id: 'work-orders-content', label: 'Antrian PSB', icon: 'bi-file-earmark-text', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] },
+            { id: 'pendaftaran-content', label: 'Pendaftaran', icon: 'bi-clipboard-check', roles: ['S_ADM', 'OWNER', 'ADM'] },
             { id: 'customer-map-view-content', label: 'MAP View', icon: 'bi-pin-map', roles: ['S_ADM', 'OWNER', 'ADM', 'SPV_TECH'] }
         ]
     },
@@ -107,7 +109,8 @@ const MENU_SCHEMA = [
         roles: ['S_ADM', 'OWNER', 'TREASURER'],
         items: [
             // { id: 'billing-content', label: 'Tagihan', icon: 'bi-receipt-cutoff', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
-            { id: 'finance-content', label: 'Laporan Keuangan', icon: 'bi-graph-up-arrow', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
+            { id: 'finance-content', label: 'Laporan Keuangan', icon: 'bi-graph-up-arrow', roles: ['S_ADM', 'OWNER', 'TREASURER'] },
+            { id: 'payroll-rekap-content', label: 'Rekap Gaji', icon: 'bi-file-earmark-text', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
         ]
     },
     {
@@ -215,33 +218,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         const dashboardSection = document.getElementById('dashboard-section');
         const roleFeature = document.getElementById('role-feature');
         const masterDataContainer = document.getElementById('master-data-container');
-        const settingsContainer = document.getElementById('settings-container');
+        const appSettingsContainer = document.getElementById('app-settings-container');
+        const coreSettingsContainer = document.getElementById('core-settings-container');
 
         if (dashboardSection) dashboardSection.style.display = 'flex';
 
-        // Update UI elements
-        const displayEmail = document.getElementById('user-display-email');
-        if (displayEmail) displayEmail.innerText = user.email || 'Admin';
-
-        // Fetch precise role from employees table
+        // Fetch precise role and profile from employees table
         let role = 'TECHNICIAN';
+        let employeeName = null;
         try {
             const { data: roleData, error: roleError } = await supabase
                 .from('employees')
-                .select('roles(name)')
+                .select('name, roles(name)')
                 .eq('email', user.email)
                 .maybeSingle();
 
             if (roleError) console.warn('Role lookup error (likely missing email column):', roleError);
-            if (roleData?.roles?.name) {
-                role = roleData.roles.name;
+            if (roleData) {
+                if (roleData.roles?.name) role = roleData.roles.name;
+                employeeName = roleData.name;
             }
         } catch (err) {
             console.error('Failed to fetch role:', err);
         }
 
+        const nameElement = document.getElementById('user-display-name');
+        const dropdownName = document.getElementById('dropdown-user-name');
+        
+        // Priority: Show name if available, fallback to email
+        if (employeeName && employeeName.trim()) {
+            if (nameElement) {
+                nameElement.textContent = employeeName;
+                nameElement.style.display = '';
+            }
+            if (dropdownName) dropdownName.textContent = (employeeName.split(" ")[0] || "Admin").toUpperCase();
+        } else {
+            if (dropdownName) dropdownName.textContent = user.email ? user.email.split('@')[0] : 'Admin';
+        }
+
+        // Old Role Header fallback
         const roleHeader = document.getElementById('user-role-header');
         if (roleHeader) roleHeader.innerText = `Role: ${role.toUpperCase()}`;
+
+        // New Role Dropdown Items
+        const ddRole = document.getElementById('dropdown-user-role');
+        if (ddRole) ddRole.textContent = role.toUpperCase();
+        
+        const ddRoleBadge = document.getElementById('dropdown-role-badge');
+        if (ddRoleBadge) {
+            ddRoleBadge.textContent = role.toUpperCase();
+            ddRoleBadge.className = 'badge rounded-pill px-2 py-1 role-badge';
+            if (role.toUpperCase().includes('ADMIN')) {
+                ddRoleBadge.classList.add('bg-danger');
+            } else if (role.toUpperCase().includes('TECH')) {
+                ddRoleBadge.classList.add('bg-warning', 'text-dark');
+            } else {
+                ddRoleBadge.classList.add('bg-info', 'text-dark');
+            }
+        }
 
         // Sidebar Toggle for Mobile
         const sidebar = document.getElementById('admin-sidebar');
@@ -264,7 +298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderSidebar(guardRole);
 
         // 2. Initialize navigation (Now called AFTER sidebar is rendered)
-        initNavigation(roleFeature, masterDataContainer, settingsContainer);
+        initNavigation(roleFeature, masterDataContainer, appSettingsContainer, coreSettingsContainer);
 
         // Logout handlers
         const logoutHandler = async () => {
@@ -275,6 +309,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const btnSidebar = document.getElementById('nav-logout-btn-sidebar');
         if (btnHeader) btnHeader.onclick = logoutHandler;
         if (btnSidebar) btnSidebar.onclick = logoutHandler;
+
+        const btnSettingsDropdown = document.getElementById('nav-settings-dropdown');
+        if (btnSettingsDropdown) {
+            btnSettingsDropdown.onclick = (e) => {
+                e.preventDefault();
+                document.dispatchEvent(new CustomEvent('navigate', { detail: 'core-settings-module' }));
+            };
+        }
 
         // Hash-based navigation support with guards
         window.addEventListener('hashchange', () => {
@@ -380,7 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function initNavigation(roleFeature, masterDataContainer, settingsContainer) {
+    function initNavigation(roleFeature, masterDataContainer, appSettingsContainer, coreSettingsContainer) {
         const navButtons = document.querySelectorAll('.nav-item-custom, .admin-mobile-nav .menu-item');
         const masterPanes = document.querySelectorAll('#masterDataTabsContent .tab-pane');
         const sidebar = document.getElementById('admin-sidebar');
@@ -389,6 +431,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Local navigation helper
         const navigate = (target) => {
             if (!target) return;
+
+            // Save current page to localStorage (except for dashboard)
+            if (target !== 'dashboard') {
+                localStorage.setItem('sifatih-admin-last-page', target);
+                // Update URL hash to support direct linking
+                window.location.hash = target;
+            } else {
+                // Clear localStorage and hash when going to dashboard
+                localStorage.removeItem('sifatih-admin-last-page');
+                window.location.hash = '';
+            }
 
             // Close sidebar on mobile after selection
             if (sidebar?.classList.contains('show')) {
@@ -406,7 +459,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             // 2. Hide all primary section containers
-            [roleFeature, masterDataContainer, settingsContainer].forEach(el => {
+            [roleFeature, masterDataContainer, appSettingsContainer, coreSettingsContainer].forEach(el => {
                 if (el) el.classList.add('d-none');
             });
 
@@ -417,10 +470,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 initModule('dashboard');
                 pageTitle = 'Beranda';
             } else if (target === 'settings-module') {
-                settingsContainer.classList.remove('d-none');
+                appSettingsContainer.classList.remove('d-none');
                 initModule('settings-content');
+                pageTitle = 'Pengaturan Aplikasi';
+            } else if (target === 'core-settings-module') {
+                coreSettingsContainer.classList.remove('d-none');
                 initModule('roles-content');
-                pageTitle = 'Settings';
+                initModule('theme-pane'); // Pre-load theme settings if needed
+                pageTitle = 'Pengaturan Inti';
             } else if (target === 'financial-reports-content' || target === 'financial-ledger-content') {
                 masterDataContainer.classList.remove('d-none');
                 masterPanes.forEach(pane => pane.classList.remove('show', 'active'));
@@ -473,8 +530,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        // Set Dashboard as active by default on load
-        navigate('dashboard');
+        // Restore last visited page or default to dashboard
+        const lastVisitedPage = localStorage.getItem('sifatih-admin-last-page');
+        const initialTarget = lastVisitedPage || 'dashboard';
+        
+        // Check if hash is present, it takes priority over localStorage
+        const hashTarget = window.location.hash.replace('#', '');
+        const finalTarget = hashTarget && hashTarget !== 'dashboard' ? hashTarget : initialTarget;
+        
+        navigate(finalTarget);
 
         // Global listener for sub-tabs (e.g. Settings tabs)
         document.addEventListener('shown.bs.tab', (e) => {
@@ -546,6 +610,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (targetId === 'work-orders-content') {
                 const { initWorkOrders } = await import('./modules/main/work-orders/index.js');
                 initWorkOrders();
+            } else if (targetId === 'pendaftaran-content') {
+                const { initPendaftaran } = await import('./modules/main/pendaftaran.js');
+                initPendaftaran();
             } else if (targetId === 'customer-map-view-content') {
                 const { initCustomerMapView } = await import('./modules/customers/customer-map-view.js');
                 initCustomerMapView();
@@ -582,6 +649,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (targetId === 'finance-content') {
                 const { initFinance } = await import('./modules/finance/finance.js');
                 initFinance();
+            } else if (targetId === 'payroll-rekap-content') {
+                const { initPayrollRekap } = await import('./modules/finance/payroll-rekap.js');
+                initPayrollRekap();
             }
         } catch (error) {
             console.error(`Failed to load module '${targetId}':`, error);
@@ -639,4 +709,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = btn.dataset.originalHtml || btn.innerHTML;
         }
     };
+
+    // ── Hard-Tech UI Global Listeners ──
+    
+    // 1. Click-to-Copy Utility for .inv-chip-hard
+    document.addEventListener('click', (e) => {
+        const chip = e.target.closest('.inv-chip-hard');
+        if (chip) {
+            const code = chip.dataset.code || chip.getAttribute('data-code') || chip.dataset.itemCode || chip.getAttribute('data-item-code');
+            if (code) {
+                navigator.clipboard.writeText(code).then(() => {
+                    chip.classList.add("copied");
+                    setTimeout(() => {
+                        chip.classList.remove("copied");
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Failed to copy text: ", err);
+                });
+        }
+    }
+});
 });
