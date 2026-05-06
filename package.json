@@ -28,6 +28,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
     "dotenv": "^17.3.1",
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "shepherd.js": "^15.2.2"
   }
 }
