@@ -18,3 +18,7 @@ _bmad-output
 .agents
 .windsurf
 
+
+playwright-report
+test-results
+
