@@ -4,6 +4,7 @@
  */
 import * as payrollRepo from '../repositories/payroll.repository.js';
 import { ok, badRequest, notFound, conflict, serverError } from '../utils/http-mapper.js';
+import { calculateMonthlyAdjustments } from './point.service.js';
 
 export async function calculatePayroll(dbClient, periodId, userId) {
   if (!periodId) return badRequest('period_id is required');
@@ -55,6 +56,8 @@ export async function calculatePayroll(dbClient, periodId, userId) {
       const quotaAllow = activeConfig.quota_allowance || 0;
       const eduAllow = activeConfig.education_allowance || 0;
       const tmAllow = activeConfig.transport_meal_allowance || 0;
+      const fieldAllow = activeConfig.field_allowance || 0;
+      const commAllow = activeConfig.communication_allowance || 0;
 
       const addLine = (type, code, name, amount, details = null) => {
         if (amount !== 0) {
@@ -78,27 +81,52 @@ export async function calculatePayroll(dbClient, periodId, userId) {
       addLine('earning', 'QUOTA_ALLOWANCE', 'Tunjangan Kuota', quotaAllow);
       addLine('earning', 'EDUCATION_ALLOWANCE', 'Tunjangan Pendidikan', eduAllow);
       addLine('earning', 'TRANSPORT_MEAL', 'Transport & Makan', tmAllow);
+      addLine('earning', 'FIELD_ALLOWANCE', 'Tunjangan Lapangan', fieldAllow);
+      addLine('earning', 'COMM_ALLOWANCE', 'Tunjangan Komunikasi', commAllow);
 
       // Overtime
       const { data: otData } = await payrollRepo.findOvertimeData(dbClient, emp.id, period.period_start, period.period_end);
       const otTotal = otData?.reduce((sum, ot) => sum + (ot.amount_earned || 0), 0) || 0;
       addLine('earning', 'OVERTIME', 'Lembur', otTotal, { count: otData?.length || 0 });
 
-      // Attendance
-      const { data: attData } = await payrollRepo.findAttendanceData(dbClient, emp.id, period.period_start, period.period_end);
-      const attDeduction = attData?.reduce((sum, r) => sum + (r.deduction_amount || 0), 0) || 0;
-      const daysPresent = attData?.filter(r => !r.is_absent).length || 0;
-      const daysLate = attData?.filter(r => r.late_minutes > 0).length || 0;
-      const daysAbsent = attData?.filter(r => r.is_absent).length || 0;
-      addLine('deduction', 'LATE_ABSENCE', 'Potongan Telat/Absen', attDeduction, { daysPresent, daysLate, daysAbsent });
+      // Point System Engine (Late Deductions & Performance Adjustments)
+      const { data: adjData } = await calculateMonthlyAdjustments(dbClient, emp.id, period.month, period.year);
+      
+      let lateDeduction = 0;
+      let pointDeduction = 0;
+      let targetPoints = 0;
+      let actualPoints = 0;
+      let pointShortage = 0;
 
-      // Points
-      const { data: pData } = await payrollRepo.calculatePointDeductionRpc(dbClient, emp.id, period.year, period.month);
-      const pointDeduction = pData?.[0]?.deduction_amount || 0;
-      const targetPoints = pData?.[0]?.target_points || 0;
-      const actualPoints = pData?.[0]?.actual_points || 0;
-      const pointShortage = pData?.[0]?.point_shortage || 0;
-      addLine('deduction', 'POINT_SHORTAGE', 'Potongan Kekurangan Poin', pointDeduction, { targetPoints, actualPoints, pointShortage });
+      if (adjData) {
+        for (const adj of adjData) {
+          if (adj.type === 'late_deduction') {
+            lateDeduction = adj.amount;
+            addLine('deduction', 'LATE_DEDUCTION', 'Potongan Telat', lateDeduction, { details: adj.details });
+          } else if (adj.type === 'performance_deduction') {
+            pointDeduction = adj.amount;
+            // Extract details if possible (simplified for now as we don't have a complex parser)
+            addLine('deduction', 'POINT_SHORTAGE', 'Potongan Kekurangan Poin', pointDeduction, { details: adj.details });
+          } else if (adj.type === 'performance_bonus') {
+            addLine('earning', 'POINT_BONUS', 'Bonus Prestasi Poin', adj.amount, { details: adj.details });
+          }
+        }
+      }
+
+      // We still need raw performance data for the summary table
+      const { data: perf } = await dbClient.from('employees').select('target_monthly_points').eq('id', emp.id).single();
+      targetPoints = perf?.target_monthly_points || 0;
+      
+      // Calculate actual points for the period
+      const { data: points } = await dbClient
+        .from('work_order_assignments')
+        .select('points_earned')
+        .eq('employee_id', emp.id)
+        .gte('created_at', period.period_start)
+        .lte('created_at', period.period_end);
+      
+      actualPoints = points?.reduce((sum, p) => sum + (p.points_earned || 0), 0) || 0;
+      pointShortage = Math.max(0, targetPoints - actualPoints);
 
       // BPJS
       if (emp.is_bpjs_enrolled) {

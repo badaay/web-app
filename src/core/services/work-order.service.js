@@ -12,8 +12,8 @@ import { ok, created, badRequest, notFound, conflict, serverError, forbidden } f
 import { ALLOWED_WORK_ORDER_FIELDS } from '../utils/constants.js';
 import { whitelist } from '../utils/validators.js';
 import { notifyWorkOrderEvent } from '../../../api/_lib/fonnte.js';
-import { APP_CONFIG } from '../../../src/api/config.js';
 import { isAdmin } from '../../../api/_lib/supabase.js';
+import { distributeWorkOrderPoints } from './point.service.js';
 
 export async function listWorkOrders(dbClient, { limit = 50, offset = 0, status = null, search = '' } = {}) {
   const { data, error, count } = await woRepo.findAll(dbClient, { limit, offset, status, search });
@@ -232,9 +232,13 @@ export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAu
   const { data: rpcResult, error: rpcError } = await woRepo.closeWithPointsRpc(dbClient, id, closeData);
   if (rpcError) console.warn('[POINT-RPC] Warning:', rpcError.message);
 
-  // 3. Update Local Assignment Points (Story 1.2)
+  // 3. Award Points with Adjustments (Story 1.2 + New Point System Spec)
   const assignments = wo.work_order_assignments || [];
   const basePoint = wo.master_queue_types?.base_point || 0;
+  const participantCount = assignments.length;
+
+  // New Rule: base_point / total_participant (rounded floor)
+  const pointsPerPerson = participantCount > 0 ? Math.floor(basePoint / participantCount) : 0;
 
   for (const assignment of assignments) {
     const adj = adjustments.find(a => a.employee_id === assignment.employee_id) || {};
@@ -246,9 +250,8 @@ export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAu
       console.warn(`[WO-VERIFY] Warning: Adjustment made for ${assignment.employee_id} without reason.`);
     }
 
-    // Calculation Logic: Base * Multiplier + Bonus - Deduction
-    const baseCalculated = assignment.assignment_role === 'lead' ? basePoint : Math.floor(basePoint * 0.7);
-    const finalPoints = Math.max(0, baseCalculated + bonus - deduction);
+    // Final Calculation: pointsPerPerson + Bonus - Deduction
+    const finalPoints = Math.max(0, pointsPerPerson + bonus - deduction);
 
     await woRepo.updateAssignmentPoints(dbClient, assignment.id, {
       points_earned: finalPoints,
