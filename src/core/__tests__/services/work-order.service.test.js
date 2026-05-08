@@ -305,14 +305,15 @@ describe('WorkOrderService', () => {
 
       expect(result.success).toBe(true);
       
-      // Lead: 100 (base) + 20 (bonus) - 10 (deduction) = 110
+      // New Rule: base_point (100) / total_participant (2) = 50 per person
+      // Lead: 50 (base) + 20 (bonus) - 10 (deduction) = 60
       expect(woRepo.updateAssignmentPoints).toHaveBeenCalledWith(mockDb, 'a1', expect.objectContaining({
-        points_earned: 110,
+        points_earned: 60,
         bonus_points: 20,
         deduction_points: 10
       }));
 
-      // Member: 70 (base) + 0 (bonus) - 80 (deduction) = -10 -> Floor 0
+      // Member: 50 (base) + 0 (bonus) - 80 (deduction) = -30 -> Floor 0
       expect(woRepo.updateAssignmentPoints).toHaveBeenCalledWith(mockDb, 'a2', expect.objectContaining({
         points_earned: 0,
         bonus_points: 0,

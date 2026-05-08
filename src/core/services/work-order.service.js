@@ -13,6 +13,7 @@ import { ALLOWED_WORK_ORDER_FIELDS } from '../utils/constants.js';
 import { whitelist } from '../utils/validators.js';
 import { notifyWorkOrderEvent } from '../../../api/_lib/fonnte.js';
 import { isAdmin } from '../../../api/_lib/supabase.js';
+import { APP_CONFIG } from '../../../src/api/config.js';
 import { distributeWorkOrderPoints } from './point.service.js';
 
 export async function listWorkOrders(dbClient, { limit = 50, offset = 0, status = null, search = '' } = {}) {

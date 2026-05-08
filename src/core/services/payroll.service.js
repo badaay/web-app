@@ -128,6 +128,12 @@ export async function calculatePayroll(dbClient, periodId, userId) {
       actualPoints = points?.reduce((sum, p) => sum + (p.points_earned || 0), 0) || 0;
       pointShortage = Math.max(0, targetPoints - actualPoints);
 
+      // Attendance (Still needed for summary table)
+      const { data: attData } = await payrollRepo.findAttendanceData(dbClient, emp.id, period.period_start, period.period_end);
+      const daysPresent = attData?.filter(r => !r.is_absent).length || 0;
+      const daysLate = attData?.filter(r => r.late_minutes > 0).length || 0;
+      const daysAbsent = attData?.filter(r => r.is_absent).length || 0;
+
       // BPJS
       if (emp.is_bpjs_enrolled) {
         addLine('deduction', 'BPJS', 'BPJS Ketenagakerjaan', bpjsAmount);

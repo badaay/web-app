@@ -235,6 +235,11 @@
                                 data-bs-target="#payments-pane" type="button" role="tab" aria-controls="payments-pane"
                                 aria-selected="false"><i class="bi bi-credit-card me-1"></i> Metode Pembayaran</button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="point-rules-tab" data-bs-toggle="tab"
+                                data-bs-target="#point-rules-pane" type="button" role="tab" aria-controls="point-rules-pane"
+                                aria-selected="false"><i class="bi bi-star me-1"></i> Aturan Point</button>
+                        </li>
                     </ul>
 
                     <div class="tab-content" id="appSettingsTabsContent">
@@ -281,6 +286,14 @@
                             <div class="card bg-vscode border-secondary shadow-sm">
                                 <div class="card-body" id="payments-settings-content">
                                     <div class="text-center py-5 text-white-50">Memuat pengaturan pembayaran...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="point-rules-pane" role="tabpanel" aria-labelledby="point-rules-tab">
+                            <div class="card bg-vscode border-secondary shadow-sm">
+                                <div class="card-body" id="point-rules-content">
+                                    <div class="text-center py-5 text-white-50">Memuat aturan point...</div>
                                 </div>
                             </div>
                         </div>

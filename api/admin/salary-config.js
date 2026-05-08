@@ -43,9 +43,13 @@ async function handler(req) {
 
       if (!employee_id) return errorResponse('employee_id required', 400);
 
-      // Update target points in employee table
-      if (target_monthly_points !== undefined) {
-        await supabaseAdmin.from('employees').update({ target_monthly_points }).eq('id', employee_id);
+      // Update target points and base salary in employee table
+      const employeeUpdates = {};
+      if (target_monthly_points !== undefined) employeeUpdates.target_monthly_points = target_monthly_points;
+      if (base_salary !== undefined) employeeUpdates.base_salary = base_salary;
+      
+      if (Object.keys(employeeUpdates).length > 0) {
+        await supabaseAdmin.from('employees').update(employeeUpdates).eq('id', employee_id);
       }
 
       const payload = {

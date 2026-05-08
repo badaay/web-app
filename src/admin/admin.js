@@ -41,7 +41,9 @@ const ROLE_PERMISSIONS = {
         'finance-content',
         'payroll-rekap-content',
         'hr-dashboard-content',
-        'payments-pane'
+        'payments-pane',
+        'point-rules-pane',
+        'settings-module'
     ],
     'SPV_TECH': [
         'dashboard', 
@@ -115,9 +117,9 @@ const MENU_SCHEMA = [
     },
     {
         group: 'Sistem',
-        roles: ['S_ADM', 'OWNER'],
+        roles: ['S_ADM', 'OWNER', 'TREASURER'],
         items: [
-            { id: 'settings-module', label: 'Settings', icon: 'bi-gear', roles: ['S_ADM', 'OWNER'] }
+            { id: 'settings-module', label: 'Settings', icon: 'bi-gear', roles: ['S_ADM', 'OWNER', 'TREASURER'] }
         ]
     }
 ];
@@ -631,6 +633,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (targetId === 'payments-pane') {
                 const { initPayments } = await import('./modules/finance/payments.js');
                 initPayments();
+            } else if (targetId === 'point-rules-pane') {
+                const { initPointRules } = await import('./modules/system/point-rules.js');
+                initPointRules();
             } else if (targetId === 'billing-content') {
                 const { initBilling } = await import('./modules/finance/billing.js');
                 initBilling();

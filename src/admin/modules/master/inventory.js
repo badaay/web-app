@@ -1,6 +1,7 @@
 import { supabase } from '../../../api/supabase.js';
 import { showToast } from '../../utils/toast.js';
 import { getSpinner, copyItemCode } from '../../utils/ui-common.js';
+import { initCurrencyMask } from '../../utils/masking.js';
 
 export async function initInventory() {
     const listContainer = document.getElementById('inventory-list');
@@ -158,20 +159,22 @@ export async function initInventory() {
                 </div>
                 ${isAdmin ? `
                 <div class="mb-3">
-                    <label class="form-label">Harga Satuan (Rp)</label>
-                    <input type="number" class="form-control" id="item-unit-cost" value="${item?.unit_cost || 0}" step="0.01">
+                    <label class="form-label">Harga Satuan</label>
+                    <input type="text" class="form-control currency-mask" id="item-unit-cost" value="${item?.unit_cost || 0}">
                     <div class="form-text text-white-50">Biaya internal untuk perhitungan laba rugi.</div>
                 </div>
                 ` : ''}
             </form>
         `;
 
+        initCurrencyMask('#item-unit-cost');
+
         saveBtn.onclick = async () => {
             const name = document.getElementById('item-name').value;
             const stock = parseInt(document.getElementById('item-stock').value);
             const unit = document.getElementById('item-unit').value;
             const category = document.getElementById('item-category').value;
-            const unit_cost = isAdmin ? parseFloat(document.getElementById('item-unit-cost').value || 0) : (item?.unit_cost || 0);
+            const unit_cost = isAdmin ? document.getElementById('item-unit-cost').rawValue : (item?.unit_cost || 0);
 
             if (!name || isNaN(stock) || !unit) return showToast('warning', 'Nama, Stok, dan Satuan wajib diisi.');
 

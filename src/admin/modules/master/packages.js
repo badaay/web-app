@@ -1,6 +1,7 @@
 import { supabase } from '../../../api/supabase.js';
 import { showToast } from '../../utils/toast.js';
 import { getSpinner } from '../../utils/ui-common.js';
+import { initCurrencyMask } from '../../utils/masking.js';
 
 export async function initPackages() {
     const listContainer = document.getElementById('packages-list');
@@ -79,8 +80,8 @@ export async function initPackages() {
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Harga (Rp)</label>
-                        <input type="number" class="form-control" id="pkg-price" value="${pkg?.price || ''}" required>
+                    <label class="form-label">Harga</label>
+                    <input type="text" class="form-control currency-mask" id="pkg-price" value="${pkg?.price || ''}" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Kecepatan</label>
@@ -94,9 +95,11 @@ export async function initPackages() {
             </form>
         `;
 
+        initCurrencyMask('#pkg-price');
+
         saveBtn.onclick = async () => {
             const name = document.getElementById('pkg-name').value;
-            const price = parseFloat(document.getElementById('pkg-price').value);
+            const price = document.getElementById('pkg-price').rawValue;
             const speed = document.getElementById('pkg-speed').value;
             const description = document.getElementById('pkg-desc').value;
 
