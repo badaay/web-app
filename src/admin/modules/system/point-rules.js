@@ -2,7 +2,7 @@
  * Point Rules Module
  * Manages point_conversion_rules table
  */
-import { supabase } from '../../../api/supabase.js';
+import { supabase, apiCall } from '../../../api/supabase.js';
 import { showToast } from '../../utils/toast.js';
 import { initCurrencyMask } from '../../utils/masking.js';
 
@@ -49,10 +49,9 @@ async function fetchAndPopulateRules() {
     const tbody = document.getElementById('point-rules-table-body');
     
     try {
-        const response = await fetch('/api/admin/point-rules');
-        const rules = await response.json();
+        const rules = await apiCall('/admin/point-rules');
 
-        if (!response.ok) throw new Error(rules.message || 'Gagal mengambil data');
+
 
         if (rules.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-white-50">Belum ada aturan point.</td></tr>';
@@ -163,16 +162,10 @@ function showRuleModal(rule = null) {
 
         setBtnLoading(saveBtn, true);
         try {
-            const response = await fetch('/api/admin/point-rules', {
+            await apiCall('/admin/point-rules', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || 'Gagal menyimpan');
-            }
 
             showToast('success', 'Aturan point berhasil disimpan');
             modal.hide();
@@ -189,11 +182,7 @@ async function deleteRule(id) {
     if (!confirm('Apakah Anda yakin ingin menghapus aturan ini?')) return;
 
     try {
-        const response = await fetch(`/api/admin/point-rules?id=${id}`, { method: 'DELETE' });
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.message || 'Gagal menghapus');
-        }
+        await apiCall(`/admin/point-rules?id=${id}`, { method: 'DELETE' });
 
         showToast('success', 'Aturan berhasil dihapus');
         fetchAndPopulateRules();

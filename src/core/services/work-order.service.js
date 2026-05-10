@@ -234,32 +234,26 @@ export async function verifyWorkOrder(dbClient, authClient, id, body, user, isAu
   if (rpcError) console.warn('[POINT-RPC] Warning:', rpcError.message);
 
   // 3. Award Points with Adjustments (Story 1.2 + New Point System Spec)
+  // NOTE: Base point distribution is now handled automatically by the database trigger
+  // trg_work_order_closed on status change to 'closed'.
+  // We only need to handle manual adjustments if they are passed in the body.
   const assignments = wo.work_order_assignments || [];
-  const basePoint = wo.master_queue_types?.base_point || 0;
-  const participantCount = assignments.length;
-
-  // New Rule: base_point / total_participant (rounded floor)
-  const pointsPerPerson = participantCount > 0 ? Math.floor(basePoint / participantCount) : 0;
-
+  
   for (const assignment of assignments) {
-    const adj = adjustments.find(a => a.employee_id === assignment.employee_id) || {};
-    const bonus = parseInt(adj.bonus_points || 0);
-    const deduction = parseInt(adj.deduction_points || 0);
-    const reason = adj.adjustment_reason || '';
+    const adj = adjustments.find(a => a.employee_id === assignment.employee_id);
+    if (adj) {
+      const bonus = parseInt(adj.bonus_points || 0);
+      const deduction = parseInt(adj.deduction_points || 0);
+      const reason = adj.adjustment_reason || '';
 
-    if ((bonus !== 0 || deduction !== 0) && !reason) {
-      console.warn(`[WO-VERIFY] Warning: Adjustment made for ${assignment.employee_id} without reason.`);
+      if (bonus !== 0 || deduction !== 0) {
+        await woRepo.updateAssignmentPoints(dbClient, assignment.id, {
+          bonus_points: bonus,
+          deduction_points: deduction,
+          adjustment_reason: reason
+        }).catch(e => console.error(`[WO-ADJUST-UPDATE] Error for ${assignment.id}:`, e.message));
+      }
     }
-
-    // Final Calculation: pointsPerPerson + Bonus - Deduction
-    const finalPoints = Math.max(0, pointsPerPerson + bonus - deduction);
-
-    await woRepo.updateAssignmentPoints(dbClient, assignment.id, {
-      points_earned: finalPoints,
-      bonus_points: bonus,
-      deduction_points: deduction,
-      adjustment_reason: reason
-    }).catch(e => console.error(`[WO-ASSIGN-UPDATE] Error for ${assignment.id}:`, e.message));
   }
 
   // 4. Handle PSB lifecycle (Hardware sync + Customer Auth)

@@ -9,6 +9,7 @@ ADD COLUMN IF NOT EXISTS actual_date DATE,
 ADD COLUMN IF NOT EXISTS activation_date DATE;
 
 -- 2. Create the unified activity view
+DROP VIEW IF EXISTS public.v_activity_work_orders CASCADE;
 CREATE OR REPLACE VIEW public.v_activity_work_orders AS
 SELECT 
     wo.*,

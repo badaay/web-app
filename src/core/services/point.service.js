@@ -5,21 +5,18 @@ import * as pointRepo from '../repositories/point.repository.js';
 
 /**
  * Distribute points from a completed Work Order to all assigned technicians
+ * DEPRECATED: Distribution is now handled by database trigger trg_work_order_closed.
+ * Use this only if manual redistribution is required.
  */
-export async function distributeWorkOrderPoints(dbClient, workOrderId, basePoint, technicians) {
-  if (!technicians || technicians.length === 0) {
-    return { success: true, message: 'No technicians assigned' };
-  }
-
-  // Mandatory Integer-based Math: Floor rounding
-  const pointsPerPerson = Math.floor(basePoint / technicians.length);
-
+export async function distributeWorkOrderPoints(dbClient, workOrderId) {
   try {
-    for (const techId of technicians) {
-      const { error } = await pointRepo.updateAssignmentPoints(dbClient, workOrderId, techId, pointsPerPerson);
-      if (error) throw error;
-    }
-    return { success: true, data: { points_per_person: pointsPerPerson } };
+    // Calling the optimized Postgres function instead of looping in JS
+    const { error } = await dbClient.rpc('distribute_work_order_points', {
+      p_work_order_id: workOrderId
+    });
+
+    if (error) throw error;
+    return { success: true };
   } catch (error) {
     console.error('Error distributing points:', error);
     return { success: false, error, statusHint: 'server_error' };
@@ -28,73 +25,49 @@ export async function distributeWorkOrderPoints(dbClient, workOrderId, basePoint
 
 /**
  * Calculate all point-related salary adjustments for an employee's monthly payroll
+ * Optimised version: Uses set-based RPC for better performance (P1 Best Practice)
  */
 export async function calculateMonthlyAdjustments(dbClient, employeeId, month, year) {
-  const adjustments = [];
-
   try {
-    // 1. Calculate Late Deduction
-    const { data: rules } = await pointRepo.findRulesByMetric(dbClient, 'minutes_late');
-    const { data: totalLateMinutes } = await pointRepo.sumLateMinutes(dbClient, employeeId, month, year);
+    // Single database call to get all adjustments for this employee
+    const { data, error } = await dbClient.rpc('calculate_all_payroll_adjustments', {
+      p_month: month,
+      p_year: year
+    });
 
-    if (rules && rules.length > 0 && totalLateMinutes > 0) {
-      const rule = rules[0]; // Take the primary rule
-      const units = Math.floor(totalLateMinutes / rule.trigger_unit);
-      const amount = units * rule.amount_per_unit;
+    if (error) throw error;
 
-      if (amount > 0) {
-        adjustments.push({
-          type: 'late_deduction',
-          amount,
-          details: `${totalLateMinutes} mins late / ${rule.trigger_unit} units`
-        });
-      }
-    }
-
-    // 2. Calculate Performance Deduction (Under Target)
-    const { data: perfRules } = await pointRepo.findRulesByMetric(dbClient, 'points_shortage');
-    const { data: performance } = await pointRepo.getEmployeePerformance(dbClient, employeeId, month, year);
-
-    if (perfRules && perfRules.length > 0 && performance) {
-      const { target_points, actual_points } = performance;
-      if (actual_points < target_points) {
-        const shortage = target_points - actual_points;
-        const rule = perfRules[0];
-        const units = Math.floor(shortage / rule.trigger_unit);
-        const amount = units * rule.amount_per_unit;
-
-        if (amount > 0) {
-          adjustments.push({
-            type: 'performance_deduction',
-            amount,
-            details: `Shortage: ${shortage} pts (Target: ${target_points})`
-          });
-        }
-      }
-    }
-
-    // 3. Calculate Performance Bonus (Over Target)
-    const { data: bonusRules } = await pointRepo.findRulesByMetric(dbClient, 'points_earned');
-    if (bonusRules && bonusRules.length > 0 && performance) {
-      const { actual_points } = performance;
-      const rule = bonusRules[0];
-      if (actual_points >= rule.trigger_unit) {
-        const units = Math.floor(actual_points / rule.trigger_unit);
-        const amount = units * rule.amount_per_unit;
-
-        if (amount > 0) {
-          adjustments.push({
-            type: 'performance_bonus',
-            amount,
-            details: `Performance Bonus: ${actual_points} pts / ${rule.trigger_unit} units`
-          });
-        }
-      }
-    }
+    // Filter for specific employee and map to required format
+    const adjustments = (data || [])
+      .filter(adj => adj.employee_id === employeeId)
+      .map(adj => ({
+        type: adj.adjustment_type === 'addition' ? 'performance_bonus' : adj.component_code.toLowerCase(),
+        amount: adj.amount,
+        details: adj.details
+      }));
 
     return { success: true, data: adjustments };
   } catch (error) {
     console.error('Error calculating adjustments:', error);
     return { success: false, error, statusHint: 'server_error' };
+  }
+}
+
+/**
+ * Get aggregated metrics for the payroll summary
+ */
+export async function getPayrollMetrics(dbClient, month, year) {
+  try {
+    const { data, error } = await dbClient
+      .from('v_payroll_ready_metrics')
+      .select('*')
+      .eq('month', month)
+      .eq('year', year);
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error fetching payroll metrics:', error);
+    return { success: false, error };
   }
 }

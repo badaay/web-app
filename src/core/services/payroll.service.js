@@ -38,10 +38,20 @@ export async function calculatePayroll(dbClient, periodId, userId) {
     const { data: configs, error: configErr } = await payrollRepo.findSalaryConfigsForEmployees(dbClient, employeeIds);
     if (configErr) throw new Error(`Config fetch error: ${configErr.message}`);
 
+    // ── Step 4c: Get pre-aggregated performance and attendance metrics ──
+    const { data: allMetrics } = await dbClient
+      .from('v_payroll_ready_metrics')
+      .select('*')
+      .eq('year', period.year)
+      .eq('month', period.month);
+
+    const metricsMap = Object.fromEntries((allMetrics || []).map(m => [m.employee_id, m]));
+
     const lineItems = [];
     const summaries = [];
 
     for (const emp of employees) {
+      const empMetrics = metricsMap[emp.id] || {};
       const empConfigs = configs?.filter(c => c.employee_id === emp.id) || [];
       const activeConfig = empConfigs.find(c => {
         const start = new Date(c.effective_from);
@@ -94,9 +104,6 @@ export async function calculatePayroll(dbClient, periodId, userId) {
       
       let lateDeduction = 0;
       let pointDeduction = 0;
-      let targetPoints = 0;
-      let actualPoints = 0;
-      let pointShortage = 0;
 
       if (adjData) {
         for (const adj of adjData) {
@@ -105,44 +112,11 @@ export async function calculatePayroll(dbClient, periodId, userId) {
             addLine('deduction', 'LATE_DEDUCTION', 'Potongan Telat', lateDeduction, { details: adj.details });
           } else if (adj.type === 'performance_deduction') {
             pointDeduction = adj.amount;
-            // Extract details if possible (simplified for now as we don't have a complex parser)
             addLine('deduction', 'POINT_SHORTAGE', 'Potongan Kekurangan Poin', pointDeduction, { details: adj.details });
           } else if (adj.type === 'performance_bonus') {
             addLine('earning', 'POINT_BONUS', 'Bonus Prestasi Poin', adj.amount, { details: adj.details });
           }
         }
-      }
-
-      // We still need raw performance data for the summary table
-      const { data: perf } = await dbClient.from('employees').select('target_monthly_points').eq('id', emp.id).single();
-      targetPoints = perf?.target_monthly_points || 0;
-      
-      // Calculate actual points for the period
-      const { data: points } = await dbClient
-        .from('work_order_assignments')
-        .select('points_earned')
-        .eq('employee_id', emp.id)
-        .gte('created_at', period.period_start)
-        .lte('created_at', period.period_end);
-      
-      actualPoints = points?.reduce((sum, p) => sum + (p.points_earned || 0), 0) || 0;
-      pointShortage = Math.max(0, targetPoints - actualPoints);
-
-      // Attendance (Still needed for summary table)
-      const { data: attData } = await payrollRepo.findAttendanceData(dbClient, emp.id, period.period_start, period.period_end);
-      const daysPresent = attData?.filter(r => !r.is_absent).length || 0;
-      const daysLate = attData?.filter(r => r.late_minutes > 0).length || 0;
-      const daysAbsent = attData?.filter(r => r.is_absent).length || 0;
-
-      // BPJS
-      if (emp.is_bpjs_enrolled) {
-        addLine('deduction', 'BPJS', 'BPJS Ketenagakerjaan', bpjsAmount);
-      }
-
-      // Adjustments
-      const { data: adjs } = await payrollRepo.findAdjustments(dbClient, emp.id, periodId);
-      for (const adj of (adjs || [])) {
-        addLine(adj.adjustment_type === 'bonus' ? 'earning' : 'deduction', `MANUAL_${adj.id.slice(0, 8).toUpperCase()}`, adj.reason, adj.amount);
       }
 
       // Summarize
@@ -157,12 +131,12 @@ export async function calculatePayroll(dbClient, periodId, userId) {
         gross_earnings: gross,
         total_deductions: deds,
         take_home_pay: thp,
-        target_points: targetPoints,
-        actual_points: actualPoints,
-        point_shortage: pointShortage,
-        days_present: daysPresent,
-        days_late: daysLate,
-        days_absent: daysAbsent,
+        target_points: empMetrics.target_points || 0,
+        actual_points: empMetrics.actual_points || 0,
+        point_shortage: empMetrics.point_shortage || 0,
+        days_present: empMetrics.total_present_days || 0,
+        days_late: empMetrics.total_late_days || 0,
+        days_absent: empMetrics.total_absent_days || 0,
         overtime_amount: otTotal,
         updated_at: new Date().toISOString()
       });

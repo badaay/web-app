@@ -9,6 +9,7 @@ ADD COLUMN IF NOT EXISTS deduction_points INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS adjustment_reason TEXT;
 
 -- Update the view to include these columns in the JSON output
+DROP VIEW IF EXISTS public.v_activity_work_orders CASCADE;
 CREATE OR REPLACE VIEW public.v_activity_work_orders AS
 SELECT 
     wo.*,
