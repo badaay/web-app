@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mitra Flow | Admin Operational Manual v2</title>
+  
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Lora', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            cobalt: '#0047AB',
+            tealBrand: '#14b8a6',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+    .interactive-term {
+      @apply relative cursor-help text-cobalt underline decoration-cobalt/30 decoration-dashed underline-offset-4 hover:text-blue-800 transition-colors font-medium;
+    }
+
+    .info-card {
+      @apply absolute w-full opacity-0 translate-y-4 pointer-events-none transition-all duration-300 ease-out bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-xl rounded-2xl p-6;
+    }
+
+    .info-card.active {
+      @apply opacity-100 translate-y-0 pointer-events-auto;
+    }
+
+    .wa-item {
+      @apply p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200;
+    }
+    
+    .content-list { @apply list-disc list-inside space-y-2 mb-6; }
+    .content-list li { @apply pl-2; }
+
+    .step-number {
+      @apply w-6 h-6 rounded-full bg-cobalt text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5;
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-slate-800 antialiased selection:bg-blue-100 selection:text-cobalt transition-colors duration-300">
+
+  <!-- Floating Selection Toolbar -->
+  <div id="selection-toolbar" class="fixed z-50 hidden opacity-0 transition-opacity duration-200 -translate-x-1/2 bg-slate-900 text-white rounded-lg shadow-2xl px-2 py-1 flex items-center gap-1">
+    <button class="p-2 hover:bg-cobalt rounded text-xs font-sans transition-colors flex items-center gap-2">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+      Highlight
+    </button>
+    <div class="w-px h-4 bg-slate-700 mx-1"></div>
+    <button class="p-2 hover:bg-cobalt rounded text-xs font-sans transition-colors flex items-center gap-2">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+      Bagikan
+    </button>
+  </div>
+
+  <!-- Layout Container -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12 relative">
+    
+    <!-- Left Navigation (TOC) -->
+    <div class="hidden lg:block lg:col-span-2">
+      <nav class="sticky top-12 space-y-2">
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Navigasi</div>
+        <a href="#intro" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Pengantar</a>
+        <a href="#roles" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Matriks Peran</a>
+        <a href="#lifecycle" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Visual Lifecycle</a>
+        <a href="#pendaftaran" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Modul Pendaftaran</a>
+        <a href="#validation" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Aturan Validasi</a>
+        <a href="#wa-templates" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Katalog WA</a>
+        <a href="#payroll" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Approval Payroll</a>
+        <a href="#point-engine" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Point Engine</a>
+        <a href="#inventory" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Aset & Material</a>
+        <a href="#fonnte" class="block text-xs font-medium text-slate-500 hover:text-cobalt transition-colors py-1">Pengaturan WA</a>
+      </nav>
+    </div>
+
+    <!-- Main Reading Column -->
+    <main class="lg:col-span-6 w-full max-w-[70ch] mx-auto font-serif text-[19px] md:text-[21px] leading-[1.85] text-slate-700">
+      
+      <header id="intro" class="mb-16 border-b border-slate-200 pb-10">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="px-2 py-0.5 bg-blue-100 text-cobalt text-[10px] font-bold uppercase tracking-wider rounded">v2.9.6</span>
+          <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">User Manual v2</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold font-sans text-slate-900 tracking-tight mb-4">
+          Operasional Admin
+        </h1>
+        <p class="font-sans text-base text-slate-500 leading-relaxed italic">
+          Panduan praktis untuk pengelolaan operasional, keuangan, dan sistem Mitra Flow.
+        </p>
+      </header>
+
+      <article id="reader-content">
+        
+        <p class="mb-10 first-letter:text-5xl first-letter:font-bold first-letter:text-cobalt first-letter:mr-3 first-letter:float-left">
+          Panduan ini disusun untuk membantu Admin dan Bendahara menjalankan operasional Mitra Flow secara efisien. Fokus utama sistem adalah pada kecepatan konfirmasi, akurasi poin teknisi, dan pemantauan stok material secara real-time.
+        </p>
+
+        <!-- Section: Peran -->
+        <section id="roles" class="mb-20 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Matriks Peran & RBAC</h2>
+          <p class="mb-6 text-base font-sans text-slate-600">
+            Sistem menggunakan model 
+            <span class="interactive-term" data-target="info-rbac">RBAC</span> 
+            untuk memastikan setiap staf hanya dapat mengakses data sesuai fungsinya.
+          </p>
+          <div class="not-prose my-8 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+            <table class="w-full text-sm font-sans">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="px-4 py-3 text-left font-bold text-cobalt uppercase tracking-wider text-[10px]">Peran</th>
+                  <th class="px-4 py-3 text-left font-bold text-cobalt uppercase tracking-wider text-[10px]">Tanggung Jawab</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr><td class="px-4 py-3 font-semibold text-slate-900">Admin</td><td class="px-4 py-3 text-slate-500">Pendaftaran pelanggan, konfirmasi antrean, dan master data dasar.</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-slate-900">Bendahara</td><td class="px-4 py-3 text-slate-500">Rekap gaji (Payroll), verifikasi poin, dan ekspor laporan keuangan.</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-slate-900">SPV Teknisi</td><td class="px-4 py-3 text-slate-500">Monitoring material, kontrol stok gudang, dan pengawasan tim.</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-slate-900">Teknisi</td><td class="px-4 py-3 text-slate-500">Klaim tugas lapangan dan update foto instalasi.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section: Lifecycle -->
+        <section id="lifecycle" class="mb-20 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Visual Lifecycle: Perjalanan Tiket</h2>
+          <p class="mb-8 text-slate-500 font-sans text-base leading-relaxed">
+            Alur kerja utama Work Order (WO) yang melacak perjalanan tiket dari pendaftaran hingga penyelesaian akhir.
+          </p>
+          <div class="flex flex-col gap-4 mb-10">
+            <div class="flex items-center gap-4 group">
+              <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-cobalt transition-colors shrink-0">1</div>
+              <div class="bg-white p-4 border border-slate-200 rounded-2xl flex-1 shadow-sm">
+                <h4 class="font-sans font-bold text-base mb-1">Waiting</h4>
+                <p class="font-sans text-xs text-slate-500">Calon pelanggan baru mendaftar (Leads).</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 group">
+              <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-cobalt shrink-0">2</div>
+              <div class="bg-blue-50/50 p-4 border border-blue-100 rounded-2xl flex-1 shadow-sm">
+                <h4 class="font-sans font-bold text-base text-cobalt mb-1">Confirmed</h4>
+                <p class="font-sans text-xs text-slate-600">Admin menyetujui pendaftaran & penugasan.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 group">
+              <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">3</div>
+              <div class="bg-white p-4 border border-slate-200 rounded-2xl flex-1 shadow-sm">
+                <h4 class="font-sans font-bold text-base mb-1">Closed</h4>
+                <p class="font-sans text-xs text-slate-500">Pekerjaan selesai, poin otomatis cair ke teknisi.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Pendaftaran -->
+        <section id="pendaftaran" class="mb-20 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Modul Pendaftaran</h2>
+          <p class="mb-6 text-base font-sans text-slate-600">
+            Menu Pendaftaran mengelola calon pelanggan (
+            <span class="interactive-term" data-target="info-leads">Leads</span>) 
+            yang masuk dari berbagai kanal.
+          </p>
+          <ul class="content-list font-sans text-base text-slate-600">
+            <li>Memantau pendaftaran harian (Tab Today).</li>
+            <li>Memvalidasi KTP dan alamat pemasangan.</li>
+            <li>Mengubah status pendaftaran menjadi antrean aktif.</li>
+          </ul>
+        </section>
+
+        <!-- Section: Validasi Data -->
+        <section id="validation" class="mb-20 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Aturan Validasi Data</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 font-sans">
+            <div class="space-y-4">
+              <h4 class="text-sm font-bold text-cobalt uppercase tracking-widest border-b border-slate-200 pb-2">Format Pelanggan</h4>
+              <ul class="text-[13px] text-slate-500 space-y-2">
+                <li><strong>Kode Pelanggan:</strong> <code>YYMMXXXXXXX</code> (11 digit).</li>
+                <li><strong>KTP (NIK):</strong> Wajib 16 digit angka.</li>
+                <li><strong>No. HP:</strong> Diawali <code>08</code> atau <code>62</code> (9-13 digit).</li>
+              </ul>
+            </div>
+            <div class="space-y-4">
+              <h4 class="text-sm font-bold text-cobalt uppercase tracking-widest border-b border-slate-200 pb-2">Format Karyawan</h4>
+              <ul class="text-[13px] text-slate-500 space-y-2">
+                <li><strong>Employee ID:</strong> 9 digit angka (YYYYMMXXX).</li>
+                <li><strong>Email:</strong> Harus unik (untuk kredensial login).</li>
+                <li><strong>Target Poin:</strong> Default 1000/bulan (KPI).</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: WA Templates -->
+        <section id="wa-templates" class="mb-20 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Katalog Pesan WA</h2>
+          <p class="mb-10 text-slate-500 font-sans text-base leading-relaxed">
+            Pesan otomatis yang dipicu oleh perubahan status di sistem melalui gateway WhatsApp.
+          </p>
+          
+          <div class="space-y-6">
+            <div class="wa-item">
+              <div class="flex justify-between items-center mb-2">
+                <h4 class="font-sans font-bold text-xs text-cobalt uppercase tracking-widest">Pendaftaran Baru</h4>
+                <span class="text-[9px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded font-bold uppercase">Auto-Reply</span>
+              </div>
+              <div class="font-sans text-[15px] text-slate-600 bg-slate-50 p-4 rounded-lg italic border border-slate-100">
+                "Halo *${name}*! Tiket pemasangan internet Anda berhasil dibuat dengan nomor: *${queue_number}*. Tim kami akan segera memproses. Terima kasih! 🙏"
+              </div>
+            </div>
+
+            <div class="wa-item">
+              <div class="flex justify-between items-center mb-2">
+                <h4 class="font-sans font-bold text-xs text-cobalt uppercase tracking-widest">Konfirmasi Admin</h4>
+                <span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold uppercase">Status Update</span>
+              </div>
+              <div class="font-sans text-[15px] text-slate-600 bg-slate-50 p-4 rounded-lg italic border border-slate-100">
+                "Kabar baik untuk *${name}*! Pesanan Anda telah *dikonfirmasi* oleh admin. Teknisi *${technician_name}* akan segera dijadwalkan ke lokasi Anda."
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Payroll -->
+        <section id="payroll" class="mb-20 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Approval Payroll & Finance</h2>
+          <p class="mb-6 text-base font-sans text-slate-600">
+            Bendahara menggunakan menu ini untuk memproses gaji bulanan secara transparan dan akurat berdasarkan akumulasi 
+            <span class="interactive-term" data-target="info-point">Poin</span> teknisi.
+          </p>
+          <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-8 font-sans">
+            <h5 class="text-cobalt font-bold text-sm mb-4 uppercase tracking-wider">Fitur Utama & Kegunaan:</h5>
+            <ul class="text-[14px] text-slate-600 space-y-3">
+              <li class="flex items-start gap-3">
+                <div class="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5"></div>
+                <div><strong>Seleksi Periode:</strong> Pilih bulan dan tahun gaji yang akan diproses.</div>
+              </li>
+              <li class="flex items-start gap-3">
+                <div class="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5"></div>
+                <div><strong>Rekapitulasi Otomatis:</strong> Sistem menghitung Penghasilan Kotor, Potongan, dan Poin Teknisi secara real-time.</div>
+              </li>
+              <li class="flex items-start gap-3">
+                <div class="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5"></div>
+                <div><strong>Status Pembayaran:</strong> Melacak status gaji dari Calculated (Dihitung) &rarr; Approved (Disetujui) &rarr; Paid (Lunas).</div>
+              </li>
+              <li class="flex items-start gap-3">
+                <div class="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5"></div>
+                <div><strong>Ekspor CSV:</strong> Download laporan gaji dalam format Excel/CSV untuk pembukuan internal.</div>
+              </li>
+              <li class="flex items-start gap-3">
+                <div class="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5"></div>
+                <div><strong>Slip Gaji:</strong> Cetak atau lihat slip gaji per individu teknisi dengan rincian poin pengerjaan.</div>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Section: Point Engine -->
+        <section id="point-engine" class="mb-20 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Detail Algoritma Point Engine</h2>
+          <p class="mb-8 text-base font-sans text-slate-600 leading-relaxed">
+            Sistem poin dirancang untuk menghargai setiap jenis pekerjaan lapangan dengan nilai yang proporsional.
+          </p>
+          <div class="not-prose grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+              <h5 class="font-sans font-bold text-xs text-slate-400 uppercase tracking-widest mb-4">Tipe Pekerjaan & Poin Dasar</h5>
+              <ul class="font-sans text-[13px] text-slate-600 space-y-2">
+                <li class="flex justify-between"><span>PSB (Pemasangan Baru)</span> <span class="font-bold text-cobalt">2 Poin</span></li>
+                <li class="flex justify-between"><span>REPAIR (Perbaikan)</span> <span class="font-bold text-cobalt">1 Poin</span></li>
+                <li class="flex justify-between"><span>MAINTENANCE</span> <span class="font-bold text-cobalt">1 Poin</span></li>
+                <li class="flex justify-between"><span>UPGRADE</span> <span class="font-bold text-cobalt">1 Poin</span></li>
+              </ul>
+            </div>
+            <div class="bg-cobalt/5 p-5 rounded-2xl border border-cobalt/10 flex flex-col justify-center">
+              <h5 class="font-sans font-bold text-xs text-cobalt uppercase tracking-widest mb-2">Logika Pembagian</h5>
+              <p class="font-sans text-[12px] text-slate-500 leading-relaxed mb-0 italic">
+                "Jika tugas dikerjakan oleh lebih dari satu orang, poin dasar akan dibagi rata secara otomatis oleh sistem."
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Inventory -->
+        <section id="inventory" class="mb-20 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Aset & Material</h2>
+          <p class="mb-8 text-base font-sans text-slate-600">
+            Stok material dipantau secara real-time untuk akurasi data inventaris di gudang.
+          </p>
+          <div class="not-prose overflow-hidden rounded-xl border border-slate-200 mb-8 bg-white shadow-sm">
+            <table class="w-full text-xs font-sans">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="px-4 py-3 text-left text-slate-400 uppercase tracking-widest">Kode Item</th>
+                  <th class="px-4 py-3 text-left text-slate-400 uppercase tracking-widest">Nama Barang</th>
+                  <th class="px-4 py-3 text-left text-slate-400 uppercase tracking-widest">Stok</th>
+                  <th class="px-4 py-3 text-left text-slate-400 uppercase tracking-widest">Unit</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr><td class="px-4 py-3 font-mono text-cobalt">INV-CBL-001</td><td class="px-4 py-3 text-slate-700">Kabel Dropcore 1 Core</td><td class="px-4 py-3 font-bold">1500</td><td class="px-4 py-3 text-slate-400 italic">Meter</td></tr>
+                <tr><td class="px-4 py-3 font-mono text-cobalt">INV-EQU-024</td><td class="px-4 py-3 text-slate-700">ONU XPON HG8546M</td><td class="px-4 py-3 font-bold">50</td><td class="px-4 py-3 text-slate-400 italic">Pcs</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section: Fonnte -->
+        <section id="fonnte" class="mb-32 scroll-mt-12">
+          <h2 class="text-3xl font-sans font-bold text-slate-900 mb-6">Pengaturan WA</h2>
+          <div class="bg-amber-50 border border-amber-100 p-5 rounded-2xl mb-8 font-sans">
+            <p class="text-sm text-amber-800 leading-relaxed mb-0">
+              <strong>Penting:</strong> Koneksi <span class="interactive-term" data-target="info-fonnte">Fonnte</span> harus tetap aktif agar notifikasi pelanggan terkirim secara otomatis. Gunakan menu System Settings untuk memperbarui token.
+            </p>
+          </div>
+          
+          <h5 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 font-sans">Langkah-langkah Pembaruan Token:</h5>
+          <div class="space-y-4 font-sans mb-10">
+            <div class="flex gap-4">
+              <div class="step-number">1</div>
+              <p class="text-[15px] text-slate-600">Buka <strong>System &gt; Settings</strong> di dashboard Admin.</p>
+            </div>
+            <div class="flex gap-4">
+              <div class="step-number">2</div>
+              <p class="text-[15px] text-slate-600">Cari grup <strong>WhatsApp / Fonnte</strong>.</p>
+            </div>
+            <div class="flex gap-4">
+              <div class="step-number">3</div>
+              <p class="text-[15px] text-slate-600">Salin token dari dashboard Fonnte ke kolom <code>FONNTE_TOKEN</code> dan simpan perubahan.</p>
+            </div>
+          </div>
+        </section>
+
+      </article>
+
+      <footer class="mt-20 pt-10 border-t border-slate-200 text-center font-sans">
+        <p class="text-[10px] text-slate-400 uppercase tracking-[0.3em]">
+          &copy; 2026 Mitra Flow System &middot; Document v2.9.6
+        </p>
+      </footer>
+
+    </main>
+
+    <!-- The Interactive Sidebar -->
+    <aside class="hidden lg:block lg:col-span-4 relative">
+      <div class="sticky top-12 space-y-4">
+        
+        <!-- Info Card: RBAC -->
+        <div id="info-rbac" class="info-card">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-cobalt">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h3 class="font-sans font-semibold text-slate-900 text-sm">Role Based Access</h3>
+          </div>
+          <p class="font-sans text-[13px] text-slate-500 leading-relaxed">
+            Sistem pengaturan hak akses di mana izin diberikan berdasarkan tugas atau jabatan dalam organisasi, bukan per individu.
+          </p>
+        </div>
+
+        <!-- Info Card: Leads -->
+        <div id="info-leads" class="info-card">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-xl bg-teal-100 flex items-center justify-center text-teal-700">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            </div>
+            <h3 class="font-sans font-semibold text-slate-900 text-sm">Leads</h3>
+          </div>
+          <p class="font-sans text-[13px] text-slate-500 leading-relaxed">
+            Data calon pelanggan potensial yang baru saja mendaftar dan menunggu proses validasi atau konfirmasi oleh Admin.
+          </p>
+        </div>
+
+        <!-- Info Card: Fonnte -->
+        <div id="info-fonnte" class="info-card">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center text-green-700">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            </div>
+            <h3 class="font-sans font-semibold text-slate-900 text-sm">Fonnte WA Gateway</h3>
+          </div>
+          <p class="font-sans text-[13px] text-slate-500 leading-relaxed">
+            Layanan pengiriman pesan WhatsApp massal otomatis yang memungkinkan sistem untuk memberi tahu pelanggan secara instan.
+          </p>
+        </div>
+
+        <!-- Info Card: Point -->
+        <div id="info-point" class="info-card">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-700">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h3 class="font-sans font-semibold text-slate-900 text-sm">Point System</h3>
+          </div>
+          <p class="font-sans text-[13px] text-slate-500 leading-relaxed">
+            Skema insentif bagi teknisi di mana setiap pekerjaan yang diselesaikan memiliki nilai poin tertentu yang nantinya diakumulasi menjadi rupiah.
+          </p>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      /* 1. CONTEXTUAL SIDEBAR LOGIC */
+      const terms = document.querySelectorAll('.interactive-term');
+      const cards = document.querySelectorAll('.info-card');
+      const readerContent = document.getElementById('reader-content');
+
+      const hideAllCards = () => {
+        cards.forEach(c => c.classList.remove('active'));
+      };
+
+      const showCard = (targetId) => {
+        hideAllCards();
+        const targetCard = document.getElementById(targetId);
+        if (targetCard) targetCard.classList.add('active');
+      };
+
+      terms.forEach(term => {
+        term.addEventListener('mouseenter', () => {
+          const targetId = term.getAttribute('data-target');
+          showCard(targetId);
+        });
+      });
+
+      readerContent.addEventListener('mouseleave', hideAllCards);
+
+      /* 2. FLOATING SELECTION TOOLBAR LOGIC */
+      const toolbar = document.getElementById('selection-toolbar');
+
+      document.addEventListener('mouseup', () => {
+        const selection = window.getSelection();
+        const text = selection.toString().trim();
+
+        if (text.length > 0) {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          const topPos = rect.top + window.scrollY - 55; 
+          const leftPos = rect.left + window.scrollX + (rect.width / 2);
+
+          toolbar.style.top = `${topPos}px`;
+          toolbar.style.left = `${leftPos}px`;
+          
+          toolbar.classList.remove('hidden');
+          requestAnimationFrame(() => {
+            toolbar.classList.remove('opacity-0');
+            toolbar.classList.add('opacity-100');
+          });
+        } else {
+          toolbar.classList.remove('opacity-100');
+          toolbar.classList.add('opacity-0');
+          setTimeout(() => toolbar.classList.add('hidden'), 200);
+        }
+      });
+
+      toolbar.addEventListener('mousedown', (e) => e.preventDefault());
+    });
+  </script>
+
+</body>
+</html>
